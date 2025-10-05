@@ -210,12 +210,20 @@ void fe25519_mul(fe25519 *r, const fe25519 *x, const fe25519 *y)
   int i;
   uint32_t t[63];
 
-  for (int k = 0; k <= 62; ++k)
+  for (int k = 0; k <= 31; ++k)
   {
     uint32_t acc = 0;
-    int i0 = (k > 31) ? (k - 31) : 0;
-    int i1 = (k < 31) ? k : 31;
-    for (int i = i0; i <= i1; ++i)
+    for (int i = 0; i <= k; ++i)
+    {
+      acc += (uint32_t)x->v[i] * (uint32_t)y->v[k - i];
+    }
+    t[k] = acc;
+  }
+  // k = 32..62 =>  i ∈ [k-31, 31]
+  for (int k = 32; k <= 62; ++k)
+  {
+    uint32_t acc = 0;
+    for (int i = k - 31; i <= 31; ++i)
     {
       acc += (uint32_t)x->v[i] * (uint32_t)y->v[k - i];
     }
