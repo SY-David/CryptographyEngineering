@@ -213,14 +213,20 @@ void fe25519_sub(fe25519 *r, const fe25519 *x, const fe25519 *y)
 
 void fe25519_mul(fe25519 *r, const fe25519 *x, const fe25519 *y)
 {
-  int i, j;
+  int i;
   uint32_t t[63];
-  for (i = 0; i < 63; i++)
-    t[i] = 0;
 
-  for (i = 0; i < 32; i++)
-    for (j = 0; j < 32; j++)
-      t[i + j] += x->v[i] * y->v[j];
+  for (int k = 0; k <= 62; ++k)
+  {
+    uint32_t acc = 0;
+    int i0 = (k > 31) ? (k - 31) : 0;
+    int i1 = (k < 31) ? k : 31;
+    for (int i = i0; i <= i1; ++i)
+    {
+      acc += (uint32_t)x->v[i] * (uint32_t)y->v[k - i];
+    }
+    t[k] = acc;
+  }
 
   for (i = 32; i < 63; i++)
     r->v[i - 32] = t[i - 32] + times38(t[i]);
