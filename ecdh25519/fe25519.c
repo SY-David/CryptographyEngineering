@@ -219,7 +219,7 @@ void fe25519_mul(fe25519 *r, const fe25519 *x, const fe25519 *y)
     }
     t[k] = acc;
   }
-  // k = 32..62 =>  i ∈ [k-31, 31]
+
   for (int k = 32; k <= 62; ++k)
   {
     uint32_t acc = 0;
@@ -241,27 +241,31 @@ void fe25519_square(fe25519 *r, const fe25519 *x)
 {
   uint32_t t[63];
 
-  for (int k = 0; k <= 62; ++k)
+  for (int k = 0; k <= 62; k += 2)
   {
-
-    int i = (k > 31) ? (k - 31) : 0;
-    int j = (k < 31) ? k : 31;
-
+    int m = k >> 1;
     uint32_t acc = 0;
 
-    while (i < j)
+    for (int i = 0; i < m; ++i)
     {
-      acc += ((uint32_t)x->v[i] * (uint32_t)x->v[j]) << 1;
-      ++i;
-      --j;
+      acc += ((uint32_t)x->v[i] * (uint32_t)x->v[k - i]) << 1;
     }
 
-    if (i == j)
-    {
-      uint32_t xi = (uint32_t)x->v[i];
-      acc += xi * xi;
-    }
+    uint32_t d = (uint32_t)x->v[m];
+    acc += d * d;
 
+    t[k] = acc;
+  }
+
+  for (int k = 1; k <= 61; k += 2)
+  {
+    int m = (k + 1) >> 1;
+    uint32_t acc = 0;
+
+    for (int i = 0; i < m; ++i)
+    {
+      acc += ((uint32_t)x->v[i] * (uint32_t)x->v[k - i]) << 1;
+    }
     t[k] = acc;
   }
 
