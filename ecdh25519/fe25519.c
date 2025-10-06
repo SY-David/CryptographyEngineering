@@ -205,34 +205,74 @@ void fe25519_sub(fe25519 *r, const fe25519 *x, const fe25519 *y)
   reduce_add_sub(r);
 }
 
-void fe25519_mul(fe25519 *r, const fe25519 *x, const fe25519 *y)
+static inline void pack_bytes_to_8x32(uint32_t L[8], const fe25519 *a)
 {
-  int i = 0;
-  uint32_t t[63];
-
-  for (int k = 0; k <= 31; ++k)
+  // little-endian，每 4 個 byte 打成一個 32-bit limb
+  for (int i = 0; i < 8; ++i)
   {
-    uint32_t acc = 0;
-    for (int i = 0; i <= k; ++i)
+    L[i] = (uint32_t)a->v[4 * i];
+    L[i] |= (uint32_t)a->v[4 * i + 1] << 8;
+    L[i] |= (uint32_t)a->v[4 * i + 2] << 16;
+    L[i] |= (uint32_t)a->v[4 * i + 3] << 24;
+  }
+}
+
+void fe25519_mul(fe25519 *restrict r, const fe25519 *restrict x, const fe25519 *restrict y)
+{
+  typedef unsigned __int128 u128;
+
+  // 1) 32 bytes → 8×32 limbs（僅在本函式內部使用）
+  uint32_t A[8], B[8];
+  pack_bytes_to_8x32(A, x);
+  pack_bytes_to_8x32(B, y);
+
+  // 2) 8×8 Comba：P[0..15] = Σ A[i]*B[k-i]
+  u128 P[16] = {0};
+  for (int k = 0; k <= 15; ++k)
+  {
+    int i0 = (k > 7) ? (k - 7) : 0;
+    int i1 = (k < 7) ? k : 7;
+    u128 acc = 0;
+    for (int i = i0; i <= i1; ++i)
     {
-      acc += (uint32_t)x->v[i] * (uint32_t)y->v[k - i];
+      acc += (u128)A[i] * (u128)B[k - i];
     }
-    t[k] = acc;
+    P[k] = acc;
   }
 
-  for (int k = 32; k <= 62; ++k)
+  // 3) 高欄以 2^256≡38 摺回：T[i] = P[i] + 38*P[i+8]
+  u128 T[8];
+  for (int i = 0; i < 8; ++i)
   {
-    uint32_t acc = 0;
-    for (int i = k - 31; i <= 31; ++i)
-    {
-      acc += (uint32_t)x->v[i] * (uint32_t)y->v[k - i];
-    }
-    t[k] = acc;
+    u128 hi = (i + 8 <= 15) ? P[i + 8] : (u128)0;
+    // 38*hi：128 位安全（P[k] 上界約 < 2^67，×38 < 2^73）
+    T[i] = P[i] + (hi * (u128)38);
   }
 
-  for (i = 32; i < 63; i++)
-    r->v[i - 32] = t[i - 32] + times38(t[i]);
-  r->v[31] = t[31];
+  // 4) 清空位元組欄位暫存（32 個 8-bit 欄位，容器是 uint32_t 以容納未傳播的進位）
+  for (int i = 0; i < 32; ++i)
+    r->v[i] = 0;
+
+  // 5) 把每個 T[i] 分解成位元組並加到對應欄位：index = 4*i + b
+  //    固定 11 個位元組即可覆蓋到 ~88 bits；當然後面的 idx>=32 就略過
+  for (int i = 0; i < 8; ++i)
+  {
+    u128 U = T[i];
+    for (int b = 0; b < 11; ++b)
+    {
+      int idx = (i << 2) + b; // 4*i + b
+      if (idx < 32)
+      {
+        uint32_t byte = (uint32_t)(U & 0xffu);
+        r->v[idx] += byte; // 先累加，進位交給 reduce_mul
+        U >>= 8;
+      }
+      else
+      {
+        break; // 超出 32 bytes 就不寫了
+      }
+    }
+  }
 
   reduce_mul(r);
 }
