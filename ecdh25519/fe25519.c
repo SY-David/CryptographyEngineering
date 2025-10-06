@@ -205,9 +205,56 @@ void fe25519_sub(fe25519 *r, const fe25519 *x, const fe25519 *y)
   reduce_add_sub(r);
 }
 
+typedef struct
+{
+  uint64_t lo, hi;
+} u128p;
+
+// acc += x   （x 為 64 位）
+static inline void u128p_add64(u128p *acc, uint64_t x)
+{
+  uint64_t old = acc->lo;
+  acc->lo += x;
+  acc->hi += (acc->lo < old); // 進位
+}
+
+// z = a + b
+static inline u128p u128p_add(u128p a, u128p b)
+{
+  u128p z;
+  z.lo = a.lo + b.lo;
+  z.hi = a.hi + b.hi + (z.lo < a.lo);
+  return z;
+}
+
+// z = (a << s)，1 ≤ s ≤ 63
+static inline u128p u128p_shl(u128p a, int s)
+{
+  u128p z;
+  z.hi = (a.hi << s) | (a.lo >> (64 - s));
+  z.lo = (a.lo << s);
+  return z;
+}
+
+// z = a + (b << s)，1 ≤ s ≤ 63
+static inline u128p u128p_add_shl(u128p a, u128p b, int s)
+{
+  u128p t = u128p_shl(b, s);
+  return u128p_add(a, t);
+}
+
+// 取出 a 的低 8 位並右移 8 位（a >>= 8）
+static inline uint32_t u128p_pop_byte(u128p *a)
+{
+  uint32_t byte = (uint32_t)(a->lo & 0xffu);
+  a->lo = (a->lo >> 8) | (a->hi << 56);
+  a->hi = (a->hi >> 8);
+  return byte;
+}
+
+// ---- 32 bytes ↔ 8×32 pack/unpack ----
 static inline void pack_bytes_to_8x32(uint32_t L[8], const fe25519 *a)
 {
-  // little-endian，每 4 個 byte 打成一個 32-bit limb
   for (int i = 0; i < 8; ++i)
   {
     L[i] = (uint32_t)a->v[4 * i];
@@ -216,64 +263,67 @@ static inline void pack_bytes_to_8x32(uint32_t L[8], const fe25519 *a)
     L[i] |= (uint32_t)a->v[4 * i + 3] << 24;
   }
 }
-#include <stdint.h>
+
+// 你現有的 times38/19 與 reduce_mul(r) 保持不變。
+// 建議把 times38/19 改成 inline 位移相加，但非必要。
+
 void fe25519_mul(fe25519 *restrict r, const fe25519 *restrict x, const fe25519 *restrict y)
 {
-  typedef unsigned __int128 u128;
-
-  // 1) 32 bytes → 8×32 limbs（僅在本函式內部使用）
   uint32_t A[8], B[8];
   pack_bytes_to_8x32(A, x);
   pack_bytes_to_8x32(B, y);
 
-  // 2) 8×8 Comba：P[0..15] = Σ A[i]*B[k-i]
-  u128 P[16] = {0};
+  // 1) 8×8 Comba：P[0..15]（每個欄位是一個 128-bit pair）
+  u128p P[16];
   for (int k = 0; k <= 15; ++k)
   {
+    u128p acc = (u128p){0, 0};
     int i0 = (k > 7) ? (k - 7) : 0;
     int i1 = (k < 7) ? k : 7;
-    u128 acc = 0;
     for (int i = i0; i <= i1; ++i)
     {
-      acc += (u128)A[i] * (u128)B[k - i];
+      // 32×32 → 64
+      uint64_t prod = (uint64_t)A[i] * (uint64_t)B[k - i];
+      u128p_add64(&acc, prod);
     }
     P[k] = acc;
   }
 
-  // 3) 高欄以 2^256≡38 摺回：T[i] = P[i] + 38*P[i+8]
-  u128 T[8];
+  // 2) 摺回：T[i] = P[i] + 38*P[i+8]，用位移相加（<<5, <<2, <<1）
+  u128p T[8];
   for (int i = 0; i < 8; ++i)
   {
-    u128 hi = (i + 8 <= 15) ? P[i + 8] : (u128)0;
-    // 38*hi：128 位安全（P[k] 上界約 < 2^67，×38 < 2^73）
-    T[i] = P[i] + (hi * (u128)38);
+    u128p t = P[i];
+    if (i + 8 <= 15)
+    {
+      u128p h = P[i + 8];
+      // 38*h = (h<<5) + (h<<2) + (h<<1)
+      t = u128p_add_shl(t, h, 5);
+      t = u128p_add_shl(t, h, 2);
+      t = u128p_add_shl(t, h, 1);
+    }
+    T[i] = t;
   }
 
-  // 4) 清空位元組欄位暫存（32 個 8-bit 欄位，容器是 uint32_t 以容納未傳播的進位）
+  // 3) 清空 r 的 32 個位元組槽位（容器是 u32，但只用低 8 位；先清零以累加位元組）
   for (int i = 0; i < 32; ++i)
     r->v[i] = 0;
 
-  // 5) 把每個 T[i] 分解成位元組並加到對應欄位：index = 4*i + b
-  //    固定 11 個位元組即可覆蓋到 ~88 bits；當然後面的 idx>=32 就略過
+  // 4) 把每個 T[i] 分解成位元組，累加到 r->v[4*i + b]
+  //    T[i] < 2^73，因此取 11 個位元組足夠（安全餘裕）
   for (int i = 0; i < 8; ++i)
   {
-    u128 U = T[i];
+    u128p u = T[i];
     for (int b = 0; b < 11; ++b)
     {
       int idx = (i << 2) + b; // 4*i + b
-      if (idx < 32)
-      {
-        uint32_t byte = (uint32_t)(U & 0xffu);
-        r->v[idx] += byte; // 先累加，進位交給 reduce_mul
-        U >>= 8;
-      }
-      else
-      {
-        break; // 超出 32 bytes 就不寫了
-      }
+      if (idx >= 32)
+        break;
+      r->v[idx] += u128p_pop_byte(&u);
     }
   }
 
+  // 5) 交給既有 reduction 做 base-256 傳播與 2^255×19 折返
   reduce_mul(r);
 }
 
