@@ -205,125 +205,132 @@ void fe25519_sub(fe25519 *r, const fe25519 *x, const fe25519 *y)
   reduce_add_sub(r);
 }
 
-typedef struct
+static inline uint32_t fe_get_bits(const fe25519 *a, int start_bit, int width)
 {
-  uint64_t lo, hi;
-} u128p;
-
-// acc += x   （x 為 64 位）
-static inline void u128p_add64(u128p *acc, uint64_t x)
-{
-  uint64_t old = acc->lo;
-  acc->lo += x;
-  acc->hi += (acc->lo < old); // 進位
-}
-
-// z = a + b
-static inline u128p u128p_add(u128p a, u128p b)
-{
-  u128p z;
-  z.lo = a.lo + b.lo;
-  z.hi = a.hi + b.hi + (z.lo < a.lo);
-  return z;
-}
-
-// z = (a << s)，1 ≤ s ≤ 63
-static inline u128p u128p_shl(u128p a, int s)
-{
-  u128p z;
-  z.hi = (a.hi << s) | (a.lo >> (64 - s));
-  z.lo = (a.lo << s);
-  return z;
-}
-
-// z = a + (b << s)，1 ≤ s ≤ 63
-static inline u128p u128p_add_shl(u128p a, u128p b, int s)
-{
-  u128p t = u128p_shl(b, s);
-  return u128p_add(a, t);
-}
-
-// 取出 a 的低 8 位並右移 8 位（a >>= 8）
-static inline uint32_t u128p_pop_byte(u128p *a)
-{
-  uint32_t byte = (uint32_t)(a->lo & 0xffu);
-  a->lo = (a->lo >> 8) | (a->hi << 56);
-  a->hi = (a->hi >> 8);
-  return byte;
-}
-
-// ---- 32 bytes ↔ 8×32 pack/unpack ----
-static inline void pack_bytes_to_8x32(uint32_t L[8], const fe25519 *a)
-{
-  for (int i = 0; i < 8; ++i)
+  // 讀進最多 6 個位元組（足夠覆蓋 any 25/26-bit 視窗）
+  uint64_t acc = 0;
+  int byte0 = start_bit >> 3;
+  int shift = start_bit & 7;
+  int need = (shift + width + 7) >> 3; // 需要多少 byte（最多 5）
+  for (int k = 0; k < need; ++k)
   {
-    L[i] = (uint32_t)a->v[4 * i];
-    L[i] |= (uint32_t)a->v[4 * i + 1] << 8;
-    L[i] |= (uint32_t)a->v[4 * i + 2] << 16;
-    L[i] |= (uint32_t)a->v[4 * i + 3] << 24;
+    int idx = byte0 + k;
+    uint64_t b = (idx < 32) ? (uint64_t)(a->v[idx] & 0xffu) : 0;
+    acc |= (b << (8 * k));
+  }
+  uint64_t mask = (width == 32) ? 0xffffffffULL : ((1ULL << width) - 1ULL);
+  return (uint32_t)((acc >> shift) & mask);
+}
+
+// 把 value 的低 width 位寫回到 r 的 bit 區間 [start_bit, start_bit+width-1]（OR 累加）
+static inline void fe_put_bits(fe25519 *r, int start_bit, int width, uint32_t value)
+{
+  int bit = start_bit;
+  for (int i = 0; i < width; ++i, ++bit)
+  {
+    int byte_idx = bit >> 3;
+    int bit_idx = bit & 7;
+    if (byte_idx < 32)
+    {
+      r->v[byte_idx] += ((value >> i) & 1u) << bit_idx; // 先累加；carry 交給 reduce_mul
+    }
   }
 }
 
-// 你現有的 times38/19 與 reduce_mul(r) 保持不變。
-// 建議把 times38/19 改成 inline 位移相加，但非必要。
-
+// 主要：10×25.5 內部乘法，輸出仍為 32 個 8-bit digits，最後交給 reduce_mul
 void fe25519_mul(fe25519 *restrict r, const fe25519 *restrict x, const fe25519 *restrict y)
 {
-  uint32_t A[8], B[8];
-  pack_bytes_to_8x32(A, x);
-  pack_bytes_to_8x32(B, y);
+  // 1) 32 bytes → 10×(26/25) limbs（little-endian bit-slicing）
+  //    bit 起點：0,26,51,77,102,128,153,179,204,230
+  const int start[10] = {0, 26, 51, 77, 102, 128, 153, 179, 204, 230};
+  const int w[10] = {26, 25, 26, 25, 26, 25, 26, 25, 26, 25};
 
-  // 1) 8×8 Comba：P[0..15]（每個欄位是一個 128-bit pair）
-  u128p P[16];
-  for (int k = 0; k <= 15; ++k)
+  uint32_t X[10], Y[10];
+  for (int i = 0; i < 10; ++i)
   {
-    u128p acc = (u128p){0, 0};
-    int i0 = (k > 7) ? (k - 7) : 0;
-    int i1 = (k < 7) ? k : 7;
-    for (int i = i0; i <= i1; ++i)
-    {
-      // 32×32 → 64
-      uint64_t prod = (uint64_t)A[i] * (uint64_t)B[k - i];
-      u128p_add64(&acc, prod);
-    }
-    P[k] = acc;
+    X[i] = fe_get_bits(x, start[i], w[i]);
+    Y[i] = fe_get_bits(y, start[i], w[i]);
   }
 
-  // 2) 摺回：T[i] = P[i] + 38*P[i+8]，用位移相加（<<5, <<2, <<1）
-  u128p T[8];
-  for (int i = 0; i < 8; ++i)
+  // 2) 10×10 欄位卷積（64-bit 累加即可）
+  uint64_t T[19] = {0};
+  for (int i = 0; i < 10; ++i)
   {
-    u128p t = P[i];
-    if (i + 8 <= 15)
+    for (int j = 0; j < 10; ++j)
     {
-      u128p h = P[i + 8];
-      // 38*h = (h<<5) + (h<<2) + (h<<1)
-      t = u128p_add_shl(t, h, 5);
-      t = u128p_add_shl(t, h, 2);
-      t = u128p_add_shl(t, h, 1);
+      T[i + j] += (uint64_t)X[i] * (uint64_t)Y[j];
     }
-    T[i] = t;
   }
 
-  // 3) 清空 r 的 32 個位元組槽位（容器是 u32，但只用低 8 位；先清零以累加位元組）
+  // 3) 高半部折返（2^255 ≡ 19）：把 T[10..18] 以 ×19 回灌到 T[0..8]
+  for (int k = 10; k <= 18; ++k)
+  {
+    T[k - 10] += 19u * T[k];
+  }
+  // 現在僅需關心 H[0..9]
+  uint64_t H[10];
+  for (int i = 0; i < 10; ++i)
+    H[i] = T[i];
+
+  // 4) 兩趟 carry 傳播（26/25 交錯；最後處理 h9 回灌 ×19，再做前半一次）
+  const uint64_t M26 = (1ULL << 26) - 1ULL;
+  const uint64_t M25 = (1ULL << 25) - 1ULL;
+
+  // 第 1 趟：h0..h8 往右傳
+  uint64_t c;
+
+  c = H[0] >> 26;
+  H[0] &= M26;
+  H[1] += c;
+  c = H[1] >> 25;
+  H[1] &= M25;
+  H[2] += c;
+  c = H[2] >> 26;
+  H[2] &= M26;
+  H[3] += c;
+  c = H[3] >> 25;
+  H[3] &= M25;
+  H[4] += c;
+  c = H[4] >> 26;
+  H[4] &= M26;
+  H[5] += c;
+  c = H[5] >> 25;
+  H[5] &= M25;
+  H[6] += c;
+  c = H[6] >> 26;
+  H[6] &= M26;
+  H[7] += c;
+  c = H[7] >> 25;
+  H[7] &= M25;
+  H[8] += c;
+  c = H[8] >> 26;
+  H[8] &= M26;
+  H[9] += c;
+
+  // h9 的 25-bit 溢位回灌到 h0（×19），再做前半 carry 一次
+  c = H[9] >> 25;
+  H[9] &= M25;
+  H[0] += c * 19u;
+
+  c = H[0] >> 26;
+  H[0] &= M26;
+  H[1] += c;
+  c = H[1] >> 25;
+  H[1] &= M25;
+  H[2] += c;
+
+  // 這時 H[0..9] 均落在指定位寬（弱化約簡）
+
+  // 5) 清空輸出位元組槽；把 H[0..9] 以「bit 方式」寫回 32×8（外觀不變）
   for (int i = 0; i < 32; ++i)
     r->v[i] = 0;
 
-  // 4) 把每個 T[i] 分解成位元組，累加到 r->v[4*i + b]
-  //    T[i] < 2^73，因此取 11 個位元組足夠（安全餘裕）
-  for (int i = 0; i < 8; ++i)
+  for (int i = 0; i < 10; ++i)
   {
-    u128p u = T[i];
-    for (int b = 0; b < 11; ++b)
-    {
-      int idx = (i << 2) + b; // 4*i + b
-      if (idx >= 32)
-        break;
-      r->v[idx] += u128p_pop_byte(&u);
-    }
+    fe_put_bits(r, start[i], w[i], (uint32_t)H[i]);
   }
 
-  // 5) 交給既有 reduction 做 base-256 傳播與 2^255×19 折返
+  // 6) 交給你現有的 reduce_mul(r) 做 base-256 傳播與 2^255×19 的保守收尾
   reduce_mul(r);
 }
 
