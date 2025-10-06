@@ -238,7 +238,7 @@ static inline void fe_put_bits(fe25519 *r, int start_bit, int width, uint32_t va
 }
 
 // 主要：10×25.5 內部乘法，輸出仍為 32 個 8-bit digits，最後交給 reduce_mul
-void fe25519_mul(fe25519 *restrict r, const fe25519 *restrict x, const fe25519 *restrict y)
+void fe25519_mul(fe25519 *r, const fe25519 *x, const fe25519 *y)
 {
   // 1) 32 bytes → 10×(26/25) limbs（little-endian bit-slicing）
   //    bit 起點：0,26,51,77,102,128,153,179,204,230
