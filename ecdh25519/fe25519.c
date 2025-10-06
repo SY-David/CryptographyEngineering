@@ -216,7 +216,7 @@ static inline void pack_bytes_to_8x32(uint32_t L[8], const fe25519 *a)
     L[i] |= (uint32_t)a->v[4 * i + 3] << 24;
   }
 }
-
+#include <stdint.h>
 void fe25519_mul(fe25519 *restrict r, const fe25519 *restrict x, const fe25519 *restrict y)
 {
   typedef unsigned __int128 u128;
