@@ -81,6 +81,21 @@ static void reduce_mul(fe25519 *r)
   }
 }
 
+static inline uint64_t load4(const uint32_t v[32], int idx)
+{
+  return ((uint64_t)v[idx]) |
+         ((uint64_t)v[idx + 1] << 8) |
+         ((uint64_t)v[idx + 2] << 16) |
+         ((uint64_t)v[idx + 3] << 24);
+}
+
+static inline uint64_t load3(const uint32_t v[32], int idx)
+{
+  return ((uint64_t)v[idx]) |
+         ((uint64_t)v[idx + 1] << 8) |
+         ((uint64_t)v[idx + 2] << 16);
+}
+
 void fe25519_freeze(fe25519 *r)
 {
   int i;
@@ -207,34 +222,146 @@ void fe25519_sub(fe25519 *r, const fe25519 *x, const fe25519 *y)
 
 void fe25519_mul(fe25519 *r, const fe25519 *x, const fe25519 *y)
 {
-  int i = 0;
-  uint32_t t[63];
+  const uint32_t *a = x->v;
+  const uint32_t *b = y->v;
 
-  for (int k = 0; k <= 31; ++k)
+  /* Convert to a temporary 10-limb radix-(2^25.5) form for Comba-style multiply. */
+  int64_t f0 = (int64_t)(load4(a, 0) & 0x3ffffff);
+  int64_t f1 = (int64_t)((load4(a, 3) >> 2) & 0x1ffffff);
+  int64_t f2 = (int64_t)((load3(a, 6) >> 3) & 0x3ffffff);
+  int64_t f3 = (int64_t)((load3(a, 9) >> 5) & 0x1ffffff);
+  int64_t f4 = (int64_t)((load3(a, 12) >> 6) & 0x3ffffff);
+  int64_t f5 = (int64_t)((load4(a, 16) >> 0) & 0x1ffffff);
+  int64_t f6 = (int64_t)((load4(a, 19) >> 1) & 0x3ffffff);
+  int64_t f7 = (int64_t)((load4(a, 22) >> 3) & 0x1ffffff);
+  int64_t f8 = (int64_t)((load4(a, 25) >> 4) & 0x3ffffff);
+  int64_t f9 = (int64_t)((load3(a, 28) >> 6) & 0x1ffffff);
+
+  int64_t g0 = (int64_t)(load4(b, 0) & 0x3ffffff);
+  int64_t g1 = (int64_t)((load4(b, 3) >> 2) & 0x1ffffff);
+  int64_t g2 = (int64_t)((load3(b, 6) >> 3) & 0x3ffffff);
+  int64_t g3 = (int64_t)((load3(b, 9) >> 5) & 0x1ffffff);
+  int64_t g4 = (int64_t)((load3(b, 12) >> 6) & 0x3ffffff);
+  int64_t g5 = (int64_t)((load4(b, 16) >> 0) & 0x1ffffff);
+  int64_t g6 = (int64_t)((load4(b, 19) >> 1) & 0x3ffffff);
+  int64_t g7 = (int64_t)((load4(b, 22) >> 3) & 0x1ffffff);
+  int64_t g8 = (int64_t)((load4(b, 25) >> 4) & 0x3ffffff);
+  int64_t g9 = (int64_t)((load3(b, 28) >> 6) & 0x1ffffff);
+
+  int64_t g1_19 = 19 * g1;
+  int64_t g2_19 = 19 * g2;
+  int64_t g3_19 = 19 * g3;
+  int64_t g4_19 = 19 * g4;
+  int64_t g5_19 = 19 * g5;
+  int64_t g6_19 = 19 * g6;
+  int64_t g7_19 = 19 * g7;
+  int64_t g8_19 = 19 * g8;
+  int64_t g9_19 = 19 * g9;
+
+  int64_t f1_2 = 2 * f1;
+  int64_t f3_2 = 2 * f3;
+  int64_t f5_2 = 2 * f5;
+  int64_t f7_2 = 2 * f7;
+  int64_t f9_2 = 2 * f9;
+
+  int64_t h0 = f0 * g0 + f1_2 * g9_19 + f2 * g8_19 + f3_2 * g7_19 + f4 * g6_19 + f5_2 * g5_19 + f6 * g4_19 + f7_2 * g3_19 + f8 * g2_19 + f9_2 * g1_19;
+  int64_t h1 = f0 * g1 + f1 * g0 + f2 * g9_19 + f3 * g8_19 + f4 * g7_19 + f5 * g6_19 + f6 * g5_19 + f7 * g4_19 + f8 * g3_19 + f9 * g2_19;
+  int64_t h2 = f0 * g2 + f1_2 * g1 + f2 * g0 + f3_2 * g9_19 + f4 * g8_19 + f5_2 * g7_19 + f6 * g6_19 + f7_2 * g5_19 + f8 * g4_19 + f9_2 * g3_19;
+  int64_t h3 = f0 * g3 + f1 * g2 + f2 * g1 + f3 * g0 + f4 * g9_19 + f5 * g8_19 + f6 * g7_19 + f7 * g6_19 + f8 * g5_19 + f9 * g4_19;
+  int64_t h4 = f0 * g4 + f1_2 * g3 + f2 * g2 + f3_2 * g1 + f4 * g0 + f5_2 * g9_19 + f6 * g8_19 + f7_2 * g7_19 + f8 * g6_19 + f9_2 * g5_19;
+  int64_t h5 = f0 * g5 + f1 * g4 + f2 * g3 + f3 * g2 + f4 * g1 + f5 * g0 + f6 * g9_19 + f7 * g8_19 + f8 * g7_19 + f9 * g6_19;
+  int64_t h6 = f0 * g6 + f1_2 * g5 + f2 * g4 + f3_2 * g3 + f4 * g2 + f5_2 * g1 + f6 * g0 + f7_2 * g9_19 + f8 * g8_19 + f9_2 * g7_19;
+  int64_t h7 = f0 * g7 + f1 * g6 + f2 * g5 + f3 * g4 + f4 * g3 + f5 * g2 + f6 * g1 + f7 * g0 + f8 * g9_19 + f9 * g8_19;
+  int64_t h8 = f0 * g8 + f1_2 * g7 + f2 * g6 + f3_2 * g5 + f4 * g4 + f5_2 * g3 + f6 * g2 + f7_2 * g1 + f8 * g0 + f9_2 * g9_19;
+  int64_t h9 = f0 * g9 + f1 * g8 + f2 * g7 + f3 * g6 + f4 * g5 + f5 * g4 + f6 * g3 + f7 * g2 + f8 * g1 + f9 * g0;
+
+  int64_t carry0 = (h0 + ((int64_t)1 << 25)) >> 26;
+  h1 += carry0;
+  h0 -= carry0 << 26;
+  int64_t carry1 = (h1 + ((int64_t)1 << 24)) >> 25;
+  h2 += carry1;
+  h1 -= carry1 << 25;
+  int64_t carry2 = (h2 + ((int64_t)1 << 25)) >> 26;
+  h3 += carry2;
+  h2 -= carry2 << 26;
+  int64_t carry3 = (h3 + ((int64_t)1 << 24)) >> 25;
+  h4 += carry3;
+  h3 -= carry3 << 25;
+  int64_t carry4 = (h4 + ((int64_t)1 << 25)) >> 26;
+  h5 += carry4;
+  h4 -= carry4 << 26;
+  int64_t carry5 = (h5 + ((int64_t)1 << 24)) >> 25;
+  h6 += carry5;
+  h5 -= carry5 << 25;
+  int64_t carry6 = (h6 + ((int64_t)1 << 25)) >> 26;
+  h7 += carry6;
+  h6 -= carry6 << 26;
+  int64_t carry7 = (h7 + ((int64_t)1 << 24)) >> 25;
+  h8 += carry7;
+  h7 -= carry7 << 25;
+  int64_t carry8 = (h8 + ((int64_t)1 << 25)) >> 26;
+  h9 += carry8;
+  h8 -= carry8 << 26;
+  int64_t carry9 = (h9 + ((int64_t)1 << 24)) >> 25;
+  h0 += carry9 * 19;
+  h9 -= carry9 << 25;
+
+  carry0 = (h0 + ((int64_t)1 << 25)) >> 26;
+  h1 += carry0;
+  h0 -= carry0 << 26;
+  carry1 = (h1 + ((int64_t)1 << 24)) >> 25;
+  h2 += carry1;
+  h1 -= carry1 << 25;
+
+  unsigned char s[32];
+  uint64_t hh0 = (uint64_t)h0;
+  uint64_t hh1 = (uint64_t)h1;
+  uint64_t hh2 = (uint64_t)h2;
+  uint64_t hh3 = (uint64_t)h3;
+  uint64_t hh4 = (uint64_t)h4;
+  uint64_t hh5 = (uint64_t)h5;
+  uint64_t hh6 = (uint64_t)h6;
+  uint64_t hh7 = (uint64_t)h7;
+  uint64_t hh8 = (uint64_t)h8;
+  uint64_t hh9 = (uint64_t)h9;
+
+  s[0] = (unsigned char)(hh0 & 0xffu);
+  s[1] = (unsigned char)((hh0 >> 8) & 0xffu);
+  s[2] = (unsigned char)((hh0 >> 16) & 0xffu);
+  s[3] = (unsigned char)(((hh0 >> 24) | (hh1 << 2)) & 0xffu);
+  s[4] = (unsigned char)((hh1 >> 6) & 0xffu);
+  s[5] = (unsigned char)((hh1 >> 14) & 0xffu);
+  s[6] = (unsigned char)(((hh1 >> 22) | (hh2 << 3)) & 0xffu);
+  s[7] = (unsigned char)((hh2 >> 5) & 0xffu);
+  s[8] = (unsigned char)((hh2 >> 13) & 0xffu);
+  s[9] = (unsigned char)(((hh2 >> 21) | (hh3 << 5)) & 0xffu);
+  s[10] = (unsigned char)((hh3 >> 3) & 0xffu);
+  s[11] = (unsigned char)((hh3 >> 11) & 0xffu);
+  s[12] = (unsigned char)(((hh3 >> 19) | (hh4 << 6)) & 0xffu);
+  s[13] = (unsigned char)((hh4 >> 2) & 0xffu);
+  s[14] = (unsigned char)((hh4 >> 10) & 0xffu);
+  s[15] = (unsigned char)((hh4 >> 18) & 0xffu);
+  s[16] = (unsigned char)(hh5 & 0xffu);
+  s[17] = (unsigned char)((hh5 >> 8) & 0xffu);
+  s[18] = (unsigned char)((hh5 >> 16) & 0xffu);
+  s[19] = (unsigned char)(((hh5 >> 24) | (hh6 << 1)) & 0xffu);
+  s[20] = (unsigned char)((hh6 >> 7) & 0xffu);
+  s[21] = (unsigned char)((hh6 >> 15) & 0xffu);
+  s[22] = (unsigned char)(((hh6 >> 23) | (hh7 << 3)) & 0xffu);
+  s[23] = (unsigned char)((hh7 >> 5) & 0xffu);
+  s[24] = (unsigned char)((hh7 >> 13) & 0xffu);
+  s[25] = (unsigned char)(((hh7 >> 21) | (hh8 << 4)) & 0xffu);
+  s[26] = (unsigned char)((hh8 >> 4) & 0xffu);
+  s[27] = (unsigned char)((hh8 >> 12) & 0xffu);
+  s[28] = (unsigned char)(((hh8 >> 20) | (hh9 << 6)) & 0xffu);
+  s[29] = (unsigned char)((hh9 >> 2) & 0xffu);
+  s[30] = (unsigned char)((hh9 >> 10) & 0xffu);
+  s[31] = (unsigned char)((hh9 >> 18) & 0xffu);
+
+  for (int i = 0; i < 32; ++i)
   {
-    uint32_t acc = 0;
-    for (int i = 0; i <= k; ++i)
-    {
-      acc += (uint32_t)x->v[i] * (uint32_t)y->v[k - i];
-    }
-    t[k] = acc;
+    r->v[i] = s[i];
   }
-
-  for (int k = 32; k <= 62; ++k)
-  {
-    uint32_t acc = 0;
-    for (int i = k - 31; i <= 31; ++i)
-    {
-      acc += (uint32_t)x->v[i] * (uint32_t)y->v[k - i];
-    }
-    t[k] = acc;
-  }
-
-  for (i = 32; i < 63; i++)
-    r->v[i - 32] = t[i - 32] + times38(t[i]);
-  r->v[31] = t[31];
-
-  reduce_mul(r);
 }
 
 void fe25519_square(fe25519 *r, const fe25519 *x)
