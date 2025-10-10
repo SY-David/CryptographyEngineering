@@ -606,9 +606,9 @@ void recode(int8_t d[64], const unsigned char sk[32])
       v = ((t[byte] >> 4) | (next << 4)) & 0xF;
     }
     v += carry;
-    int gt8 = v > 8;
-    d[i] = (int8_t)(v - (gt8 ? 16 : 0));
-    carry = gt8;
+    int ge8 = (v >= 8);
+    d[i] = (int8_t)(v - (ge8 ? 16 : 0));
+    carry = ge8;
   }
 }
 
