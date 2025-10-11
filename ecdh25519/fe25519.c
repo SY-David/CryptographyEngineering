@@ -450,56 +450,7 @@ void fe25519_mul(fe25519 *r, const fe25519 *x, const fe25519 *y)
 
 void fe25519_square(fe25519 *r, const fe25519 *x)
 {
-  uint32_t t[63];
-
-  for (int k = 0; k <= 30; k += 2)
-  {
-    int m = k >> 1;
-    uint32_t acc = 0;
-    for (int i = 0; i < m; ++i)
-      acc += ((uint32_t)x->v[i] * (uint32_t)x->v[k - i]) << 1;
-    uint32_t d = (uint32_t)x->v[m];
-    acc += d * d;
-    t[k] = acc;
-  }
-
-  for (int k = 32; k <= 62; k += 2)
-  {
-    int m = k >> 1;
-    int i0 = k - 31;
-    uint32_t acc = 0;
-    for (int i = i0; i < m; ++i)
-      acc += ((uint32_t)x->v[i] * (uint32_t)x->v[k - i]) << 1;
-    uint32_t d = (uint32_t)x->v[m];
-    acc += d * d;
-    t[k] = acc;
-  }
-
-  for (int k = 1; k <= 31; k += 2)
-  {
-    int m = (k + 1) >> 1;
-    uint32_t acc = 0;
-    for (int i = 0; i < m; ++i)
-      acc += ((uint32_t)x->v[i] * (uint32_t)x->v[k - i]) << 1;
-    t[k] = acc;
-  }
-
-  for (int k = 33; k <= 61; k += 2)
-  {
-    int m = (k + 1) >> 1;
-    int i0 = k - 31;
-    uint32_t acc = 0;
-    for (int i = i0; i < m; ++i)
-      acc += ((uint32_t)x->v[i] * (uint32_t)x->v[k - i]) << 1;
-    t[k] = acc;
-  }
-
-  for (int i = 32; i < 63; ++i)
-    r->v[i - 32] = t[i - 32] + times38(t[i]);
-
-  r->v[31] = t[31];
-
-  reduce_mul(r);
+  fe25519_mul(r, x, x);
 }
 
 void fe25519_pow2523(fe25519 *r, const fe25519 *x)
