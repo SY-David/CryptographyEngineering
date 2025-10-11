@@ -450,7 +450,101 @@ void fe25519_mul(fe25519 *r, const fe25519 *x, const fe25519 *y)
 
 void fe25519_square(fe25519 *r, const fe25519 *x)
 {
-  fe25519_mul(r, x, x);
+  unsigned char a[32];
+  fe25519_pack(a, x);
+
+  uint64_t ax0 = load4(a + 0);
+  uint64_t ax1 = load4(a + 4);
+  uint64_t ax2 = load4(a + 8);
+  uint64_t ax3 = load4(a + 12);
+  uint64_t ax4 = load4(a + 16);
+  uint64_t ax5 = load4(a + 20);
+  uint64_t ax6 = load4(a + 24);
+  uint64_t ax7 = load4(a + 28);
+
+  int64_t f0 = (int64_t)(ax0 & 0x3ffffff);
+  int64_t f1 = (int64_t)(((ax1 << 32) | ax0) >> 26) & 0x1ffffff;
+  int64_t f2 = (int64_t)(((ax2 << 32) | ax1) >> 19) & 0x3ffffff;
+  int64_t f3 = (int64_t)(((ax3 << 32) | ax2) >> 13) & 0x1ffffff;
+  int64_t f4 = (int64_t)((ax3 >> 6) & 0x3ffffff);
+  int64_t f5 = (int64_t)(ax4 & 0x1ffffff);
+  int64_t f6 = (int64_t)(((ax5 << 32) | ax4) >> 25) & 0x3ffffff;
+  int64_t f7 = (int64_t)(((ax6 << 32) | ax5) >> 19) & 0x1ffffff;
+  int64_t f8 = (int64_t)(((ax7 << 32) | ax6) >> 12) & 0x3ffffff;
+  int64_t f9 = (int64_t)((ax7 >> 6) & 0x1ffffff);
+
+  int64_t f0_2 = 2 * f0;
+  int64_t f1_2 = 2 * f1;
+  int64_t f2_2 = 2 * f2;
+  int64_t f3_2 = 2 * f3;
+  int64_t f4_2 = 2 * f4;
+  int64_t f5_2 = 2 * f5;
+  int64_t f6_2 = 2 * f6;
+  int64_t f7_2 = 2 * f7;
+
+  int64_t f5_38 = 38 * f5;
+  int64_t f6_19 = 19 * f6;
+  int64_t f7_38 = 38 * f7;
+  int64_t f8_19 = 19 * f8;
+  int64_t f9_38 = 38 * f9;
+
+  int64_t h0 = f0 * f0 + f1_2 * f9_38 + f2_2 * f8_19 + f3_2 * f7_38 + f4_2 * f6_19 + f5 * f5_38;
+  int64_t h1 = f0_2 * f1 + f2 * f9_38 + f3_2 * f8_19 + f4 * f7_38 + f5_2 * f6_19;
+  int64_t h2 = f0_2 * f2 + f1_2 * f1 + f3_2 * f9_38 + f4 * f8_19 + f5_2 * f7_38 + f6 * f6_19;
+  int64_t h3 = f0_2 * f3 + f1_2 * f2 + f4 * f9_38 + f5_2 * f8_19 + f6 * f7_38;
+  int64_t h4 = f0_2 * f4 + f1_2 * f3 + f2 * f2 + f5_2 * f9_38 + f6 * f8_19 + f7 * f7_38;
+  int64_t h5 = f0_2 * f5 + f1_2 * f4 + f2_2 * f3 + f6 * f9_38 + f7_2 * f8_19;
+  int64_t h6 = f0_2 * f6 + f1_2 * f5 + f2_2 * f4 + f3 * f3 + f7_2 * f9_38 + f8 * f8_19;
+  int64_t h7 = f0_2 * f7 + f1_2 * f6 + f2_2 * f5 + f3_2 * f4 + f8 * f9_38;
+  int64_t h8 = f0_2 * f8 + f1_2 * f7 + f2_2 * f6 + f3_2 * f5 + f4 * f4 + f9 * f9_38;
+  int64_t h9 = f0_2 * f9 + f1_2 * f8 + f2_2 * f7 + f3_2 * f6 + f4_2 * f5;
+
+  int64_t carry0 = (h0 + ((int64_t)1 << 25)) >> 26;
+  h1 += carry0;
+  h0 -= carry0 << 26;
+  int64_t carry1 = (h1 + ((int64_t)1 << 24)) >> 25;
+  h2 += carry1;
+  h1 -= carry1 << 25;
+  int64_t carry2 = (h2 + ((int64_t)1 << 25)) >> 26;
+  h3 += carry2;
+  h2 -= carry2 << 26;
+  int64_t carry3 = (h3 + ((int64_t)1 << 24)) >> 25;
+  h4 += carry3;
+  h3 -= carry3 << 25;
+  int64_t carry4 = (h4 + ((int64_t)1 << 25)) >> 26;
+  h5 += carry4;
+  h4 -= carry4 << 26;
+  int64_t carry5 = (h5 + ((int64_t)1 << 24)) >> 25;
+  h6 += carry5;
+  h5 -= carry5 << 25;
+  int64_t carry6 = (h6 + ((int64_t)1 << 25)) >> 26;
+  h7 += carry6;
+  h6 -= carry6 << 26;
+  int64_t carry7 = (h7 + ((int64_t)1 << 24)) >> 25;
+  h8 += carry7;
+  h7 -= carry7 << 25;
+  int64_t carry8 = (h8 + ((int64_t)1 << 25)) >> 26;
+  h9 += carry8;
+  h8 -= carry8 << 26;
+  int64_t carry9 = (h9 + ((int64_t)1 << 24)) >> 25;
+  h0 += carry9 * 19;
+  h9 -= carry9 << 25;
+
+  carry0 = (h0 + ((int64_t)1 << 25)) >> 26;
+  h1 += carry0;
+  h0 -= carry0 << 26;
+  carry1 = (h1 + ((int64_t)1 << 24)) >> 25;
+  h2 += carry1;
+  h1 -= carry1 << 25;
+
+  int64_t h[10] = {h0, h1, h2, h3, h4, h5, h6, h7, h8, h9};
+  unsigned char s[32];
+  contract_limbs(s, h);
+
+  for (int i = 0; i < 32; ++i)
+  {
+    r->v[i] = s[i];
+  }
 }
 
 void fe25519_pow2523(fe25519 *r, const fe25519 *x)
