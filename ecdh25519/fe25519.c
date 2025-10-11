@@ -89,7 +89,33 @@ static inline uint32_t load4(const unsigned char *s)
          ((uint32_t)s[3] << 24);
 }
 
-static void contract_limbs(unsigned char out[32], const int64_t in[10])
+static void fe25519_unpack_radix10(int64_t out[10], const fe25519 *x)
+{
+  unsigned char bytes[32];
+  fe25519_pack(bytes, x);
+
+  uint64_t x0 = load4(bytes + 0);
+  uint64_t x1 = load4(bytes + 4);
+  uint64_t x2 = load4(bytes + 8);
+  uint64_t x3 = load4(bytes + 12);
+  uint64_t x4 = load4(bytes + 16);
+  uint64_t x5 = load4(bytes + 20);
+  uint64_t x6 = load4(bytes + 24);
+  uint64_t x7 = load4(bytes + 28);
+
+  out[0] = (int64_t)(x0 & 0x3ffffff);
+  out[1] = (int64_t)((((x1 << 32) | x0) >> 26) & 0x1ffffff);
+  out[2] = (int64_t)((((x2 << 32) | x1) >> 19) & 0x3ffffff);
+  out[3] = (int64_t)((((x3 << 32) | x2) >> 13) & 0x1ffffff);
+  out[4] = (int64_t)((x3 >> 6) & 0x3ffffff);
+  out[5] = (int64_t)(x4 & 0x1ffffff);
+  out[6] = (int64_t)((((x5 << 32) | x4) >> 25) & 0x3ffffff);
+  out[7] = (int64_t)((((x6 << 32) | x5) >> 19) & 0x1ffffff);
+  out[8] = (int64_t)((((x7 << 32) | x6) >> 12) & 0x3ffffff);
+  out[9] = (int64_t)((x7 >> 6) & 0x1ffffff);
+}
+
+static void fe25519_contract_radix10(fe25519 *r, const int64_t in[10])
 {
   int64_t f[10];
   for (int i = 0; i < 10; ++i)
@@ -198,6 +224,11 @@ static void contract_limbs(unsigned char out[32], const int64_t in[10])
   STORE_LIMB(9, 28);
 
 #undef STORE_LIMB
+
+  for (int i = 0; i < 32; ++i)
+  {
+    r->v[i] = out[i];
+  }
 }
 
 void fe25519_freeze(fe25519 *r)
@@ -326,52 +357,32 @@ void fe25519_sub(fe25519 *r, const fe25519 *x, const fe25519 *y)
 
 void fe25519_mul(fe25519 *r, const fe25519 *x, const fe25519 *y)
 {
-  unsigned char a[32];
-  unsigned char b[32];
+  int64_t f[10];
+  int64_t g[10];
+  fe25519_unpack_radix10(f, x);
+  fe25519_unpack_radix10(g, y);
 
-  fe25519_pack(a, x);
-  fe25519_pack(b, y);
+  int64_t f0 = f[0];
+  int64_t f1 = f[1];
+  int64_t f2 = f[2];
+  int64_t f3 = f[3];
+  int64_t f4 = f[4];
+  int64_t f5 = f[5];
+  int64_t f6 = f[6];
+  int64_t f7 = f[7];
+  int64_t f8 = f[8];
+  int64_t f9 = f[9];
 
-  /* Convert to a temporary 10-limb radix-(2^25.5) form for Comba-style multiply. */
-  uint64_t ax0 = load4(a + 0);
-  uint64_t ax1 = load4(a + 4);
-  uint64_t ax2 = load4(a + 8);
-  uint64_t ax3 = load4(a + 12);
-  uint64_t ax4 = load4(a + 16);
-  uint64_t ax5 = load4(a + 20);
-  uint64_t ax6 = load4(a + 24);
-  uint64_t ax7 = load4(a + 28);
-
-  uint64_t bx0 = load4(b + 0);
-  uint64_t bx1 = load4(b + 4);
-  uint64_t bx2 = load4(b + 8);
-  uint64_t bx3 = load4(b + 12);
-  uint64_t bx4 = load4(b + 16);
-  uint64_t bx5 = load4(b + 20);
-  uint64_t bx6 = load4(b + 24);
-  uint64_t bx7 = load4(b + 28);
-
-  int64_t f0 = (int64_t)(ax0 & 0x3ffffff);
-  int64_t f1 = (int64_t)((((ax1 << 32) | ax0) >> 26) & 0x1ffffff);
-  int64_t f2 = (int64_t)((((ax2 << 32) | ax1) >> 19) & 0x3ffffff);
-  int64_t f3 = (int64_t)((((ax3 << 32) | ax2) >> 13) & 0x1ffffff);
-  int64_t f4 = (int64_t)((ax3 >> 6) & 0x3ffffff);
-  int64_t f5 = (int64_t)(ax4 & 0x1ffffff);
-  int64_t f6 = (int64_t)((((ax5 << 32) | ax4) >> 25) & 0x3ffffff);
-  int64_t f7 = (int64_t)((((ax6 << 32) | ax5) >> 19) & 0x1ffffff);
-  int64_t f8 = (int64_t)((((ax7 << 32) | ax6) >> 12) & 0x3ffffff);
-  int64_t f9 = (int64_t)((ax7 >> 6) & 0x1ffffff);
-
-  int64_t g0 = (int64_t)(bx0 & 0x3ffffff);
-  int64_t g1 = (int64_t)((((bx1 << 32) | bx0) >> 26) & 0x1ffffff);
-  int64_t g2 = (int64_t)((((bx2 << 32) | bx1) >> 19) & 0x3ffffff);
-  int64_t g3 = (int64_t)((((bx3 << 32) | bx2) >> 13) & 0x1ffffff);
-  int64_t g4 = (int64_t)((bx3 >> 6) & 0x3ffffff);
-  int64_t g5 = (int64_t)(bx4 & 0x1ffffff);
-  int64_t g6 = (int64_t)((((bx5 << 32) | bx4) >> 25) & 0x3ffffff);
-  int64_t g7 = (int64_t)((((bx6 << 32) | bx5) >> 19) & 0x1ffffff);
-  int64_t g8 = (int64_t)((((bx7 << 32) | bx6) >> 12) & 0x3ffffff);
-  int64_t g9 = (int64_t)((bx7 >> 6) & 0x1ffffff);
+  int64_t g0 = g[0];
+  int64_t g1 = g[1];
+  int64_t g2 = g[2];
+  int64_t g3 = g[3];
+  int64_t g4 = g[4];
+  int64_t g5 = g[5];
+  int64_t g6 = g[6];
+  int64_t g7 = g[7];
+  int64_t g8 = g[8];
+  int64_t g9 = g[9];
 
   int64_t g1_19 = 19 * g1;
   int64_t g2_19 = 19 * g2;
@@ -439,67 +450,55 @@ void fe25519_mul(fe25519 *r, const fe25519 *x, const fe25519 *y)
   h1 -= carry1 << 25;
 
   int64_t h[10] = {h0, h1, h2, h3, h4, h5, h6, h7, h8, h9};
-  unsigned char s[32];
-  contract_limbs(s, h);
-
-  for (int i = 0; i < 32; ++i)
-  {
-    r->v[i] = s[i];
-  }
+  fe25519_contract_radix10(r, h);
 }
 
 void fe25519_square(fe25519 *r, const fe25519 *x)
 {
-  uint32_t t[63];
+  int64_t f[10];
+  fe25519_unpack_radix10(f, x);
 
-  for (int k = 0; k <= 30; k += 2)
-  {
-    int m = k >> 1;
-    uint32_t acc = 0;
-    for (int i = 0; i < m; ++i)
-      acc += ((uint32_t)x->v[i] * (uint32_t)x->v[k - i]) << 1;
-    uint32_t d = (uint32_t)x->v[m];
-    acc += d * d;
-    t[k] = acc;
-  }
+  int64_t f0 = f[0];
+  int64_t f1 = f[1];
+  int64_t f2 = f[2];
+  int64_t f3 = f[3];
+  int64_t f4 = f[4];
+  int64_t f5 = f[5];
+  int64_t f6 = f[6];
+  int64_t f7 = f[7];
+  int64_t f8 = f[8];
+  int64_t f9 = f[9];
 
-  for (int k = 32; k <= 62; k += 2)
-  {
-    int m = k >> 1;
-    int i0 = k - 31;
-    uint32_t acc = 0;
-    for (int i = i0; i < m; ++i)
-      acc += ((uint32_t)x->v[i] * (uint32_t)x->v[k - i]) << 1;
-    uint32_t d = (uint32_t)x->v[m];
-    acc += d * d;
-    t[k] = acc;
-  }
+  int64_t f0_2 = 2 * f0;
+  int64_t f1_2 = 2 * f1;
+  int64_t f2_2 = 2 * f2;
+  int64_t f3_2 = 2 * f3;
+  int64_t f4_2 = 2 * f4;
+  int64_t f5_2 = 2 * f5;
+  int64_t f6_2 = 2 * f6;
+  int64_t f7_2 = 2 * f7;
 
-  for (int k = 1; k <= 31; k += 2)
-  {
-    int m = (k + 1) >> 1;
-    uint32_t acc = 0;
-    for (int i = 0; i < m; ++i)
-      acc += ((uint32_t)x->v[i] * (uint32_t)x->v[k - i]) << 1;
-    t[k] = acc;
-  }
+  int64_t f5_38 = 38 * f5;
+  int64_t f6_38 = 38 * f6;
+  int64_t f6_19 = 19 * f6;
+  int64_t f7_38 = 38 * f7;
+  int64_t f8_38 = 38 * f8;
+  int64_t f8_19 = 19 * f8;
+  int64_t f9_38 = 38 * f9;
 
-  for (int k = 33; k <= 61; k += 2)
-  {
-    int m = (k + 1) >> 1;
-    int i0 = k - 31;
-    uint32_t acc = 0;
-    for (int i = i0; i < m; ++i)
-      acc += ((uint32_t)x->v[i] * (uint32_t)x->v[k - i]) << 1;
-    t[k] = acc;
-  }
+  int64_t h0 = f0 * f0 + f1_2 * f9_38 + f2 * f8_38 + f3_2 * f7_38 + f4 * f6_38 + f5 * f5_38;
+  int64_t h1 = f0_2 * f1 + f2 * f9_38 + f3 * f8_38 + f4 * f7_38 + f5 * f6_38;
+  int64_t h2 = f0_2 * f2 + f1_2 * f1 + f3_2 * f9_38 + f4 * f8_38 + f5_2 * f7_38 + f6 * f6_19;
+  int64_t h3 = f0_2 * f3 + f1_2 * f2 + f4 * f9_38 + f5 * f8_38 + f6 * f7_38;
+  int64_t h4 = f0_2 * f4 + f1_2 * f3_2 + f2 * f2 + f5_2 * f9_38 + f6 * f8_38 + f7 * f7_38;
+  int64_t h5 = f0_2 * f5 + f1_2 * f4 + f2_2 * f3 + f6 * f9_38 + f7 * f8_38;
+  int64_t h6 = f0_2 * f6 + f1_2 * f5 + f2_2 * f4 + f3 * f3_2 + f7_2 * f9_38 + f8 * f8_19;
+  int64_t h7 = f0_2 * f7 + f1_2 * f6 + f2_2 * f5 + f3_2 * f4 + f8 * f9_38;
+  int64_t h8 = f0_2 * f8 + f1_2 * f7_2 + f2_2 * f6 + f3_2 * f5_2 + f4 * f4 + f9 * f9_38;
+  int64_t h9 = f0_2 * f9 + f1_2 * f8 + f2_2 * f7 + f3_2 * f6 + f4_2 * f5;
 
-  for (int i = 32; i < 63; ++i)
-    r->v[i - 32] = t[i - 32] + times38(t[i]);
-
-  r->v[31] = t[31];
-
-  reduce_mul(r);
+  int64_t h[10] = {h0, h1, h2, h3, h4, h5, h6, h7, h8, h9};
+  fe25519_contract_radix10(r, h);
 }
 
 void fe25519_pow2523(fe25519 *r, const fe25519 *x)
