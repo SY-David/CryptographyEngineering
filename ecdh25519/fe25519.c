@@ -332,7 +332,7 @@ void fe25519_mul(fe25519 *r, const fe25519 *x, const fe25519 *y)
   fe25519_pack(a, x);
   fe25519_pack(b, y);
 
-  /* Convert to a temporary 10-limb radix-(2^25.5) form for Comba-style multiply.
+  /* Convert to a temporary 10-limb radix-(2^25.5) form for Comba-style multiply. */
   uint64_t ax0 = load4(a + 0);
   uint64_t ax1 = load4(a + 4);
   uint64_t ax2 = load4(a + 8);
@@ -439,13 +439,7 @@ void fe25519_mul(fe25519 *r, const fe25519 *x, const fe25519 *y)
   h1 -= carry1 << 25;
 
   int64_t h[10] = {h0, h1, h2, h3, h4, h5, h6, h7, h8, h9};
-  */
-  int64_t h[10];
-  extern void BIGLIMB(const unsigned char *a, const unsigned char *b, int64_t out[10]);
-
-  BIGLIMB(a, b, h);
   unsigned char s[32];
-
   contract_limbs(s, h);
 
   for (int i = 0; i < 32; ++i)
