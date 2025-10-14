@@ -5,13 +5,13 @@
 .type BIGLIMB, %function
 
 BIGLIMB:
-    push    {r4-r11, lr}@ ...
+    push    {r4-r11, lr}
     sub     sp, sp, #160
 
     mov     r8, sp              @ f limbs base
     add     r9, r8, #40         @ g limbs base
     add     r10, r9, #40        @ h limbs base (int64[10])
-    mov     r11, #19            @ constant 19
+    mov     r12, r10            @ preserve h base pointer
 
     @ -------------------------
     @ f0..f4 from a (r0)
@@ -129,48 +129,597 @@ BIGLIMB:
     ubfx    r3, r7, #6, #25
     str     r3, [r9, #36]
 
-    @ -------------------------
-    @ Compute h = f * g (Comba style via convolution)
-    @ -------------------------
-    movs    r4, #0 @ i = 0
+    @ ----- h0 -----
+    movs    r10, #0
+    movs    r11, #0
 
-1:
-    movs    r5, #0              @ j = 0
-    movs    r6, #0              @ acc_lo
-    movs    r7, #0              @ acc_hi
+    ldr     r4, [r8, #0]          @ f0
+    ldr     r5, [r9, #0]          @ g0
+    umlal   r10, r11, r4, r5
 
-2:
-    add     r12, r8, r5, lsl#2
-    ldr     r0, [r12]@ f_j
-    subs    r12, r4, r5
-    bge     3f
-    add     r12, r12, #10
-    add     r3, r9, r12, lsl#2
-    ldr     r3, [r3]
-    mul     r3, r3, r11 @ 19 * g_k
-    b       4f
+    ldr     r4, [r8, #4]          @ f1
+    ldr     r5, [r9, #36]         @ g9
+    add     r6, r4, r4            @ 2*f1
+    add     r7, r5, r5, lsl #1    @ 3*g9
+    add     r7, r7, r5, lsl #4    @ 19*g9
+    umlal   r10, r11, r6, r7
 
-3:
-    add     r3, r9, r12, lsl#2
-    ldr     r3, [r3]
+    ldr     r4, [r8, #8]          @ f2
+    ldr     r5, [r9, #32]         @ g8
+    add     r7, r5, r5, lsl #1
+    add     r7, r7, r5, lsl #4
+    umlal   r10, r11, r4, r7
 
-4:
-    umlal   r6, r7, r0, r3
-    add     r5, r5, #1
-    cmp     r5, #10
-    blt     2b
+    ldr     r4, [r8, #12]         @ f3
+    ldr     r5, [r9, #28]         @ g7
+    add     r6, r4, r4
+    add     r7, r5, r5, lsl #1
+    add     r7, r7, r5, lsl #4
+    umlal   r10, r11, r6, r7
 
-    add     r12, r10, r4, lsl#3
-    str     r6, [r12, #0]
-    str     r7, [r12, #4]
+    ldr     r4, [r8, #16]         @ f4
+    ldr     r5, [r9, #24]         @ g6
+    add     r7, r5, r5, lsl #1
+    add     r7, r7, r5, lsl #4
+    umlal   r10, r11, r4, r7
 
-    add     r4, r4, #1
-    cmp     r4, #10
-    blt     1b
+    ldr     r4, [r8, #20]         @ f5
+    ldr     r5, [r9, #20]         @ g5
+    add     r6, r4, r4
+    add     r7, r5, r5, lsl #1
+    add     r7, r7, r5, lsl #4
+    umlal   r10, r11, r6, r7
+
+    ldr     r4, [r8, #24]         @ f6
+    ldr     r5, [r9, #16]         @ g4
+    add     r7, r5, r5, lsl #1
+    add     r7, r7, r5, lsl #4
+    umlal   r10, r11, r4, r7
+
+    ldr     r4, [r8, #28]         @ f7
+    ldr     r5, [r9, #12]         @ g3
+    add     r6, r4, r4
+    add     r7, r5, r5, lsl #1
+    add     r7, r7, r5, lsl #4
+    umlal   r10, r11, r6, r7
+
+    ldr     r4, [r8, #32]         @ f8
+    ldr     r5, [r9, #8]          @ g2
+    add     r7, r5, r5, lsl #1
+    add     r7, r7, r5, lsl #4
+    umlal   r10, r11, r4, r7
+
+    ldr     r4, [r8, #36]         @ f9
+    ldr     r5, [r9, #4]          @ g1
+    add     r6, r4, r4
+    add     r7, r5, r5, lsl #1
+    add     r7, r7, r5, lsl #4
+    umlal   r10, r11, r6, r7
+
+    str     r10, [r12, #0]
+    str     r11, [r12, #4]
+
+    @ ----- h1 -----
+    movs    r10, #0
+    movs    r11, #0
+
+    ldr     r4, [r8, #0]          @ f0
+    ldr     r5, [r9, #4]          @ g1
+    umlal   r10, r11, r4, r5
+
+    ldr     r4, [r8, #4]          @ f1
+    ldr     r5, [r9, #0]          @ g0
+    umlal   r10, r11, r4, r5
+
+    ldr     r4, [r8, #8]          @ f2
+    ldr     r5, [r9, #36]         @ g9
+    add     r7, r5, r5, lsl #1
+    add     r7, r7, r5, lsl #4
+    umlal   r10, r11, r4, r7
+
+    ldr     r4, [r8, #12]         @ f3
+    ldr     r5, [r9, #32]         @ g8
+    add     r7, r5, r5, lsl #1
+    add     r7, r7, r5, lsl #4
+    umlal   r10, r11, r4, r7
+
+    ldr     r4, [r8, #16]         @ f4
+    ldr     r5, [r9, #28]         @ g7
+    add     r7, r5, r5, lsl #1
+    add     r7, r7, r5, lsl #4
+    umlal   r10, r11, r4, r7
+
+    ldr     r4, [r8, #20]         @ f5
+    ldr     r5, [r9, #24]         @ g6
+    add     r7, r5, r5, lsl #1
+    add     r7, r7, r5, lsl #4
+    umlal   r10, r11, r4, r7
+
+    ldr     r4, [r8, #24]         @ f6
+    ldr     r5, [r9, #20]         @ g5
+    add     r7, r5, r5, lsl #1
+    add     r7, r7, r5, lsl #4
+    umlal   r10, r11, r4, r7
+
+    ldr     r4, [r8, #28]         @ f7
+    ldr     r5, [r9, #16]         @ g4
+    add     r7, r5, r5, lsl #1
+    add     r7, r7, r5, lsl #4
+    umlal   r10, r11, r4, r7
+
+    ldr     r4, [r8, #32]         @ f8
+    ldr     r5, [r9, #12]         @ g3
+    add     r7, r5, r5, lsl #1
+    add     r7, r7, r5, lsl #4
+    umlal   r10, r11, r4, r7
+
+    ldr     r4, [r8, #36]         @ f9
+    ldr     r5, [r9, #8]          @ g2
+    add     r7, r5, r5, lsl #1
+    add     r7, r7, r5, lsl #4
+    umlal   r10, r11, r4, r7
+
+    str     r10, [r12, #8]
+    str     r11, [r12, #12]
+
+    @ ----- h2 -----
+    movs    r10, #0
+    movs    r11, #0
+
+    ldr     r4, [r8, #0]          @ f0
+    ldr     r5, [r9, #8]          @ g2
+    umlal   r10, r11, r4, r5
+
+    ldr     r4, [r8, #4]          @ f1
+    ldr     r5, [r9, #4]          @ g1
+    add     r6, r4, r4            @ 2*f1
+    umlal   r10, r11, r6, r5
+
+    ldr     r4, [r8, #8]          @ f2
+    ldr     r5, [r9, #0]          @ g0
+    umlal   r10, r11, r4, r5
+
+    ldr     r4, [r8, #12]         @ f3
+    ldr     r5, [r9, #36]         @ g9
+    add     r6, r4, r4
+    add     r7, r5, r5, lsl #1
+    add     r7, r7, r5, lsl #4
+    umlal   r10, r11, r6, r7
+
+    ldr     r4, [r8, #16]         @ f4
+    ldr     r5, [r9, #32]         @ g8
+    add     r7, r5, r5, lsl #1
+    add     r7, r7, r5, lsl #4
+    umlal   r10, r11, r4, r7
+
+    ldr     r4, [r8, #20]         @ f5
+    ldr     r5, [r9, #28]         @ g7
+    add     r6, r4, r4
+    add     r7, r5, r5, lsl #1
+    add     r7, r7, r5, lsl #4
+    umlal   r10, r11, r6, r7
+
+    ldr     r4, [r8, #24]         @ f6
+    ldr     r5, [r9, #24]         @ g6
+    add     r7, r5, r5, lsl #1
+    add     r7, r7, r5, lsl #4
+    umlal   r10, r11, r4, r7
+
+    ldr     r4, [r8, #28]         @ f7
+    ldr     r5, [r9, #20]         @ g5
+    add     r6, r4, r4
+    add     r7, r5, r5, lsl #1
+    add     r7, r7, r5, lsl #4
+    umlal   r10, r11, r6, r7
+
+    ldr     r4, [r8, #32]         @ f8
+    ldr     r5, [r9, #16]         @ g4
+    add     r7, r5, r5, lsl #1
+    add     r7, r7, r5, lsl #4
+    umlal   r10, r11, r4, r7
+
+    ldr     r4, [r8, #36]         @ f9
+    ldr     r5, [r9, #12]         @ g3
+    add     r6, r4, r4
+    add     r7, r5, r5, lsl #1
+    add     r7, r7, r5, lsl #4
+    umlal   r10, r11, r6, r7
+
+    str     r10, [r12, #16]
+    str     r11, [r12, #20]
+
+    @ ----- h3 -----
+    movs    r10, #0
+    movs    r11, #0
+
+    ldr     r4, [r8, #0]          @ f0
+    ldr     r5, [r9, #12]         @ g3
+    umlal   r10, r11, r4, r5
+
+    ldr     r4, [r8, #4]          @ f1
+    ldr     r5, [r9, #8]          @ g2
+    umlal   r10, r11, r4, r5
+
+    ldr     r4, [r8, #8]          @ f2
+    ldr     r5, [r9, #4]          @ g1
+    umlal   r10, r11, r4, r5
+
+    ldr     r4, [r8, #12]         @ f3
+    ldr     r5, [r9, #0]          @ g0
+    umlal   r10, r11, r4, r5
+
+    ldr     r4, [r8, #16]         @ f4
+    ldr     r5, [r9, #36]         @ g9
+    add     r7, r5, r5, lsl #1
+    add     r7, r7, r5, lsl #4
+    umlal   r10, r11, r4, r7
+
+    ldr     r4, [r8, #20]         @ f5
+    ldr     r5, [r9, #32]         @ g8
+    add     r7, r5, r5, lsl #1
+    add     r7, r7, r5, lsl #4
+    umlal   r10, r11, r4, r7
+
+    ldr     r4, [r8, #24]         @ f6
+    ldr     r5, [r9, #28]         @ g7
+    add     r7, r5, r5, lsl #1
+    add     r7, r7, r5, lsl #4
+    umlal   r10, r11, r4, r7
+
+    ldr     r4, [r8, #28]         @ f7
+    ldr     r5, [r9, #24]         @ g6
+    add     r7, r5, r5, lsl #1
+    add     r7, r7, r5, lsl #4
+    umlal   r10, r11, r4, r7
+
+    ldr     r4, [r8, #32]         @ f8
+    ldr     r5, [r9, #20]         @ g5
+    add     r7, r5, r5, lsl #1
+    add     r7, r7, r5, lsl #4
+    umlal   r10, r11, r4, r7
+
+    ldr     r4, [r8, #36]         @ f9
+    ldr     r5, [r9, #16]         @ g4
+    add     r7, r5, r5, lsl #1
+    add     r7, r7, r5, lsl #4
+    umlal   r10, r11, r4, r7
+
+    str     r10, [r12, #24]
+    str     r11, [r12, #28]
+
+    @ ----- h4 -----
+    movs    r10, #0
+    movs    r11, #0
+
+    ldr     r4, [r8, #0]          @ f0
+    ldr     r5, [r9, #16]         @ g4
+    umlal   r10, r11, r4, r5
+
+    ldr     r4, [r8, #4]          @ f1
+    ldr     r5, [r9, #12]         @ g3
+    add     r6, r4, r4
+    umlal   r10, r11, r6, r5
+
+    ldr     r4, [r8, #8]          @ f2
+    ldr     r5, [r9, #8]          @ g2
+    umlal   r10, r11, r4, r5
+
+    ldr     r4, [r8, #12]         @ f3
+    ldr     r5, [r9, #4]          @ g1
+    add     r6, r4, r4
+    umlal   r10, r11, r6, r5
+
+    ldr     r4, [r8, #16]         @ f4
+    ldr     r5, [r9, #0]          @ g0
+    umlal   r10, r11, r4, r5
+
+    ldr     r4, [r8, #20]         @ f5
+    ldr     r5, [r9, #36]         @ g9
+    add     r6, r4, r4
+    add     r7, r5, r5, lsl #1
+    add     r7, r7, r5, lsl #4
+    umlal   r10, r11, r6, r7
+
+    ldr     r4, [r8, #24]         @ f6
+    ldr     r5, [r9, #32]         @ g8
+    add     r7, r5, r5, lsl #1
+    add     r7, r7, r5, lsl #4
+    umlal   r10, r11, r4, r7
+
+    ldr     r4, [r8, #28]         @ f7
+    ldr     r5, [r9, #28]         @ g7
+    add     r6, r4, r4
+    add     r7, r5, r5, lsl #1
+    add     r7, r7, r5, lsl #4
+    umlal   r10, r11, r6, r7
+
+    ldr     r4, [r8, #32]         @ f8
+    ldr     r5, [r9, #24]         @ g6
+    add     r7, r5, r5, lsl #1
+    add     r7, r7, r5, lsl #4
+    umlal   r10, r11, r4, r7
+
+    ldr     r4, [r8, #36]         @ f9
+    ldr     r5, [r9, #20]         @ g5
+    add     r6, r4, r4
+    add     r7, r5, r5, lsl #1
+    add     r7, r7, r5, lsl #4
+    umlal   r10, r11, r6, r7
+
+    str     r10, [r12, #32]
+    str     r11, [r12, #36]
+
+    @ ----- h5 -----
+    movs    r10, #0
+    movs    r11, #0
+
+    ldr     r4, [r8, #0]          @ f0
+    ldr     r5, [r9, #20]         @ g5
+    umlal   r10, r11, r4, r5
+
+    ldr     r4, [r8, #4]          @ f1
+    ldr     r5, [r9, #16]         @ g4
+    umlal   r10, r11, r4, r5
+
+    ldr     r4, [r8, #8]          @ f2
+    ldr     r5, [r9, #12]         @ g3
+    umlal   r10, r11, r4, r5
+
+    ldr     r4, [r8, #12]         @ f3
+    ldr     r5, [r9, #8]          @ g2
+    umlal   r10, r11, r4, r5
+
+    ldr     r4, [r8, #16]         @ f4
+    ldr     r5, [r9, #4]          @ g1
+    umlal   r10, r11, r4, r5
+
+    ldr     r4, [r8, #20]         @ f5
+    ldr     r5, [r9, #0]          @ g0
+    umlal   r10, r11, r4, r5
+
+    ldr     r4, [r8, #24]         @ f6
+    ldr     r5, [r9, #36]         @ g9
+    add     r7, r5, r5, lsl #1
+    add     r7, r7, r5, lsl #4
+    umlal   r10, r11, r4, r7
+
+    ldr     r4, [r8, #28]         @ f7
+    ldr     r5, [r9, #32]         @ g8
+    add     r7, r5, r5, lsl #1
+    add     r7, r7, r5, lsl #4
+    umlal   r10, r11, r4, r7
+
+    ldr     r4, [r8, #32]         @ f8
+    ldr     r5, [r9, #28]         @ g7
+    add     r7, r5, r5, lsl #1
+    add     r7, r7, r5, lsl #4
+    umlal   r10, r11, r4, r7
+
+    ldr     r4, [r8, #36]         @ f9
+    ldr     r5, [r9, #24]         @ g6
+    add     r7, r5, r5, lsl #1
+    add     r7, r7, r5, lsl #4
+    umlal   r10, r11, r4, r7
+
+    str     r10, [r12, #40]
+    str     r11, [r12, #44]
+
+@ ----- h6 -----
+    movs    r10, #0
+    movs    r11, #0
+
+    ldr     r4, [r8, #0]          @ f0
+    ldr     r5, [r9, #24]         @ g6
+    umlal   r10, r11, r4, r5
+
+    ldr     r4, [r8, #4]          @ f1
+    ldr     r5, [r9, #20]         @ g5
+    add     r6, r4, r4
+    umlal   r10, r11, r6, r5
+
+    ldr     r4, [r8, #8]          @ f2
+    ldr     r5, [r9, #16]         @ g4
+    umlal   r10, r11, r4, r5
+
+    ldr     r4, [r8, #12]         @ f3
+    ldr     r5, [r9, #12]         @ g3
+    add     r6, r4, r4
+    umlal   r10, r11, r6, r5
+
+    ldr     r4, [r8, #16]         @ f4
+    ldr     r5, [r9, #8]          @ g2
+    umlal   r10, r11, r4, r5
+
+    ldr     r4, [r8, #20]         @ f5
+    ldr     r5, [r9, #4]          @ g1
+    add     r6, r4, r4
+    umlal   r10, r11, r6, r5
+
+    ldr     r4, [r8, #24]         @ f6
+    ldr     r5, [r9, #0]          @ g0
+    umlal   r10, r11, r4, r5
+
+    ldr     r4, [r8, #28]         @ f7
+    ldr     r5, [r9, #36]         @ g9
+    add     r6, r4, r4
+    add     r7, r5, r5, lsl #1
+    add     r7, r7, r5, lsl #4
+    umlal   r10, r11, r6, r7
+
+    ldr     r4, [r8, #32]         @ f8
+    ldr     r5, [r9, #32]         @ g8
+    add     r7, r5, r5, lsl #1
+    add     r7, r7, r5, lsl #4
+    umlal   r10, r11, r4, r7
+
+    ldr     r4, [r8, #36]         @ f9
+    ldr     r5, [r9, #28]         @ g7
+    add     r6, r4, r4
+    add     r7, r5, r5, lsl #1
+    add     r7, r7, r5, lsl #4
+    umlal   r10, r11, r6, r7
+
+    str     r10, [r12, #48]
+    str     r11, [r12, #52]
+
+    @ ----- h7 -----
+    movs    r10, #0
+    movs    r11, #0
+
+    ldr     r4, [r8, #0]          @ f0
+    ldr     r5, [r9, #28]         @ g7
+    umlal   r10, r11, r4, r5
+
+    ldr     r4, [r8, #4]          @ f1
+    ldr     r5, [r9, #24]         @ g6
+    umlal   r10, r11, r4, r5
+
+    ldr     r4, [r8, #8]          @ f2
+    ldr     r5, [r9, #20]         @ g5
+    umlal   r10, r11, r4, r5
+
+    ldr     r4, [r8, #12]         @ f3
+    ldr     r5, [r9, #16]         @ g4
+    umlal   r10, r11, r4, r5
+
+    ldr     r4, [r8, #16]         @ f4
+    ldr     r5, [r9, #12]         @ g3
+    umlal   r10, r11, r4, r5
+
+    ldr     r4, [r8, #20]         @ f5
+    ldr     r5, [r9, #8]          @ g2
+    umlal   r10, r11, r4, r5
+
+    ldr     r4, [r8, #24]         @ f6
+    ldr     r5, [r9, #4]          @ g1
+    umlal   r10, r11, r4, r5
+
+    ldr     r4, [r8, #28]         @ f7
+    ldr     r5, [r9, #0]          @ g0
+    umlal   r10, r11, r4, r5
+
+    ldr     r4, [r8, #32]         @ f8
+    ldr     r5, [r9, #36]         @ g9
+    add     r7, r5, r5, lsl #1
+    add     r7, r7, r5, lsl #4
+    umlal   r10, r11, r4, r7
+
+    ldr     r4, [r8, #36]         @ f9
+    ldr     r5, [r9, #32]         @ g8
+    add     r7, r5, r5, lsl #1
+    add     r7, r7, r5, lsl #4
+    umlal   r10, r11, r4, r7
+
+    str     r10, [r12, #56]
+    str     r11, [r12, #60]
+
+    @ ----- h8 -----
+    movs    r10, #0
+    movs    r11, #0
+
+    ldr     r4, [r8, #0]          @ f0
+    ldr     r5, [r9, #32]         @ g8
+    umlal   r10, r11, r4, r5
+
+    ldr     r4, [r8, #4]          @ f1
+    ldr     r5, [r9, #28]         @ g7
+    add     r6, r4, r4
+    umlal   r10, r11, r6, r5
+
+    ldr     r4, [r8, #8]          @ f2
+    ldr     r5, [r9, #24]         @ g6
+    umlal   r10, r11, r4, r5
+
+    ldr     r4, [r8, #12]         @ f3
+    ldr     r5, [r9, #20]         @ g5
+    add     r6, r4, r4
+    umlal   r10, r11, r6, r5
+
+    ldr     r4, [r8, #16]         @ f4
+    ldr     r5, [r9, #16]         @ g4
+    umlal   r10, r11, r4, r5
+
+    ldr     r4, [r8, #20]         @ f5
+    ldr     r5, [r9, #12]         @ g3
+    add     r6, r4, r4
+    umlal   r10, r11, r6, r5
+
+    ldr     r4, [r8, #24]         @ f6
+    ldr     r5, [r9, #8]          @ g2
+    umlal   r10, r11, r4, r5
+
+    ldr     r4, [r8, #28]         @ f7
+    ldr     r5, [r9, #4]          @ g1
+    add     r6, r4, r4
+    umlal   r10, r11, r6, r5
+
+    ldr     r4, [r8, #32]         @ f8
+    ldr     r5, [r9, #0]          @ g0
+    umlal   r10, r11, r4, r5
+
+    ldr     r4, [r8, #36]         @ f9
+    ldr     r5, [r9, #36]         @ g9
+    add     r6, r4, r4
+    add     r7, r5, r5, lsl #1
+    add     r7, r7, r5, lsl #4
+    umlal   r10, r11, r6, r7
+
+    str     r10, [r12, #64]
+    str     r11, [r12, #68]
+
+    @ ----- h9 -----
+    movs    r10, #0
+    movs    r11, #0
+
+    ldr     r4, [r8, #0]          @ f0
+    ldr     r5, [r9, #36]         @ g9
+    umlal   r10, r11, r4, r5
+
+    ldr     r4, [r8, #4]          @ f1
+    ldr     r5, [r9, #32]         @ g8
+    umlal   r10, r11, r4, r5
+
+    ldr     r4, [r8, #8]          @ f2
+    ldr     r5, [r9, #28]         @ g7
+    umlal   r10, r11, r4, r5
+
+    ldr     r4, [r8, #12]         @ f3
+    ldr     r5, [r9, #24]         @ g6
+    umlal   r10, r11, r4, r5
+
+    ldr     r4, [r8, #16]         @ f4
+    ldr     r5, [r9, #20]         @ g5
+    umlal   r10, r11, r4, r5
+
+    ldr     r4, [r8, #20]         @ f5
+    ldr     r5, [r9, #16]         @ g4
+    umlal   r10, r11, r4, r5
+
+    ldr     r4, [r8, #24]         @ f6
+    ldr     r5, [r9, #12]         @ g3
+    umlal   r10, r11, r4, r5
+
+    ldr     r4, [r8, #28]         @ f7
+    ldr     r5, [r9, #8]          @ g2
+    umlal   r10, r11, r4, r5
+
+    ldr     r4, [r8, #32]         @ f8
+    ldr     r5, [r9, #4]          @ g1
+    umlal   r10, r11, r4, r5
+
+    ldr     r4, [r8, #36]         @ f9
+    ldr     r5, [r9, #0]          @ g0
+    umlal   r10, r11, r4, r5
+
+    str     r10, [r12, #72]
+    str     r11, [r12, #76]
+
 
     @ -------------------------
     @ Carry propagation (same as C implementation)
     @ -------------------------
+    mov     r10, r12
+    mov     r11, #19
     movw    r0, #0
     movt    r0, #0x0200 @ 1 << 25
     movw    r1, #0
