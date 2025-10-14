@@ -719,7 +719,6 @@ BIGLIMB:
     @ Carry propagation (same as C implementation)
     @ -------------------------
     mov     r10, r12
-    mov     r11, #19
     movw    r0, #0
     movt    r0, #0x0200 @ 1 << 25
     movw    r1, #0
@@ -932,11 +931,21 @@ BIGLIMB:
     lsrs    r6, r7, #25
     orr     r6, r6, r8, lsl#7
 
-    mul     r3, r6, r11 @ carry9 * 19
     ldr     r4, [r10, #0]
     ldr     r5, [r10, #4]
-    adds    r4, r4, r3
+
+    adds    r4, r4, r6             @ + carry9
     adc     r5, r5, #0
+
+    mov     r9, r6, lsl #1         @ low(2*carry9)
+    mov     r3, r6, lsr #31        @ high(2*carry9)
+    adds    r4, r4, r9
+    adc     r5, r5, r3
+
+    mov     r9, r6, lsl #4         @ low(16*carry9)
+    mov     r3, r6, lsr #28        @ high(16*carry9)
+    adds    r4, r4, r9
+    adc     r5, r5, r3
 
     lsl     r9, r6, #25
     lsr     r3, r6, #7
