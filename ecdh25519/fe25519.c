@@ -332,114 +332,18 @@ void fe25519_mul(fe25519 *r, const fe25519 *x, const fe25519 *y)
   fe25519_pack(a, x);
   fe25519_pack(b, y);
 
-  /* Convert to a temporary 10-limb radix-(2^25.5) form for Comba-style multiply. */
-  uint64_t ax0 = load4(a + 0);
-  uint64_t ax1 = load4(a + 4);
-  uint64_t ax2 = load4(a + 8);
-  uint64_t ax3 = load4(a + 12);
-  uint64_t ax4 = load4(a + 16);
-  uint64_t ax5 = load4(a + 20);
-  uint64_t ax6 = load4(a + 24);
-  uint64_t ax7 = load4(a + 28);
+  uint32_t h_limbs[10];
+  extern void BIGLIMB(const unsigned char *a, const unsigned char *b, uint32_t out[10]);
 
-  uint64_t bx0 = load4(b + 0);
-  uint64_t bx1 = load4(b + 4);
-  uint64_t bx2 = load4(b + 8);
-  uint64_t bx3 = load4(b + 12);
-  uint64_t bx4 = load4(b + 16);
-  uint64_t bx5 = load4(b + 20);
-  uint64_t bx6 = load4(b + 24);
-  uint64_t bx7 = load4(b + 28);
+  BIGLIMB(a, b, h_limbs);
 
-  int64_t f0 = (int64_t)(ax0 & 0x3ffffff);
-  int64_t f1 = (int64_t)((((ax1 << 32) | ax0) >> 26) & 0x1ffffff);
-  int64_t f2 = (int64_t)((((ax2 << 32) | ax1) >> 19) & 0x3ffffff);
-  int64_t f3 = (int64_t)((((ax3 << 32) | ax2) >> 13) & 0x1ffffff);
-  int64_t f4 = (int64_t)((ax3 >> 6) & 0x3ffffff);
-  int64_t f5 = (int64_t)(ax4 & 0x1ffffff);
-  int64_t f6 = (int64_t)((((ax5 << 32) | ax4) >> 25) & 0x3ffffff);
-  int64_t f7 = (int64_t)((((ax6 << 32) | ax5) >> 19) & 0x1ffffff);
-  int64_t f8 = (int64_t)((((ax7 << 32) | ax6) >> 12) & 0x3ffffff);
-  int64_t f9 = (int64_t)((ax7 >> 6) & 0x1ffffff);
-
-  int64_t g0 = (int64_t)(bx0 & 0x3ffffff);
-  int64_t g1 = (int64_t)((((bx1 << 32) | bx0) >> 26) & 0x1ffffff);
-  int64_t g2 = (int64_t)((((bx2 << 32) | bx1) >> 19) & 0x3ffffff);
-  int64_t g3 = (int64_t)((((bx3 << 32) | bx2) >> 13) & 0x1ffffff);
-  int64_t g4 = (int64_t)((bx3 >> 6) & 0x3ffffff);
-  int64_t g5 = (int64_t)(bx4 & 0x1ffffff);
-  int64_t g6 = (int64_t)((((bx5 << 32) | bx4) >> 25) & 0x3ffffff);
-  int64_t g7 = (int64_t)((((bx6 << 32) | bx5) >> 19) & 0x1ffffff);
-  int64_t g8 = (int64_t)((((bx7 << 32) | bx6) >> 12) & 0x3ffffff);
-  int64_t g9 = (int64_t)((bx7 >> 6) & 0x1ffffff);
-
-  int64_t g1_19 = 19 * g1;
-  int64_t g2_19 = 19 * g2;
-  int64_t g3_19 = 19 * g3;
-  int64_t g4_19 = 19 * g4;
-  int64_t g5_19 = 19 * g5;
-  int64_t g6_19 = 19 * g6;
-  int64_t g7_19 = 19 * g7;
-  int64_t g8_19 = 19 * g8;
-  int64_t g9_19 = 19 * g9;
-
-  int64_t f1_2 = 2 * f1;
-  int64_t f3_2 = 2 * f3;
-  int64_t f5_2 = 2 * f5;
-  int64_t f7_2 = 2 * f7;
-  int64_t f9_2 = 2 * f9;
-
-  int64_t h0 = f0 * g0 + f1_2 * g9_19 + f2 * g8_19 + f3_2 * g7_19 + f4 * g6_19 + f5_2 * g5_19 + f6 * g4_19 + f7_2 * g3_19 + f8 * g2_19 + f9_2 * g1_19;
-  int64_t h1 = f0 * g1 + f1 * g0 + f2 * g9_19 + f3 * g8_19 + f4 * g7_19 + f5 * g6_19 + f6 * g5_19 + f7 * g4_19 + f8 * g3_19 + f9 * g2_19;
-  int64_t h2 = f0 * g2 + f1_2 * g1 + f2 * g0 + f3_2 * g9_19 + f4 * g8_19 + f5_2 * g7_19 + f6 * g6_19 + f7_2 * g5_19 + f8 * g4_19 + f9_2 * g3_19;
-  int64_t h3 = f0 * g3 + f1 * g2 + f2 * g1 + f3 * g0 + f4 * g9_19 + f5 * g8_19 + f6 * g7_19 + f7 * g6_19 + f8 * g5_19 + f9 * g4_19;
-  int64_t h4 = f0 * g4 + f1_2 * g3 + f2 * g2 + f3_2 * g1 + f4 * g0 + f5_2 * g9_19 + f6 * g8_19 + f7_2 * g7_19 + f8 * g6_19 + f9_2 * g5_19;
-  int64_t h5 = f0 * g5 + f1 * g4 + f2 * g3 + f3 * g2 + f4 * g1 + f5 * g0 + f6 * g9_19 + f7 * g8_19 + f8 * g7_19 + f9 * g6_19;
-  int64_t h6 = f0 * g6 + f1_2 * g5 + f2 * g4 + f3_2 * g3 + f4 * g2 + f5_2 * g1 + f6 * g0 + f7_2 * g9_19 + f8 * g8_19 + f9_2 * g7_19;
-  int64_t h7 = f0 * g7 + f1 * g6 + f2 * g5 + f3 * g4 + f4 * g3 + f5 * g2 + f6 * g1 + f7 * g0 + f8 * g9_19 + f9 * g8_19;
-  int64_t h8 = f0 * g8 + f1_2 * g7 + f2 * g6 + f3_2 * g5 + f4 * g4 + f5_2 * g3 + f6 * g2 + f7_2 * g1 + f8 * g0 + f9_2 * g9_19;
-  int64_t h9 = f0 * g9 + f1 * g8 + f2 * g7 + f3 * g6 + f4 * g5 + f5 * g4 + f6 * g3 + f7 * g2 + f8 * g1 + f9 * g0;
-
-  int64_t carry0 = (h0 + ((int64_t)1 << 25)) >> 26;
-  h1 += carry0;
-  h0 -= carry0 << 26;
-  int64_t carry1 = (h1 + ((int64_t)1 << 24)) >> 25;
-  h2 += carry1;
-  h1 -= carry1 << 25;
-  int64_t carry2 = (h2 + ((int64_t)1 << 25)) >> 26;
-  h3 += carry2;
-  h2 -= carry2 << 26;
-  int64_t carry3 = (h3 + ((int64_t)1 << 24)) >> 25;
-  h4 += carry3;
-  h3 -= carry3 << 25;
-  int64_t carry4 = (h4 + ((int64_t)1 << 25)) >> 26;
-  h5 += carry4;
-  h4 -= carry4 << 26;
-  int64_t carry5 = (h5 + ((int64_t)1 << 24)) >> 25;
-  h6 += carry5;
-  h5 -= carry5 << 25;
-  int64_t carry6 = (h6 + ((int64_t)1 << 25)) >> 26;
-  h7 += carry6;
-  h6 -= carry6 << 26;
-  int64_t carry7 = (h7 + ((int64_t)1 << 24)) >> 25;
-  h8 += carry7;
-  h7 -= carry7 << 25;
-  int64_t carry8 = (h8 + ((int64_t)1 << 25)) >> 26;
-  h9 += carry8;
-  h8 -= carry8 << 26;
-  int64_t carry9 = (h9 + ((int64_t)1 << 24)) >> 25;
-  h0 += carry9 * 19;
-  h9 -= carry9 << 25;
-
-  carry0 = (h0 + ((int64_t)1 << 25)) >> 26;
-  h1 += carry0;
-  h0 -= carry0 << 26;
-  carry1 = (h1 + ((int64_t)1 << 24)) >> 25;
-  h2 += carry1;
-  h1 -= carry1 << 25;
-
-  int64_t h[10] = {h0, h1, h2, h3, h4, h5, h6, h7, h8, h9};
+  int64_t h[10];
+  for (int i = 0; i < 10; ++i)
+  {
+    h[i] = (int64_t)h_limbs[i];
+  }
   unsigned char s[32];
+
   contract_limbs(s, h);
 
   for (int i = 0; i < 32; ++i)
