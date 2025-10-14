@@ -1011,7 +1011,10 @@ BIGLIMB:
 5:
     add     r12, r10, r4, lsl#3
     ldr     r6, [r12, #0]
-    str     r6, [r2, r4, lsl#2]
+    ldr     r7, [r12, #4]
+    add     r3, r2, r4, lsl#3
+    str     r6, [r3, #0]
+    str     r7, [r3, #4]
     add     r4, r4, #1
     cmp     r4, #10
     blt     5b
