@@ -440,8 +440,8 @@ void fe25519_mul(fe25519 *r, const fe25519 *x, const fe25519 *y)
 
   int64_t h[10] = {h0, h1, h2, h3, h4, h5, h6, h7, h8, h9};
   */
-  uint32_t h_limbs[10];
-  extern void BIGLIMB(const unsigned char *a, const unsigned char *b, uint32_t out[10]);
+  int32_t h_limbs[10];
+  extern void BIGLIMB(const unsigned char *a, const unsigned char *b, int32_t out[10]);
 
   BIGLIMB(a, b, h_limbs);
 
