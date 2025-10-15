@@ -8,6 +8,8 @@ BIGLIMB:
     push    {r4-r11, lr}
     sub     sp, sp, #160
 
+    str     r2, [sp, #0]@ 保存輸出指標
+
     mov     r8, sp              @ f limbs base
     add     r9, r8, #40         @ g limbs base
     add     r10, r9, #40        @ h limbs base (int64[10])
@@ -1065,6 +1067,7 @@ BIGLIMB:
     cmp     r4, #10
     blt     5b
 
+    ldr     r2, [sp, #0]
     add     sp, sp, #160
     pop     {r4-r11, pc}
 
