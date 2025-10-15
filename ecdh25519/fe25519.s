@@ -140,60 +140,60 @@ BIGLIMB:
     ldr     r4, [r8, #4]          @ f1
     ldr     r5, [r9, #36]         @ g9
     add     r6, r4, r4            @ 2*f1
-    add     r7, r5, r5, lsl #1    @ 3*g9
-    add     r7, r7, r5, lsl #4    @ 19*g9
+    add     r7, r5, r5, lsl#1     @ 3*g9
+    add     r7, r7, r5, lsl#4     @ 19*g9
     umlal   r10, r11, r6, r7
 
     ldr     r4, [r8, #8]          @ f2
     ldr     r5, [r9, #32]         @ g8
-    add     r7, r5, r5, lsl #1
-    add     r7, r7, r5, lsl #4
+    add     r7, r5, r5, lsl#1
+    add     r7, r7, r5, lsl#4
     umlal   r10, r11, r4, r7
 
     ldr     r4, [r8, #12]         @ f3
     ldr     r5, [r9, #28]         @ g7
     add     r6, r4, r4
-    add     r7, r5, r5, lsl #1
-    add     r7, r7, r5, lsl #4
+    add     r7, r5, r5, lsl#1
+    add     r7, r7, r5, lsl#4
     umlal   r10, r11, r6, r7
 
     ldr     r4, [r8, #16]         @ f4
     ldr     r5, [r9, #24]         @ g6
-    add     r7, r5, r5, lsl #1
-    add     r7, r7, r5, lsl #4
+    add     r7, r5, r5, lsl#1
+    add     r7, r7, r5, lsl#4
     umlal   r10, r11, r4, r7
 
     ldr     r4, [r8, #20]         @ f5
     ldr     r5, [r9, #20]         @ g5
     add     r6, r4, r4
-    add     r7, r5, r5, lsl #1
-    add     r7, r7, r5, lsl #4
+    add     r7, r5, r5, lsl#1
+    add     r7, r7, r5, lsl#4
     umlal   r10, r11, r6, r7
 
     ldr     r4, [r8, #24]         @ f6
     ldr     r5, [r9, #16]         @ g4
-    add     r7, r5, r5, lsl #1
-    add     r7, r7, r5, lsl #4
+    add     r7, r5, r5, lsl#1
+    add     r7, r7, r5, lsl#4
     umlal   r10, r11, r4, r7
 
     ldr     r4, [r8, #28]         @ f7
     ldr     r5, [r9, #12]         @ g3
     add     r6, r4, r4
-    add     r7, r5, r5, lsl #1
-    add     r7, r7, r5, lsl #4
+    add     r7, r5, r5, lsl#1
+    add     r7, r7, r5, lsl#4
     umlal   r10, r11, r6, r7
 
     ldr     r4, [r8, #32]         @ f8
     ldr     r5, [r9, #8]          @ g2
-    add     r7, r5, r5, lsl #1
-    add     r7, r7, r5, lsl #4
+    add     r7, r5, r5, lsl#1
+    add     r7, r7, r5, lsl#4
     umlal   r10, r11, r4, r7
 
     ldr     r4, [r8, #36]         @ f9
     ldr     r5, [r9, #4]          @ g1
     add     r6, r4, r4
-    add     r7, r5, r5, lsl #1
-    add     r7, r7, r5, lsl #4
+    add     r7, r5, r5, lsl#1
+    add     r7, r7, r5, lsl#4
     umlal   r10, r11, r6, r7
 
     str     r10, [r12, #0]
@@ -213,50 +213,50 @@ BIGLIMB:
 
     ldr     r4, [r8, #8]          @ f2
     ldr     r5, [r9, #36]         @ g9
-    add     r7, r5, r5, lsl #1
-    add     r7, r7, r5, lsl #4
+    add     r7, r5, r5, lsl#1
+    add     r7, r7, r5, lsl#4
     umlal   r10, r11, r4, r7
 
     ldr     r4, [r8, #12]         @ f3
     ldr     r5, [r9, #32]         @ g8
-    add     r7, r5, r5, lsl #1
-    add     r7, r7, r5, lsl #4
+    add     r7, r5, r5, lsl#1
+    add     r7, r7, r5, lsl#4
     umlal   r10, r11, r4, r7
 
     ldr     r4, [r8, #16]         @ f4
     ldr     r5, [r9, #28]         @ g7
-    add     r7, r5, r5, lsl #1
-    add     r7, r7, r5, lsl #4
+    add     r7, r5, r5, lsl#1
+    add     r7, r7, r5, lsl#4
     umlal   r10, r11, r4, r7
 
     ldr     r4, [r8, #20]         @ f5
     ldr     r5, [r9, #24]         @ g6
-    add     r7, r5, r5, lsl #1
-    add     r7, r7, r5, lsl #4
+    add     r7, r5, r5, lsl#1
+    add     r7, r7, r5, lsl#4
     umlal   r10, r11, r4, r7
 
     ldr     r4, [r8, #24]         @ f6
     ldr     r5, [r9, #20]         @ g5
-    add     r7, r5, r5, lsl #1
-    add     r7, r7, r5, lsl #4
+    add     r7, r5, r5, lsl#1
+    add     r7, r7, r5, lsl#4
     umlal   r10, r11, r4, r7
 
     ldr     r4, [r8, #28]         @ f7
     ldr     r5, [r9, #16]         @ g4
-    add     r7, r5, r5, lsl #1
-    add     r7, r7, r5, lsl #4
+    add     r7, r5, r5, lsl#1
+    add     r7, r7, r5, lsl#4
     umlal   r10, r11, r4, r7
 
     ldr     r4, [r8, #32]         @ f8
     ldr     r5, [r9, #12]         @ g3
-    add     r7, r5, r5, lsl #1
-    add     r7, r7, r5, lsl #4
+    add     r7, r5, r5, lsl#1
+    add     r7, r7, r5, lsl#4
     umlal   r10, r11, r4, r7
 
     ldr     r4, [r8, #36]         @ f9
     ldr     r5, [r9, #8]          @ g2
-    add     r7, r5, r5, lsl #1
-    add     r7, r7, r5, lsl #4
+    add     r7, r5, r5, lsl#1
+    add     r7, r7, r5, lsl#4
     umlal   r10, r11, r4, r7
 
     str     r10, [r12, #8]
@@ -282,47 +282,47 @@ BIGLIMB:
     ldr     r4, [r8, #12]         @ f3
     ldr     r5, [r9, #36]         @ g9
     add     r6, r4, r4
-    add     r7, r5, r5, lsl #1
-    add     r7, r7, r5, lsl #4
+    add     r7, r5, r5, lsl#1
+    add     r7, r7, r5, lsl#4
     umlal   r10, r11, r6, r7
 
     ldr     r4, [r8, #16]         @ f4
     ldr     r5, [r9, #32]         @ g8
-    add     r7, r5, r5, lsl #1
-    add     r7, r7, r5, lsl #4
+    add     r7, r5, r5, lsl#1
+    add     r7, r7, r5, lsl#4
     umlal   r10, r11, r4, r7
 
     ldr     r4, [r8, #20]         @ f5
     ldr     r5, [r9, #28]         @ g7
     add     r6, r4, r4
-    add     r7, r5, r5, lsl #1
-    add     r7, r7, r5, lsl #4
+    add     r7, r5, r5, lsl#1
+    add     r7, r7, r5, lsl#4
     umlal   r10, r11, r6, r7
 
     ldr     r4, [r8, #24]         @ f6
     ldr     r5, [r9, #24]         @ g6
-    add     r7, r5, r5, lsl #1
-    add     r7, r7, r5, lsl #4
+    add     r7, r5, r5, lsl#1
+    add     r7, r7, r5, lsl#4
     umlal   r10, r11, r4, r7
 
     ldr     r4, [r8, #28]         @ f7
     ldr     r5, [r9, #20]         @ g5
     add     r6, r4, r4
-    add     r7, r5, r5, lsl #1
-    add     r7, r7, r5, lsl #4
+    add     r7, r5, r5, lsl#1
+    add     r7, r7, r5, lsl#4
     umlal   r10, r11, r6, r7
 
     ldr     r4, [r8, #32]         @ f8
     ldr     r5, [r9, #16]         @ g4
-    add     r7, r5, r5, lsl #1
-    add     r7, r7, r5, lsl #4
+    add     r7, r5, r5, lsl#1
+    add     r7, r7, r5, lsl#4
     umlal   r10, r11, r4, r7
 
     ldr     r4, [r8, #36]         @ f9
     ldr     r5, [r9, #12]         @ g3
     add     r6, r4, r4
-    add     r7, r5, r5, lsl #1
-    add     r7, r7, r5, lsl #4
+    add     r7, r5, r5, lsl#1
+    add     r7, r7, r5, lsl#4
     umlal   r10, r11, r6, r7
 
     str     r10, [r12, #16]
@@ -350,38 +350,38 @@ BIGLIMB:
 
     ldr     r4, [r8, #16]         @ f4
     ldr     r5, [r9, #36]         @ g9
-    add     r7, r5, r5, lsl #1
-    add     r7, r7, r5, lsl #4
+    add     r7, r5, r5, lsl#1
+    add     r7, r7, r5, lsl#4
     umlal   r10, r11, r4, r7
 
     ldr     r4, [r8, #20]         @ f5
     ldr     r5, [r9, #32]         @ g8
-    add     r7, r5, r5, lsl #1
-    add     r7, r7, r5, lsl #4
+    add     r7, r5, r5, lsl#1
+    add     r7, r7, r5, lsl#4
     umlal   r10, r11, r4, r7
 
     ldr     r4, [r8, #24]         @ f6
     ldr     r5, [r9, #28]         @ g7
-    add     r7, r5, r5, lsl #1
-    add     r7, r7, r5, lsl #4
+    add     r7, r5, r5, lsl#1
+    add     r7, r7, r5, lsl#4
     umlal   r10, r11, r4, r7
 
     ldr     r4, [r8, #28]         @ f7
     ldr     r5, [r9, #24]         @ g6
-    add     r7, r5, r5, lsl #1
-    add     r7, r7, r5, lsl #4
+    add     r7, r5, r5, lsl#1
+    add     r7, r7, r5, lsl#4
     umlal   r10, r11, r4, r7
 
     ldr     r4, [r8, #32]         @ f8
     ldr     r5, [r9, #20]         @ g5
-    add     r7, r5, r5, lsl #1
-    add     r7, r7, r5, lsl #4
+    add     r7, r5, r5, lsl#1
+    add     r7, r7, r5, lsl#4
     umlal   r10, r11, r4, r7
 
     ldr     r4, [r8, #36]         @ f9
     ldr     r5, [r9, #16]         @ g4
-    add     r7, r5, r5, lsl #1
-    add     r7, r7, r5, lsl #4
+    add     r7, r5, r5, lsl#1
+    add     r7, r7, r5, lsl#4
     umlal   r10, r11, r4, r7
 
     str     r10, [r12, #24]
@@ -416,34 +416,34 @@ BIGLIMB:
     ldr     r4, [r8, #20]         @ f5
     ldr     r5, [r9, #36]         @ g9
     add     r6, r4, r4
-    add     r7, r5, r5, lsl #1
-    add     r7, r7, r5, lsl #4
+    add     r7, r5, r5, lsl#1
+    add     r7, r7, r5, lsl#4
     umlal   r10, r11, r6, r7
 
     ldr     r4, [r8, #24]         @ f6
     ldr     r5, [r9, #32]         @ g8
-    add     r7, r5, r5, lsl #1
-    add     r7, r7, r5, lsl #4
+    add     r7, r5, r5, lsl#1
+    add     r7, r7, r5, lsl#4
     umlal   r10, r11, r4, r7
 
     ldr     r4, [r8, #28]         @ f7
     ldr     r5, [r9, #28]         @ g7
     add     r6, r4, r4
-    add     r7, r5, r5, lsl #1
-    add     r7, r7, r5, lsl #4
+    add     r7, r5, r5, lsl#1
+    add     r7, r7, r5, lsl#4
     umlal   r10, r11, r6, r7
 
     ldr     r4, [r8, #32]         @ f8
     ldr     r5, [r9, #24]         @ g6
-    add     r7, r5, r5, lsl #1
-    add     r7, r7, r5, lsl #4
+    add     r7, r5, r5, lsl#1
+    add     r7, r7, r5, lsl#4
     umlal   r10, r11, r4, r7
 
     ldr     r4, [r8, #36]         @ f9
     ldr     r5, [r9, #20]         @ g5
     add     r6, r4, r4
-    add     r7, r5, r5, lsl #1
-    add     r7, r7, r5, lsl #4
+    add     r7, r5, r5, lsl#1
+    add     r7, r7, r5, lsl#4
     umlal   r10, r11, r6, r7
 
     str     r10, [r12, #32]
@@ -479,26 +479,26 @@ BIGLIMB:
 
     ldr     r4, [r8, #24]         @ f6
     ldr     r5, [r9, #36]         @ g9
-    add     r7, r5, r5, lsl #1
-    add     r7, r7, r5, lsl #4
+    add     r7, r5, r5, lsl#1
+    add     r7, r7, r5, lsl#4
     umlal   r10, r11, r4, r7
 
     ldr     r4, [r8, #28]         @ f7
     ldr     r5, [r9, #32]         @ g8
-    add     r7, r5, r5, lsl #1
-    add     r7, r7, r5, lsl #4
+    add     r7, r5, r5, lsl#1
+    add     r7, r7, r5, lsl#4
     umlal   r10, r11, r4, r7
 
     ldr     r4, [r8, #32]         @ f8
     ldr     r5, [r9, #28]         @ g7
-    add     r7, r5, r5, lsl #1
-    add     r7, r7, r5, lsl #4
+    add     r7, r5, r5, lsl#1
+    add     r7, r7, r5, lsl#4
     umlal   r10, r11, r4, r7
 
     ldr     r4, [r8, #36]         @ f9
     ldr     r5, [r9, #24]         @ g6
-    add     r7, r5, r5, lsl #1
-    add     r7, r7, r5, lsl #4
+    add     r7, r5, r5, lsl#1
+    add     r7, r7, r5, lsl#4
     umlal   r10, r11, r4, r7
 
     str     r10, [r12, #40]
@@ -542,21 +542,21 @@ BIGLIMB:
     ldr     r4, [r8, #28]         @ f7
     ldr     r5, [r9, #36]         @ g9
     add     r6, r4, r4
-    add     r7, r5, r5, lsl #1
-    add     r7, r7, r5, lsl #4
+    add     r7, r5, r5, lsl#1
+    add     r7, r7, r5, lsl#4
     umlal   r10, r11, r6, r7
 
     ldr     r4, [r8, #32]         @ f8
     ldr     r5, [r9, #32]         @ g8
-    add     r7, r5, r5, lsl #1
-    add     r7, r7, r5, lsl #4
+    add     r7, r5, r5, lsl#1
+    add     r7, r7, r5, lsl#4
     umlal   r10, r11, r4, r7
 
     ldr     r4, [r8, #36]         @ f9
     ldr     r5, [r9, #28]         @ g7
     add     r6, r4, r4
-    add     r7, r5, r5, lsl #1
-    add     r7, r7, r5, lsl #4
+    add     r7, r5, r5, lsl#1
+    add     r7, r7, r5, lsl#4
     umlal   r10, r11, r6, r7
 
     str     r10, [r12, #48]
@@ -600,14 +600,14 @@ BIGLIMB:
 
     ldr     r4, [r8, #32]         @ f8
     ldr     r5, [r9, #36]         @ g9
-    add     r7, r5, r5, lsl #1
-    add     r7, r7, r5, lsl #4
+    add     r7, r5, r5, lsl#1
+    add     r7, r7, r5, lsl#4
     umlal   r10, r11, r4, r7
 
     ldr     r4, [r8, #36]         @ f9
     ldr     r5, [r9, #32]         @ g8
-    add     r7, r5, r5, lsl #1
-    add     r7, r7, r5, lsl #4
+    add     r7, r5, r5, lsl#1
+    add     r7, r7, r5, lsl#4
     umlal   r10, r11, r4, r7
 
     str     r10, [r12, #56]
@@ -660,8 +660,8 @@ BIGLIMB:
     ldr     r4, [r8, #36]         @ f9
     ldr     r5, [r9, #36]         @ g9
     add     r6, r4, r4
-    add     r7, r5, r5, lsl #1
-    add     r7, r7, r5, lsl #4
+    add     r7, r5, r5, lsl#1
+    add     r7, r7, r5, lsl#4
     umlal   r10, r11, r6, r7
 
     str     r10, [r12, #64]
@@ -714,289 +714,335 @@ BIGLIMB:
     str     r10, [r12, #72]
     str     r11, [r12, #76]
 
+    @ -------------------------
+    @ Carry propagation (64-bit correct version)
+    @ -------------------------
+    mov     r10, r12 @ r10 = Hbase (h0..h9 each 64-bit @ [r10 + k*8])
 
-    @ -------------------------
-    @ Carry propagation (same as C implementation)
-    @ -------------------------
-    mov     r10, r12
+    @ r0 = 1<<25, r1 = 1<<24
     movw    r0, #0
-    movt    r0, #0x0200 @ 1 << 25
+    movt    r0, #0x0200
     movw    r1, #0
-    movt    r1, #0x0100 @ 1 << 24
+    movt    r1, #0x0100
 
-    @ carry0
-    ldr     r4, [r10, #0]
-    ldr     r5, [r10, #4]
-    adds    r4, r4, r0
+    @ ===== carry0 (n=26) =====
+    ldr     r4, [r10, #0]         @ h0_lo
+    ldr     r5, [r10, #4]         @ h0_hi
+    adds    r4, r4, r0            @ + 2^25
     adc     r5, r5, #0
 
-    lsrs    r6, r4, #26
+    lsrs    r6, r4, #26 @ carry_lo = (h0_lo >> 26) | (h0_hi << 6)
     orr     r6, r6, r5, lsl#6
+    lsrs    r3, r5, #26 @ carry_hi = h0_hi >> 26
 
-    ldr     r7, [r10, #8]
-    ldr     r8, [r10, #12]
-    adds    r7, r7, r6
-    adc     r8, r8, #0
+    ldr     r7, [r10, #8]         @ h1_lo
+    ldr     r8, [r10, #12]        @ h1_hi
+    adds    r7, r7, r6            @ h1 += carry (64-bit)
+    adc     r8, r8, r3
 
-    lsl     r9, r6, #26
-    lsr     r3, r6, #6
-    subs    r4, r4, r9
-    sbc     r5, r5, r3
+    lsl     r9, r6, #26           @ sub_lo = carry_lo << 26
+    lsr     r12, r6, #6           @ part = carry_lo >> (32-26)
+    lsl     r2, r3, #26           @ sub_hi = (carry_hi << 26) | part
+    orr     r2, r2, r12
+    subs    r4, r4, r9 @ h0 -= (carry << 26)
+    sbc     r5, r5, r2
 
     str     r4, [r10, #0]
     str     r5, [r10, #4]
     str     r7, [r10, #8]
     str     r8, [r10, #12]
 
-    @ carry1
-    adds    r7, r7, r1
+    @ ===== carry1 (n=25) =====
+    adds    r7, r7, r1 @ h1 += 2^24
     adc     r8, r8, #0
 
-    lsrs    r6, r7, #25
+    lsrs    r6, r7, #25 @ carry_lo = (h1_lo >> 25) | (h1_hi << 7)
     orr     r6, r6, r8, lsl#7
+    lsrs    r3, r8, #25 @ carry_hi = h1_hi >> 25
 
-    ldr     r4, [r10, #16]
-    ldr     r5, [r10, #20]
-    adds    r4, r4, r6
-    adc     r5, r5, #0
+    ldr     r4, [r10, #16]        @ h2_lo
+    ldr     r5, [r10, #20]        @ h2_hi
+    adds    r4, r4, r6            @ h2 += carry (64-bit)
+    adc     r5, r5, r3
 
-    lsl     r9, r6, #25
-    lsr     r3, r6, #7
-    subs    r7, r7, r9
-    sbc     r8, r8, r3
+    lsl     r9, r6, #25           @ sub_lo = carry_lo << 25
+    lsr     r12, r6, #7           @ part = carry_lo >> (32-25)
+    lsl     r2, r3, #25           @ sub_hi = (carry_hi << 25) | part
+    orr     r2, r2, r12
+    subs    r7, r7, r9 @ h1 -= (carry << 25)
+    sbc     r8, r8, r2
 
     str     r7, [r10, #8]
     str     r8, [r10, #12]
     str     r4, [r10, #16]
     str     r5, [r10, #20]
 
-    @ carry2
-    adds    r4, r4, r0
+    @ ===== carry2 (n=26) =====
+    adds    r4, r4, r0 @ h2 += 2^25
     adc     r5, r5, #0
 
     lsrs    r6, r4, #26
     orr     r6, r6, r5, lsl#6
+    lsrs    r3, r5, #26
 
-    ldr     r7, [r10, #24]
-    ldr     r8, [r10, #28]
+    ldr     r7, [r10, #24]        @ h3_lo
+    ldr     r8, [r10, #28]        @ h3_hi
     adds    r7, r7, r6
-    adc     r8, r8, #0
+    adc     r8, r8, r3
 
     lsl     r9, r6, #26
-    lsr     r3, r6, #6
+    lsr     r12, r6, #6
+    lsl     r2, r3, #26
+    orr     r2, r2, r12
     subs    r4, r4, r9
-    sbc     r5, r5, r3
+    sbc     r5, r5, r2
 
     str     r4, [r10, #16]
     str     r5, [r10, #20]
     str     r7, [r10, #24]
     str     r8, [r10, #28]
 
-    @ carry3
+    @ ===== carry3 (n=25) =====
     adds    r7, r7, r1
     adc     r8, r8, #0
 
     lsrs    r6, r7, #25
     orr     r6, r6, r8, lsl#7
+    lsrs    r3, r8, #25
 
-    ldr     r4, [r10, #32]
-    ldr     r5, [r10, #36]
+    ldr     r4, [r10, #32]        @ h4_lo
+    ldr     r5, [r10, #36]        @ h4_hi
     adds    r4, r4, r6
-    adc     r5, r5, #0
+    adc     r5, r5, r3
 
     lsl     r9, r6, #25
-    lsr     r3, r6, #7
+    lsr     r12, r6, #7
+    lsl     r2, r3, #25
+    orr     r2, r2, r12
     subs    r7, r7, r9
-    sbc     r8, r8, r3
+    sbc     r8, r8, r2
 
     str     r7, [r10, #24]
     str     r8, [r10, #28]
     str     r4, [r10, #32]
     str     r5, [r10, #36]
 
-    @ carry4
+    @ ===== carry4 (n=26) =====
     adds    r4, r4, r0
     adc     r5, r5, #0
 
     lsrs    r6, r4, #26
     orr     r6, r6, r5, lsl#6
+    lsrs    r3, r5, #26
 
-    ldr     r7, [r10, #40]
-    ldr     r8, [r10, #44]
+    ldr     r7, [r10, #40]        @ h5_lo
+    ldr     r8, [r10, #44]        @ h5_hi
     adds    r7, r7, r6
-    adc     r8, r8, #0
+    adc     r8, r8, r3
 
     lsl     r9, r6, #26
-    lsr     r3, r6, #6
+    lsr     r12, r6, #6
+    lsl     r2, r3, #26
+    orr     r2, r2, r12
     subs    r4, r4, r9
-    sbc     r5, r5, r3
+    sbc     r5, r5, r2
 
     str     r4, [r10, #32]
     str     r5, [r10, #36]
     str     r7, [r10, #40]
     str     r8, [r10, #44]
 
-    @ carry5
+    @ ===== carry5 (n=25) =====
     adds    r7, r7, r1
     adc     r8, r8, #0
 
     lsrs    r6, r7, #25
     orr     r6, r6, r8, lsl#7
+    lsrs    r3, r8, #25
 
-    ldr     r4, [r10, #48]
-    ldr     r5, [r10, #52]
+    ldr     r4, [r10, #48]        @ h6_lo
+    ldr     r5, [r10, #52]        @ h6_hi
     adds    r4, r4, r6
-    adc     r5, r5, #0
+    adc     r5, r5, r3
 
     lsl     r9, r6, #25
-    lsr     r3, r6, #7
+    lsr     r12, r6, #7
+    lsl     r2, r3, #25
+    orr     r2, r2, r12
     subs    r7, r7, r9
-    sbc     r8, r8, r3
+    sbc     r8, r8, r2
 
     str     r7, [r10, #40]
     str     r8, [r10, #44]
     str     r4, [r10, #48]
     str     r5, [r10, #52]
 
-    @ carry6
+    @ ===== carry6 (n=26) =====
     adds    r4, r4, r0
     adc     r5, r5, #0
 
     lsrs    r6, r4, #26
     orr     r6, r6, r5, lsl#6
+    lsrs    r3, r5, #26
 
-    ldr     r7, [r10, #56]
-    ldr     r8, [r10, #60]
+    ldr     r7, [r10, #56]        @ h7_lo
+    ldr     r8, [r10, #60]        @ h7_hi
     adds    r7, r7, r6
-    adc     r8, r8, #0
+    adc     r8, r8, r3
 
     lsl     r9, r6, #26
-    lsr     r3, r6, #6
+    lsr     r12, r6, #6
+    lsl     r2, r3, #26
+    orr     r2, r2, r12
     subs    r4, r4, r9
-    sbc     r5, r5, r3
+    sbc     r5, r5, r2
 
     str     r4, [r10, #48]
     str     r5, [r10, #52]
     str     r7, [r10, #56]
     str     r8, [r10, #60]
 
-    @ carry7
+    @ ===== carry7 (n=25) =====
     adds    r7, r7, r1
     adc     r8, r8, #0
 
     lsrs    r6, r7, #25
     orr     r6, r6, r8, lsl#7
+    lsrs    r3, r8, #25
 
-    ldr     r4, [r10, #64]
-    ldr     r5, [r10, #68]
+    ldr     r4, [r10, #64]        @ h8_lo
+    ldr     r5, [r10, #68]        @ h8_hi
     adds    r4, r4, r6
-    adc     r5, r5, #0
+    adc     r5, r5, r3
 
     lsl     r9, r6, #25
-    lsr     r3, r6, #7
+    lsr     r12, r6, #7
+    lsl     r2, r3, #25
+    orr     r2, r2, r12
     subs    r7, r7, r9
-    sbc     r8, r8, r3
+    sbc     r8, r8, r2
 
     str     r7, [r10, #56]
     str     r8, [r10, #60]
     str     r4, [r10, #64]
     str     r5, [r10, #68]
 
-    @ carry8
+    @ ===== carry8 (n=26) =====
     adds    r4, r4, r0
     adc     r5, r5, #0
 
     lsrs    r6, r4, #26
     orr     r6, r6, r5, lsl#6
+    lsrs    r3, r5, #26
 
-    ldr     r7, [r10, #72]
-    ldr     r8, [r10, #76]
+    ldr     r7, [r10, #72]        @ h9_lo
+    ldr     r8, [r10, #76]        @ h9_hi
     adds    r7, r7, r6
-    adc     r8, r8, #0
+    adc     r8, r8, r3
 
     lsl     r9, r6, #26
-    lsr     r3, r6, #6
+    lsr     r12, r6, #6
+    lsl     r2, r3, #26
+    orr     r2, r2, r12
     subs    r4, r4, r9
-    sbc     r5, r5, r3
+    sbc     r5, r5, r2
 
     str     r4, [r10, #64]
     str     r5, [r10, #68]
     str     r7, [r10, #72]
     str     r8, [r10, #76]
 
-    @ carry9
-    adds    r7, r7, r1
+    @ ===== carry9 (n=25) + fold 19*carry9 into h0 =====
+    adds    r7, r7, r1 @ h9 += 2^24
     adc     r8, r8, #0
 
-    lsrs    r6, r7, #25
+    lsrs    r6, r7, #25 @ carry9_lo
     orr     r6, r6, r8, lsl#7
+    lsrs    r3, r8, #25 @ carry9_hi
 
-    ldr     r4, [r10, #0]
-    ldr     r5, [r10, #4]
+    @ h0 += 19 * carry9  (64-bit: c + 2c + 16c)
+    ldr     r4, [r10, #0]         @ h0_lo
+    ldr     r5, [r10, #4]         @ h0_hi
 
-    adds    r4, r4, r6             @ + carry9
-    adc     r5, r5, #0
-
-    mov     r9, r6, lsl #1         @ low(2*carry9)
-    mov     r3, r6, lsr #31        @ high(2*carry9)
-    adds    r4, r4, r9
+    @ + c
+    adds    r4, r4, r6
     adc     r5, r5, r3
 
-    mov     r9, r6, lsl #4         @ low(16*carry9)
-    mov     r3, r6, lsr #28        @ high(16*carry9)
+    @ + 2c
+    lsl     r9, r6, #1            @ (2c)_lo
+    lsr     r12, r6, #31          @ spill from lo
+    lsl     r2, r3, #1            @ (2c)_hi (hi<<1 | spill)
+    orr     r2, r2, r12
     adds    r4, r4, r9
-    adc     r5, r5, r3
+    adc     r5, r5, r2
 
-    lsl     r9, r6, #25
-    lsr     r3, r6, #7
+    @ + 16c
+    lsl     r9, r6, #4 @ (16c)_lo
+    lsr     r12, r6, #28
+    lsl     r2, r3, #4 @ (16c)_hi
+    orr     r2, r2, r12
+    adds    r4, r4, r9
+    adc     r5, r5, r2
+
+    @ h9 -= (carry9 << 25)
+    lsl     r9, r6, #25           @ sub_lo
+    lsr     r12, r6, #7           @ part
+    lsl     r2, r3, #25           @ sub_hi
+    orr     r2, r2, r12
     subs    r7, r7, r9
-    sbc     r8, r8, r3
+    sbc     r8, r8, r2
 
     str     r4, [r10, #0]
     str     r5, [r10, #4]
     str     r7, [r10, #72]
     str     r8, [r10, #76]
 
-    @ carry0 (again)
-    ldr     r4, [r10, #0]
-    ldr     r5, [r10, #4]
+    @ ===== carry0 (again, n=26) =====
+    ldr     r4, [r10, #0]         @ h0_lo
+    ldr     r5, [r10, #4]         @ h0_hi
     adds    r4, r4, r0
     adc     r5, r5, #0
 
     lsrs    r6, r4, #26
     orr     r6, r6, r5, lsl#6
+    lsrs    r3, r5, #26
 
-    ldr     r7, [r10, #8]
-    ldr     r8, [r10, #12]
+    ldr     r7, [r10, #8]         @ h1_lo
+    ldr     r8, [r10, #12]        @ h1_hi
     adds    r7, r7, r6
-    adc     r8, r8, #0
+    adc     r8, r8, r3
 
     lsl     r9, r6, #26
-    lsr     r3, r6, #6
+    lsr     r12, r6, #6
+    lsl     r2, r3, #26
+    orr     r2, r2, r12
     subs    r4, r4, r9
-    sbc     r5, r5, r3
+    sbc     r5, r5, r2
 
     str     r4, [r10, #0]
     str     r5, [r10, #4]
     str     r7, [r10, #8]
     str     r8, [r10, #12]
 
-    @ carry1 (again)
+    @ ===== carry1 (again, n=25) =====
     adds    r7, r7, r1
     adc     r8, r8, #0
 
     lsrs    r6, r7, #25
     orr     r6, r6, r8, lsl#7
+    lsrs    r3, r8, #25
 
-    ldr     r4, [r10, #16]
-    ldr     r5, [r10, #20]
+    ldr     r4, [r10, #16]        @ h2_lo
+    ldr     r5, [r10, #20]        @ h2_hi
     adds    r4, r4, r6
-    adc     r5, r5, #0
+    adc     r5, r5, r3
 
     lsl     r9, r6, #25
-    lsr     r3, r6, #7
+    lsr     r12, r6, #7
+    lsl     r2, r3, #25
+    orr     r2, r2, r12
     subs    r7, r7, r9
-    sbc     r8, r8, r3
+    sbc     r8, r8, r2
 
     str     r7, [r10, #8]
     str     r8, [r10, #12]
