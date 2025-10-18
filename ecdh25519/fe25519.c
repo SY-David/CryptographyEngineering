@@ -323,7 +323,7 @@ void fe25519_sub(fe25519 *r, const fe25519 *x, const fe25519 *y)
     r->v[i] = t[i] - y->v[i];
   reduce_add_sub(r);
 }
-extern void BIGLIMB(const unsigned char *a, const unsigned char *b, int64_t *h);
+extern void fe25519_mul_core_s(const unsigned char *a, const unsigned char *b, int64_t *h);
 
 static inline void fe25519_mul_core(const unsigned char *a,
                                     const unsigned char *b,
@@ -473,7 +473,7 @@ void fe25519_mul(fe25519 *r, const fe25519 *x, const fe25519 *y)
   fe25519_pack(b, y);
 
   int64_t h[10];
-  fe25519_mul_core(a, b, h); /* ← 新的核心：到 carry 結束 */
+  fe25519_mul_core_s(a, b, h); /* ← 新的核心：到 carry 結束 */
 
   unsigned char s[32];
   contract_limbs(s, h);
