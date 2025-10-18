@@ -907,7 +907,7 @@ fe25519_mul_core_s:
 
     // h0 += (q << 32)   ⇒ 高 32 位加 q_lo，再把 q_hi 也併入（理論上應為 0，但完整保留）
     adcs    r1, r1, r8            // h0_hi += q_lo + carry
-    adc     r1, r1, r9            // h0_hi += q_hi + carry
+    adc     r1, r1, #0            // h0_hi += q_hi + carry
 
     str     r0, [sp, #272]
     str     r1, [sp, #276]
