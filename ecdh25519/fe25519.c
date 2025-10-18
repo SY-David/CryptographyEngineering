@@ -348,7 +348,6 @@ static inline void fe25519_mul_core(const unsigned char *a,
   uint64_t bx6 = load4(b + 24);
   uint64_t bx7 = load4(b + 28);
 
-  /* 2) 轉成 radix-(2^25.5) 的 10-limb（每隔 25/26 bits 交錯） */
   int64_t f0 = (int64_t)(ax0 & 0x3ffffff);
   int64_t f1 = (int64_t)((((ax1 << 32) | ax0) >> 26) & 0x1ffffff);
   int64_t f2 = (int64_t)((((ax2 << 32) | ax1) >> 19) & 0x3ffffff);
@@ -473,7 +472,7 @@ void fe25519_mul(fe25519 *r, const fe25519 *x, const fe25519 *y)
   fe25519_pack(b, y);
 
   int64_t h[10];
-  fe25519_mul_core_s(a, b, h); /* ← 新的核心：到 carry 結束 */
+  fe25519_mul_core(a, b, h); /* ← 新的核心：到 carry 結束 */
 
   unsigned char s[32];
   contract_limbs(s, h);
