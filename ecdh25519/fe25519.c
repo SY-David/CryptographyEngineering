@@ -472,7 +472,7 @@ void fe25519_mul(fe25519 *r, const fe25519 *x, const fe25519 *y)
   fe25519_pack(b, y);
 
   int64_t h[10];
-  fe25519_mul_core(a, b, h); /* ← 新的核心：到 carry 結束 */
+  fe25519_mul_core_s(a, b, h); /* ← 新的核心：到 carry 結束 */
 
   unsigned char s[32];
   contract_limbs(s, h);
