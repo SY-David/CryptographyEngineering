@@ -472,7 +472,7 @@ void fe25519_mul(fe25519 *r, const fe25519 *x, const fe25519 *y)
   fe25519_pack(b, y);
 
   int64_t h[10];
-  fe25519_mul_core_s(a, b, h); /* ← 新的核心：到 carry 結束 */
+  fe25519_mul_core(a, b, h); /* ← 新的核心：到 carry 結束 */
 
   unsigned char s[32];
   contract_limbs(s, h);
@@ -483,9 +483,147 @@ void fe25519_mul(fe25519 *r, const fe25519 *x, const fe25519 *y)
   }
 }
 
+static inline void fe25519_square_core(const unsigned char *a,
+                                       int64_t h[10])
+{
+  /* 1) 讀 32 bytes → 8×uint32/64 暫存 */
+  uint64_t ax0 = load4(a + 0);
+  uint64_t ax1 = load4(a + 4);
+  uint64_t ax2 = load4(a + 8);
+  uint64_t ax3 = load4(a + 12);
+  uint64_t ax4 = load4(a + 16);
+  uint64_t ax5 = load4(a + 20);
+  uint64_t ax6 = load4(a + 24);
+  uint64_t ax7 = load4(a + 28);
+
+  /* 2) Unpack f[0..9] */
+  int64_t f0 = (int64_t)(ax0 & 0x3ffffff);
+  int64_t f1 = (int64_t)((((ax1 << 32) | ax0) >> 26) & 0x1ffffff);
+  int64_t f2 = (int64_t)((((ax2 << 32) | ax1) >> 19) & 0x3ffffff);
+  int64_t f3 = (int64_t)((((ax3 << 32) | ax2) >> 13) & 0x1ffffff);
+  int64_t f4 = (int64_t)((ax3 >> 6) & 0x3ffffff);
+  int64_t f5 = (int64_t)(ax4 & 0x1ffffff);
+  int64_t f6 = (int64_t)((((ax5 << 32) | ax4) >> 25) & 0x3ffffff);
+  int64_t f7 = (int64_t)((((ax6 << 32) | ax5) >> 19) & 0x1ffffff);
+  int64_t f8 = (int64_t)((((ax7 << 32) | ax6) >> 12) & 0x3ffffff);
+  int64_t f9 = (int64_t)((ax7 >> 6) & 0x1ffffff);
+
+  /* 3) 常用倍數 (g = f, 故 g*_19 -> f*_19) */
+  int64_t f1_19 = 19 * f1;
+  int64_t f2_19 = 19 * f2;
+  int64_t f3_19 = 19 * f3;
+  int64_t f4_19 = 19 * f4;
+  int64_t f5_19 = 19 * f5;
+  int64_t f6_19 = 19 * f6;
+  int64_t f7_19 = 19 * f7;
+  int64_t f8_19 = 19 * f8;
+  int64_t f9_19 = 19 * f9;
+
+  int64_t f1_2 = 2 * f1;
+  int64_t f3_2 = 2 * f3;
+  int64_t f5_2 = 2 * f5;
+  int64_t f7_2 = 2 * f7;
+  int64_t f9_2 = 2 * f9;
+
+  /* 4) Comba 平方 (100 -> 55 次乘法) */
+  // "Square" terms: f0*f0, f5_2*f5_19, f1_2*f1, f6*f6_19, etc.
+  // "Pair" terms: 2 * (f1_2*f9_19), 2 * (f2*f8_19), etc.
+
+  int64_t h0 = f0 * f0 + f5_2 * f5_19 + 2 * (f1_2 * f9_19 + f2 * f8_19 + f3_2 * f7_19 + f4 * f6_19);
+  int64_t h1 = 2 * (f0 * f1 + f2 * f9_19 + f3 * f8_19 + f4 * f7_19 + f5 * f6_19);
+  int64_t h2 = f1_2 * f1 + f6 * f6_19 + 2 * (f0 * f2 + f3_2 * f9_19 + f4 * f8_19 + f5_2 * f7_19);
+  int64_t h3 = 2 * (f0 * f3 + f1 * f2 + f4 * f9_19 + f5 * f8_19 + f6 * f7_19);
+  int64_t h4 = f2 * f2 + f7_2 * f7_19 + 2 * (f0 * f4 + f1_2 * f3 + f5_2 * f9_19 + f6 * f8_19);
+  int64_t h5 = 2 * (f0 * f5 + f1 * f4 + f2 * f3 + f6 * f9_19 + f7 * f8_19);
+  int64_t h6 = f3_2 * f3 + f8 * f8_19 + 2 * (f0 * f6 + f1_2 * f5 + f2 * f4 + f7_2 * f9_19);
+  int64_t h7 = 2 * (f0 * f7 + f1 * f6 + f2 * f5 + f3 * f4 + f8 * f9_19);
+  int64_t h8 = f4 * f4 + f9_2 * f9_19 + 2 * (f0 * f8 + f1_2 * f7 + f2 * f6 + f3_2 * f5);
+  int64_t h9 = 2 * (f0 * f9 + f1 * f8 + f2 * f7 + f3 * f6 + f4 * f5);
+
+  /* 5) carry 一輪 (完全同 mul_core) */
+  int64_t carry0 = (h0 + ((int64_t)1 << 25)) >> 26;
+  h1 += carry0;
+  h0 -= carry0 << 26;
+
+  int64_t carry1 = (h1 + ((int64_t)1 << 24)) >> 25;
+  h2 += carry1;
+  h1 -= carry1 << 25;
+
+  int64_t carry2 = (h2 + ((int64_t)1 << 25)) >> 26;
+  h3 += carry2;
+  h2 -= carry2 << 26;
+
+  int64_t carry3 = (h3 + ((int64_t)1 << 24)) >> 25;
+  h4 += carry3;
+  h3 -= carry3 << 25;
+
+  int64_t carry4 = (h4 + ((int64_t)1 << 25)) >> 26;
+  h5 += carry4;
+  h4 -= carry4 << 26;
+
+  int64_t carry5 = (h5 + ((int64_t)1 << 24)) >> 25;
+  h6 += carry5;
+  h5 -= carry5 << 25;
+
+  int64_t carry6 = (h6 + ((int64_t)1 << 25)) >> 26;
+  h7 += carry6;
+  h6 -= carry6 << 26;
+
+  int64_t carry7 = (h7 + ((int64_t)1 << 24)) >> 25;
+  h8 += carry7;
+  h7 -= carry7 << 25;
+
+  int64_t carry8 = (h8 + ((int64_t)1 << 25)) >> 26;
+  h9 += carry8;
+  h8 -= carry8 << 26;
+
+  int64_t carry9 = (h9 + ((int64_t)1 << 24)) >> 25;
+  h0 += carry9 * 19;
+  h9 -= carry9 << 25;
+
+  /* 6) carry 第二輪 (完全同 mul_core) */
+  carry0 = (h0 + ((int64_t)1 << 25)) >> 26;
+  h1 += carry0;
+  h0 -= carry0 << 26;
+
+  carry1 = (h1 + ((int64_t)1 << 24)) >> 25;
+  h2 += carry1;
+  h1 -= carry1 << 25;
+
+  /* 7) 回寫輸出陣列 (完全同 mul_core) */
+  h[0] = h0;
+  h[1] = h1;
+  h[2] = h2;
+  h[3] = h3;
+  h[4] = h4;
+  h[5] = h5;
+  h[6] = h6;
+  h[7] = h7;
+  h[8] = h8;
+  h[9] = h9;
+}
+
+/*
+ * =========================================================================
+ * 這是 fe25519_square，它呼叫新的 square_core
+ * =========================================================================
+ */
 void fe25519_square(fe25519 *r, const fe25519 *x)
 {
-  fe25519_mul(r, x, x);
+  unsigned char a[32];
+
+  fe25519_pack(a, x);
+
+  int64_t h[10];
+  fe25519_square_core(a, h); // ← 呼叫優化後的 square_core
+
+  unsigned char s[32];
+  contract_limbs(s, h); // 假設您有這個函式
+
+  for (int i = 0; i < 32; ++i)
+  {
+    r->v[i] = s[i];
+  }
 }
 
 void fe25519_pow2523(fe25519 *r, const fe25519 *x)
