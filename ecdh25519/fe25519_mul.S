@@ -645,23 +645,23 @@ fe25519_mul_core_s:
     movt    r11, #0x0200         // 1 << 25
     movw    r12, #0
     movt    r12, #0x0100         // 1 << 24
+    movw    r8, #0xffff
+    movt    r8, #0x03ff          // mask 0x3ffffff
+    movw    r9, #0xffff
+    movt    r9, #0x01ff          // mask 0x1ffffff
+    movs    r2, #0               // zero constant
 
-    // carry0: (h0 + 2^25) >> 26
+    // carry0: h0 (26 bits)
     ldr     r0, [sp, #272]
     ldr     r1, [sp, #276]
-    movs    r3, #0
     adds    r0, r0, r11
-    adc     r1, r1, r3
+    adc     r1, r1, r2
     lsrs    r4, r0, #26
     lsls    r5, r1, #6
     orrs    r4, r4, r5
     lsrs    r5, r1, #26
-    lsls    r2, r4, #26
-    lsrs    r6, r4, #6
-    lsls    r7, r5, #26
-    orrs    r6, r6, r7
-    subs    r0, r0, r2
-    sbc     r1, r1, r6
+    ands    r0, r0, r8
+    movs    r1, #0
     str     r0, [sp, #272]
     str     r1, [sp, #276]
     ldr     r6, [sp, #280]
@@ -671,22 +671,17 @@ fe25519_mul_core_s:
     str     r6, [sp, #280]
     str     r7, [sp, #284]
 
-    // carry1: (h1 + 2^24) >> 25
+    // carry1: h1 (25 bits)
     ldr     r0, [sp, #280]
     ldr     r1, [sp, #284]
-    movs    r3, #0
     adds    r0, r0, r12
-    adc     r1, r1, r3
+    adc     r1, r1, r2
     lsrs    r4, r0, #25
     lsls    r5, r1, #7
     orrs    r4, r4, r5
     lsrs    r5, r1, #25
-    lsls    r2, r4, #25
-    lsrs    r6, r4, #7
-    lsls    r7, r5, #25
-    orrs    r6, r6, r7
-    subs    r0, r0, r2
-    sbc     r1, r1, r6
+    ands    r0, r0, r9
+    movs    r1, #0
     str     r0, [sp, #280]
     str     r1, [sp, #284]
     ldr     r6, [sp, #288]
@@ -696,22 +691,17 @@ fe25519_mul_core_s:
     str     r6, [sp, #288]
     str     r7, [sp, #292]
 
-    // carry2: (h2 + 2^25) >> 26
+    // carry2: h2 (26 bits)
     ldr     r0, [sp, #288]
     ldr     r1, [sp, #292]
-    movs    r3, #0
     adds    r0, r0, r11
-    adc     r1, r1, r3
+    adc     r1, r1, r2
     lsrs    r4, r0, #26
     lsls    r5, r1, #6
     orrs    r4, r4, r5
     lsrs    r5, r1, #26
-    lsls    r2, r4, #26
-    lsrs    r6, r4, #6
-    lsls    r7, r5, #26
-    orrs    r6, r6, r7
-    subs    r0, r0, r2
-    sbc     r1, r1, r6
+    ands    r0, r0, r8
+    movs    r1, #0
     str     r0, [sp, #288]
     str     r1, [sp, #292]
     ldr     r6, [sp, #296]
@@ -721,22 +711,17 @@ fe25519_mul_core_s:
     str     r6, [sp, #296]
     str     r7, [sp, #300]
 
-    // carry3: (h3 + 2^24) >> 25
+    // carry3: h3 (25 bits)
     ldr     r0, [sp, #296]
     ldr     r1, [sp, #300]
-    movs    r3, #0
     adds    r0, r0, r12
-    adc     r1, r1, r3
+    adc     r1, r1, r2
     lsrs    r4, r0, #25
     lsls    r5, r1, #7
     orrs    r4, r4, r5
     lsrs    r5, r1, #25
-    lsls    r2, r4, #25
-    lsrs    r6, r4, #7
-    lsls    r7, r5, #25
-    orrs    r6, r6, r7
-    subs    r0, r0, r2
-    sbc     r1, r1, r6
+    ands    r0, r0, r9
+    movs    r1, #0
     str     r0, [sp, #296]
     str     r1, [sp, #300]
     ldr     r6, [sp, #304]
@@ -746,22 +731,17 @@ fe25519_mul_core_s:
     str     r6, [sp, #304]
     str     r7, [sp, #308]
 
-    // carry4: (h4 + 2^25) >> 26
+    // carry4: h4 (26 bits)
     ldr     r0, [sp, #304]
     ldr     r1, [sp, #308]
-    movs    r3, #0
     adds    r0, r0, r11
-    adc     r1, r1, r3
+    adc     r1, r1, r2
     lsrs    r4, r0, #26
     lsls    r5, r1, #6
     orrs    r4, r4, r5
     lsrs    r5, r1, #26
-    lsls    r2, r4, #26
-    lsrs    r6, r4, #6
-    lsls    r7, r5, #26
-    orrs    r6, r6, r7
-    subs    r0, r0, r2
-    sbc     r1, r1, r6
+    ands    r0, r0, r8
+    movs    r1, #0
     str     r0, [sp, #304]
     str     r1, [sp, #308]
     ldr     r6, [sp, #312]
@@ -771,22 +751,17 @@ fe25519_mul_core_s:
     str     r6, [sp, #312]
     str     r7, [sp, #316]
 
-    // carry5: (h5 + 2^24) >> 25
+    // carry5: h5 (25 bits)
     ldr     r0, [sp, #312]
     ldr     r1, [sp, #316]
-    movs    r3, #0
     adds    r0, r0, r12
-    adc     r1, r1, r3
+    adc     r1, r1, r2
     lsrs    r4, r0, #25
     lsls    r5, r1, #7
     orrs    r4, r4, r5
     lsrs    r5, r1, #25
-    lsls    r2, r4, #25
-    lsrs    r6, r4, #7
-    lsls    r7, r5, #25
-    orrs    r6, r6, r7
-    subs    r0, r0, r2
-    sbc     r1, r1, r6
+    ands    r0, r0, r9
+    movs    r1, #0
     str     r0, [sp, #312]
     str     r1, [sp, #316]
     ldr     r6, [sp, #320]
@@ -796,22 +771,17 @@ fe25519_mul_core_s:
     str     r6, [sp, #320]
     str     r7, [sp, #324]
 
-    // carry6: (h6 + 2^25) >> 26
+    // carry6: h6 (26 bits)
     ldr     r0, [sp, #320]
     ldr     r1, [sp, #324]
-    movs    r3, #0
     adds    r0, r0, r11
-    adc     r1, r1, r3
+    adc     r1, r1, r2
     lsrs    r4, r0, #26
     lsls    r5, r1, #6
     orrs    r4, r4, r5
     lsrs    r5, r1, #26
-    lsls    r2, r4, #26
-    lsrs    r6, r4, #6
-    lsls    r7, r5, #26
-    orrs    r6, r6, r7
-    subs    r0, r0, r2
-    sbc     r1, r1, r6
+    ands    r0, r0, r8
+    movs    r1, #0
     str     r0, [sp, #320]
     str     r1, [sp, #324]
     ldr     r6, [sp, #328]
@@ -821,22 +791,17 @@ fe25519_mul_core_s:
     str     r6, [sp, #328]
     str     r7, [sp, #332]
 
-    // carry7: (h7 + 2^24) >> 25
+    // carry7: h7 (25 bits)
     ldr     r0, [sp, #328]
     ldr     r1, [sp, #332]
-    movs    r3, #0
     adds    r0, r0, r12
-    adc     r1, r1, r3
+    adc     r1, r1, r2
     lsrs    r4, r0, #25
     lsls    r5, r1, #7
     orrs    r4, r4, r5
     lsrs    r5, r1, #25
-    lsls    r2, r4, #25
-    lsrs    r6, r4, #7
-    lsls    r7, r5, #25
-    orrs    r6, r6, r7
-    subs    r0, r0, r2
-    sbc     r1, r1, r6
+    ands    r0, r0, r9
+    movs    r1, #0
     str     r0, [sp, #328]
     str     r1, [sp, #332]
     ldr     r6, [sp, #336]
@@ -846,22 +811,17 @@ fe25519_mul_core_s:
     str     r6, [sp, #336]
     str     r7, [sp, #340]
 
-    // carry8: (h8 + 2^25) >> 26
+    // carry8: h8 (26 bits)
     ldr     r0, [sp, #336]
     ldr     r1, [sp, #340]
-    movs    r3, #0
     adds    r0, r0, r11
-    adc     r1, r1, r3
+    adc     r1, r1, r2
     lsrs    r4, r0, #26
     lsls    r5, r1, #6
     orrs    r4, r4, r5
     lsrs    r5, r1, #26
-    lsls    r2, r4, #26
-    lsrs    r6, r4, #6
-    lsls    r7, r5, #26
-    orrs    r6, r6, r7
-    subs    r0, r0, r2
-    sbc     r1, r1, r6
+    ands    r0, r0, r8
+    movs    r1, #0
     str     r0, [sp, #336]
     str     r1, [sp, #340]
     ldr     r6, [sp, #344]
@@ -871,54 +831,46 @@ fe25519_mul_core_s:
     str     r6, [sp, #344]
     str     r7, [sp, #348]
 
-    // carry9: (h9 + 2^24) >> 25
+    // carry9: h9 (25 bits)
     ldr     r0, [sp, #344]
     ldr     r1, [sp, #348]
-    movs    r3, #0
     adds    r0, r0, r12
-    adc     r1, r1, r3
+    adc     r1, r1, r2
     lsrs    r4, r0, #25
     lsls    r5, r1, #7
     orrs    r4, r4, r5
     lsrs    r5, r1, #25
-    lsls    r2, r4, #25
-    lsrs    r6, r4, #7
-    lsls    r7, r5, #25
-    orrs    r6, r6, r7
-    subs    r0, r0, r2
-    sbc     r1, r1, r6
+    ands    r0, r0, r9
+    movs    r1, #0
     str     r0, [sp, #344]
     str     r1, [sp, #348]
 
     // h0 += carry9 * 19
-    movs    r2, #19
-    umull   r6, r7, r4, r2
-    mul     r3, r5, r2
-    adds    r7, r7, r3
+    movs    r3, #19
+    umull   r6, r7, r4, r3
+    umull   r0, r1, r5, r3
+    adds    r7, r7, r0
+    adc     r5, r1, r2
     ldr     r0, [sp, #272]
     ldr     r1, [sp, #276]
     adds    r0, r0, r6
     adc     r1, r1, r7
+    adds    r1, r1, r5
     str     r0, [sp, #272]
     str     r1, [sp, #276]
 
     // Step 6: second carry pass (only h0, h1).
-    // carry0 again
+    // h0 (26 bits)
     ldr     r0, [sp, #272]
     ldr     r1, [sp, #276]
-    movs    r3, #0
     adds    r0, r0, r11
-    adc     r1, r1, r3
+    adc     r1, r1, r2
     lsrs    r4, r0, #26
     lsls    r5, r1, #6
     orrs    r4, r4, r5
     lsrs    r5, r1, #26
-    lsls    r2, r4, #26
-    lsrs    r6, r4, #6
-    lsls    r7, r5, #26
-    orrs    r6, r6, r7
-    subs    r0, r0, r2
-    sbc     r1, r1, r6
+    ands    r0, r0, r8
+    movs    r1, #0
     str     r0, [sp, #272]
     str     r1, [sp, #276]
     ldr     r6, [sp, #280]
@@ -928,22 +880,17 @@ fe25519_mul_core_s:
     str     r6, [sp, #280]
     str     r7, [sp, #284]
 
-    // carry1 again
+    // h1 (25 bits)
     ldr     r0, [sp, #280]
     ldr     r1, [sp, #284]
-    movs    r3, #0
     adds    r0, r0, r12
-    adc     r1, r1, r3
+    adc     r1, r1, r2
     lsrs    r4, r0, #25
     lsls    r5, r1, #7
     orrs    r4, r4, r5
     lsrs    r5, r1, #25
-    lsls    r2, r4, #25
-    lsrs    r6, r4, #7
-    lsls    r7, r5, #25
-    orrs    r6, r6, r7
-    subs    r0, r0, r2
-    sbc     r1, r1, r6
+    ands    r0, r0, r9
+    movs    r1, #0
     str     r0, [sp, #280]
     str     r1, [sp, #284]
     ldr     r6, [sp, #288]
