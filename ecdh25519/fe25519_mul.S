@@ -655,7 +655,7 @@ fe25519_mul_core_s:
     lsrs    r4, r0, #26
     lsls    r5, r1, #6
     orrs    r4, r4, r5
-    lsrs    r5, r1, #26
+    asrs    r5, r1, #26
     lsls    r2, r4, #26
     lsrs    r6, r4, #6
     lsls    r7, r5, #26
@@ -680,7 +680,7 @@ fe25519_mul_core_s:
     lsrs    r4, r0, #25
     lsls    r5, r1, #7
     orrs    r4, r4, r5
-    lsrs    r5, r1, #25
+    asrs    r5, r1, #25
     lsls    r2, r4, #25
     lsrs    r6, r4, #7
     lsls    r7, r5, #25
@@ -705,7 +705,7 @@ fe25519_mul_core_s:
     lsrs    r4, r0, #26
     lsls    r5, r1, #6
     orrs    r4, r4, r5
-    lsrs    r5, r1, #26
+    asrs    r5, r1, #26
     lsls    r2, r4, #26
     lsrs    r6, r4, #6
     lsls    r7, r5, #26
@@ -730,7 +730,7 @@ fe25519_mul_core_s:
     lsrs    r4, r0, #25
     lsls    r5, r1, #7
     orrs    r4, r4, r5
-    lsrs    r5, r1, #25
+    asrs    r5, r1, #25
     lsls    r2, r4, #25
     lsrs    r6, r4, #7
     lsls    r7, r5, #25
@@ -755,7 +755,7 @@ fe25519_mul_core_s:
     lsrs    r4, r0, #26
     lsls    r5, r1, #6
     orrs    r4, r4, r5
-    lsrs    r5, r1, #26
+    asrs    r5, r1, #26
     lsls    r2, r4, #26
     lsrs    r6, r4, #6
     lsls    r7, r5, #26
@@ -780,7 +780,7 @@ fe25519_mul_core_s:
     lsrs    r4, r0, #25
     lsls    r5, r1, #7
     orrs    r4, r4, r5
-    lsrs    r5, r1, #25
+    asrs    r5, r1, #25
     lsls    r2, r4, #25
     lsrs    r6, r4, #7
     lsls    r7, r5, #25
@@ -805,7 +805,7 @@ fe25519_mul_core_s:
     lsrs    r4, r0, #26
     lsls    r5, r1, #6
     orrs    r4, r4, r5
-    lsrs    r5, r1, #26
+    asrs    r5, r1, #26
     lsls    r2, r4, #26
     lsrs    r6, r4, #6
     lsls    r7, r5, #26
@@ -830,7 +830,7 @@ fe25519_mul_core_s:
     lsrs    r4, r0, #25
     lsls    r5, r1, #7
     orrs    r4, r4, r5
-    lsrs    r5, r1, #25
+    asrs    r5, r1, #25
     lsls    r2, r4, #25
     lsrs    r6, r4, #7
     lsls    r7, r5, #25
@@ -855,7 +855,7 @@ fe25519_mul_core_s:
     lsrs    r4, r0, #26
     lsls    r5, r1, #6
     orrs    r4, r4, r5
-    lsrs    r5, r1, #26
+    asrs    r5, r1, #26
     lsls    r2, r4, #26
     lsrs    r6, r4, #6
     lsls    r7, r5, #26
@@ -880,7 +880,7 @@ fe25519_mul_core_s:
     lsrs    r4, r0, #25
     lsls    r5, r1, #7
     orrs    r4, r4, r5
-    lsrs    r5, r1, #25
+    asrs    r5, r1, #25
     lsls    r2, r4, #25
     lsrs    r6, r4, #7
     lsls    r7, r5, #25
@@ -922,7 +922,7 @@ fe25519_mul_core_s:
     lsrs    r4, r0, #26
     lsls    r5, r1, #6
     orrs    r4, r4, r5
-    lsrs    r5, r1, #26
+    asrs    r5, r1, #26
     lsls    r2, r4, #26
     lsrs    r6, r4, #6
     lsls    r7, r5, #26
@@ -947,7 +947,7 @@ fe25519_mul_core_s:
     lsrs    r4, r0, #25
     lsls    r5, r1, #7
     orrs    r4, r4, r5
-    lsrs    r5, r1, #25
+    asrs    r5, r1, #25
     lsls    r2, r4, #25
     lsrs    r6, r4, #7
     lsls    r7, r5, #25
