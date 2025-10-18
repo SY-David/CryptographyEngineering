@@ -1,6 +1,5 @@
 #include "group.h"
 #include "smult.h"
-#include <stdint.h>
 
 typedef struct
 {
@@ -650,16 +649,56 @@ static const ed25519_compressed_t ED25519_W4_BASE_8[64][8] = {
     },
 };
 
+int crypto_scalarmult(unsigned char *ss, const unsigned char *sk, const unsigned char *pk)
+{
+  group_ge p, k;
+  unsigned char t[32];
+  int i, j = 5;
+
+  for (i = 0; i < 32; i++)
+  {
+    t[i] = sk[i];
+  }
+
+  t[0] &= 248;
+  t[31] &= 127;
+  t[31] |= 64;
+
+  if (group_ge_unpack(&p, pk))
+  {
+    return -1; /*No need to change*/
+  }
+
+  k = p;
+  for (i = 31; i >= 0; i--)
+  {
+    for (; j >= 0; j--)
+    {
+      group_ge D, A;
+      group_ge_double(&D, &k);
+      group_ge_add(&A, &D, &p);
+      unsigned char b = (t[i] >> j) & 1u;
+
+      group_ge_cmov(&k, &D, (unsigned char)(1u ^ b));
+      group_ge_cmov(&k, &A, b);
+    }
+    j = 7;
+  }
+
+  group_ge_pack(ss, &k);
+  return 0;
+}
+
 int crypto_scalarmult_base(unsigned char *pk, const unsigned char *sk)
 {
-  /* 1) 置中 4-bit 視窗分解：d[0..63] in [-8..8] */
+  /* 1) 將純量 clamp，並做置中 4-bit 分解：d[0..63] ∈ [-8..8] */
   unsigned char t[32];
   signed char d[64];
   int i;
 
   for (i = 0; i < 32; i++)
     t[i] = sk[i];
-  /* Ed25519 clamp */
+  /* Ed25519 clamp：清低 3 bit、清最高 bit、設置次高 bit */
   t[0] &= 248u;
   t[31] &= 127u;
   t[31] |= 64u;
@@ -680,81 +719,78 @@ int crypto_scalarmult_base(unsigned char *pk, const unsigned char *sk)
       {
         carry = 0;
       }
-      d[i] = (signed char)v;
+      d[i] = (signed char)v; /* d[i] ∈ [-8..8] */
     }
   }
 
-  /* 2) 準備單位元的壓縮編碼（y=1, x=0）：0x01 00..00 */
-  static const unsigned char ID[32] = {0x01, 0x00 /* 後面全 0，編譯器會補滿 */};
-
-  /* 3) K ← O（單位元），用解壓縮把 identity 變成群元素 */
+  /* 2) 以單位元為累加起點（壓縮編碼 y=1, x=0 → 0x01 00..00） */
+  static const unsigned char ID[32] = {0x01, 0x00};
   group_ge K;
   if (group_ge_unpack(&K, (const unsigned char *)ID) != 0)
   {
-    return -1;
+    return -1; /* 若實作不接受 identity，請改用你庫內的「設 identity」API */
   }
 
-  /* 4) 逐視窗（64 -> 0），常數時間挑選、條件取負、加到 K */
+  /* 3) 逐視窗由高到低（i = 63..0）累加：K ← K + d[i]*((16^i)B)
+   *    固定視窗表 ED25519_W4_BASE_8[i][1..8] 存的是正倍點 1..8
+   *    常數時間：選 idx=(s? s-1:0)，OR-聚合到 tmp；s==0 則 enc 保持 identity
+   *    d[i]<0 且 s!=0 時，翻最後一位元組的 bit7 (sign(x))。
+   */
   for (i = 63; i >= 0; i--)
   {
-    unsigned s = (unsigned)(d[i] < 0 ? -d[i] : d[i]); /* s in [0..8] */
+    unsigned s = (unsigned)(d[i] < 0 ? -d[i] : d[i]); /* s ∈ [0..8] */
     unsigned neg = (unsigned)(d[i] < 0);
-    unsigned char enc[32]; /* 將要解壓縮的壓縮點 */
-    unsigned char tmp[32]; /* 用來先收集被選中的表項（避免破壞 enc） */
+    unsigned char enc[32], tmp[32];
     int j, k;
 
-    /* enc 先設為 identity；若 s!=0，最後再把 tmp 整塊覆蓋過來（常數時間） */
+    /* 預設 enc=identity；tmp 用來常數時間收集目標表項 */
     for (k = 0; k < 32; k++)
       enc[k] = ID[k];
     for (k = 0; k < 32; k++)
       tmp[k] = 0;
 
-    /* 常數時間挑選：把第 (s? s-1 : 0) 個表項 OR 進 tmp */
+    /* 常數時間挑選目標表項：idx = s? s-1 : 0 */
     {
-      unsigned idx = (s ? (s - 1u) : 0u); /* 目標索引，s=0 時值不重要 */
+      unsigned idx = (s ? (s - 1u) : 0u);
       for (j = 0; j < 8; j++)
       {
-        /* 生成 0xFF 或 0x00 的遮罩：match -> 0xFF，no-match -> 0x00 */
-        unsigned match = (unsigned)(j == idx);
-        unsigned char m_match = (unsigned char)-(int)match; /* 0xFF or 0x00 */
+        unsigned match = (unsigned)(j == (int)idx);
+        unsigned char m = (unsigned char)-(int)match; /* 0xFF or 0x00 */
         for (k = 0; k < 32; k++)
         {
-          tmp[k] = (unsigned char)(tmp[k] | (ED25519_W4_BASE_8[i][j].enc[k] & m_match));
+          tmp[k] = (unsigned char)(tmp[k] | (ED25519_W4_BASE_8[i][j].enc[k] & m));
         }
       }
     }
 
-    /* 如果 s != 0，enc <- tmp；否則維持 enc=identity。常數時間覆蓋。 */
+    /* 若 s!=0，enc ← tmp（常數時間覆蓋） */
     {
       unsigned nz = (unsigned)(s != 0);
-      unsigned char m_nz = (unsigned char)-(int)nz; /* 0xFF if s!=0, else 0x00 */
+      unsigned char m = (unsigned char)-(int)nz; /* 0xFF if s!=0 */
       for (k = 0; k < 32; k++)
       {
-        /* enc = (enc & ~m_nz) | (tmp & m_nz) */
-        enc[k] = (unsigned char)((enc[k] & (unsigned char)~m_nz) | (tmp[k] & m_nz));
+        enc[k] = (unsigned char)((enc[k] & (unsigned char)~m) | (tmp[k] & m));
       }
     }
 
-    /* 若 d[i] < 0 且 s != 0：flip sign(x) → XOR 0x80；常數時間處理 */
+    /* d[i]<0 且 s!=0：翻轉 sign(x)（壓縮編碼最後一位元組的 bit7） */
     {
       unsigned need_flip = (unsigned)(neg & (s != 0));
-      unsigned char m_flip = (unsigned char)-(int)need_flip; /* 0xFF or 0x00 */
-      enc[31] = (unsigned char)(enc[31] ^ (m_flip & 0x80u));
+      unsigned char mf = (unsigned char)-(int)need_flip; /* 0xFF or 0x00 */
+      enc[31] = (unsigned char)(enc[31] ^ (mf & 0x80u));
     }
 
-    /* 解壓縮並加到 K 上 */
+    /* 解壓縮並相加：K = K + T */
     {
       group_ge T, A;
       if (group_ge_unpack(&T, enc) != 0)
-      {
-        return -1; /* 理論上不會發生（表內皆有效） */
-      }
+        return -1; /* 表內皆應有效 */
       group_ge_add(&A, &K, &T);
       K = A;
     }
   }
 
-  /* 5) 封裝輸出 */
+  /* 4) 封裝輸出 */
   group_ge_pack(pk, &K);
   return 0;
 }
