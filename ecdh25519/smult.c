@@ -2,10 +2,7 @@
 #include "group.h"
 #include "smult.h"
 #include "smult_base_table.h"
-static const group_ge group_ge_neutral = {{{0}},
-                                          {{1}},
-                                          {{1}},
-                                          {{0}}};
+
 static unsigned char ct_is_nonzero(uint32_t x)
 {
     x |= (uint32_t)(-x);
