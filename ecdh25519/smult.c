@@ -6,6 +6,11 @@
 #define BASE_WINDOW_COUNT (256 / BASE_WINDOW_BITS)
 #define BASE_WINDOW_SIZE (1 << BASE_WINDOW_BITS)
 
+static const group_ge ge_identity = {{{0}},
+                                     {{1}},
+                                     {{1}},
+                                     {{0}}};
+
 static group_ge base_window_table[BASE_WINDOW_COUNT][BASE_WINDOW_SIZE];
 static int base_window_initialized;
 
@@ -22,7 +27,7 @@ static unsigned char ct_eq_uint32(uint32_t a, uint32_t b)
 
 static void base_select_window(group_ge *r, int window_idx, unsigned char nibble)
 {
-    *r = group_ge_neutral;
+    *r = ge_identity;
     for (unsigned int j = 0; j < BASE_WINDOW_SIZE; ++j)
     {
         unsigned char mask = ct_eq_uint32(nibble, j);
@@ -41,7 +46,7 @@ static void base_precompute(void)
 
     for (int i = 0; i < BASE_WINDOW_COUNT; ++i)
     {
-        base_window_table[i][0] = group_ge_neutral;
+        base_window_table[i][0] = ge_identity;
         base_window_table[i][1] = window_base;
 
         for (int j = 2; j < BASE_WINDOW_SIZE; ++j)
@@ -126,7 +131,7 @@ int crypto_scalarmult_base(unsigned char *pk, const unsigned char *sk)
         windows[i] = (unsigned char)((e[byte_idx] >> shift) & (BASE_WINDOW_SIZE - 1));
     }
 
-    acc = group_ge_neutral;
+    acc = ge_identity;
 
     for (int i = BASE_WINDOW_COUNT - 1; i >= 0; --i)
     {
