@@ -4,7 +4,7 @@
 # Add your C source files here:
 PROJECT_C_SOURCES = test.c fe25519.c group.c smult_base_table.c smult.c
 # Add your assembly source files here:
-PROJECT_ASM_SOURCES = 
+PROJECT_ASM_SOURCES = fe25519_mul.S
 
 # Convert sources to object file paths
 PROJECT_C_OBJS = $(addprefix obj/,$(PROJECT_C_SOURCES:.c=.c.o))
