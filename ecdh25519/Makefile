@@ -2,7 +2,7 @@
 # Modify the source lists below to add your own C and assembly files
 
 # Add your C source files here:
-PROJECT_C_SOURCES = test.c fe25519.c group.c smult.c
+PROJECT_C_SOURCES = test.c fe25519.c group.c smult_base_table.c smult.c
 # Add your assembly source files here:
 PROJECT_ASM_SOURCES = 
 

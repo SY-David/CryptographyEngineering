@@ -1,18 +1,7 @@
 #include <stdint.h>
 #include "group.h"
 #include "smult.h"
-
-#define BASE_WINDOW_BITS 4
-#define BASE_WINDOW_COUNT (256 / BASE_WINDOW_BITS)
-#define BASE_WINDOW_SIZE (1 << BASE_WINDOW_BITS)
-
-static const group_ge ge_identity = {{{0}},
-                                     {{1}},
-                                     {{1}},
-                                     {{0}}};
-
-static group_ge base_window_table[BASE_WINDOW_COUNT][BASE_WINDOW_SIZE];
-static int base_window_initialized;
+#include "smult_base_table.h"
 
 static unsigned char ct_is_nonzero(uint32_t x)
 {
@@ -27,43 +16,12 @@ static unsigned char ct_eq_uint32(uint32_t a, uint32_t b)
 
 static void base_select_window(group_ge *r, int window_idx, unsigned char nibble)
 {
-    *r = ge_identity;
+    *r = group_ge_neutral;
     for (unsigned int j = 0; j < BASE_WINDOW_SIZE; ++j)
     {
         unsigned char mask = ct_eq_uint32(nibble, j);
-        group_ge_cmov(r, &base_window_table[window_idx][j], mask);
+        group_ge_cmov(r, &crypto_scalarmult_base_table[window_idx][j], mask);
     }
-}
-
-static void base_precompute(void)
-{
-    if (base_window_initialized)
-    {
-        return;
-    }
-
-    group_ge window_base = group_ge_base;
-
-    for (int i = 0; i < BASE_WINDOW_COUNT; ++i)
-    {
-        base_window_table[i][0] = ge_identity;
-        base_window_table[i][1] = window_base;
-
-        for (int j = 2; j < BASE_WINDOW_SIZE; ++j)
-        {
-            group_ge_add(&base_window_table[i][j], &base_window_table[i][j - 1], &window_base);
-        }
-
-        if (i + 1 < BASE_WINDOW_COUNT)
-        {
-            for (int d = 0; d < BASE_WINDOW_BITS; ++d)
-            {
-                group_ge_double(&window_base, &window_base);
-            }
-        }
-    }
-
-    base_window_initialized = 1;
 }
 
 int crypto_scalarmult(unsigned char *ss, const unsigned char *sk, const unsigned char *pk)
@@ -121,8 +79,6 @@ int crypto_scalarmult_base(unsigned char *pk, const unsigned char *sk)
     e[31] &= 127;
     e[31] |= 64;
 
-    base_precompute();
-
     for (int i = 0; i < BASE_WINDOW_COUNT; ++i)
     {
         int bit = i * BASE_WINDOW_BITS;
@@ -131,7 +87,7 @@ int crypto_scalarmult_base(unsigned char *pk, const unsigned char *sk)
         windows[i] = (unsigned char)((e[byte_idx] >> shift) & (BASE_WINDOW_SIZE - 1));
     }
 
-    acc = ge_identity;
+    acc = group_ge_neutral;
 
     for (int i = BASE_WINDOW_COUNT - 1; i >= 0; --i)
     {
