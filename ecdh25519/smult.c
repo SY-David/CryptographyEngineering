@@ -29,11 +29,10 @@ static void base_select_window(group_ge *r, int window_idx, unsigned char nibble
 
 int crypto_scalarmult(unsigned char *ss, const unsigned char *sk, const unsigned char *pk)
 {
-    group_ge p, k;
+    group_ge p, r0, r1;
     unsigned char t[32];
-    int i, j = 5;
 
-    for (i = 0; i < 32; i++)
+    for (int i = 0; i < 32; i++)
     {
         t[i] = sk[i];
     }
@@ -44,26 +43,32 @@ int crypto_scalarmult(unsigned char *ss, const unsigned char *sk, const unsigned
 
     if (group_ge_unpack(&p, pk))
     {
-        return -1; /*No need to change*/
+        return -1;
     }
 
-    k = p;
-    for (i = 31; i >= 0; i--)
+    r0 = group_ge_neutral;
+    r1 = p;
+
+    for (int bit = 255; bit >= 0; --bit)
     {
-        for (; j >= 0; j--)
-        {
-            group_ge D, A;
-            group_ge_double(&D, &k);
-            group_ge_add(&A, &D, &p);
-            unsigned char b = (t[i] >> j) & 1u;
+        unsigned char b = (t[bit >> 3] >> (bit & 7)) & 1u;
+        group_ge d0, d1, sum, r0_next, r1_next;
 
-            group_ge_cmov(&k, &D, (unsigned char)(1u ^ b));
-            group_ge_cmov(&k, &A, b);
-        }
-        j = 7;
+        group_ge_double(&d0, &r0);
+        group_ge_double(&d1, &r1);
+        group_ge_add(&sum, &r0, &r1);
+
+        r0_next = d0;
+        r1_next = sum;
+
+        group_ge_cmov(&r0_next, &sum, b);
+        group_ge_cmov(&r1_next, &d1, b);
+
+        r0 = r0_next;
+        r1 = r1_next;
     }
 
-    group_ge_pack(ss, &k);
+    group_ge_pack(ss, &r0);
     return 0;
 }
 
