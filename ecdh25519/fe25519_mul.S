@@ -1,3 +1,6 @@
+.syntax unified
+.thumb
+.thumb_func
 .global fe25519_square_core_s
 fe25519_square_core_s:
 .macro UMUL_ADD acc_lo, acc_hi, rx, ry
@@ -57,69 +60,69 @@ fe25519_square_core:
     /* 宏在 GAS 需 .irp/.rept 才能展開，這裡手寫避免過度複雜 */
 
     /* r2 = w0 */
-    ldrb    r2, [r10, #0]
-    ldrb    r3, [r10, #1]
-    ldrb    r4, [r10, #2]
-    ldrb    r5, [r10, #3]
-    orr     r2, r2, r3, lsl #8
-    orr     r2, r2, r4, lsl #16
-    orr     r2, r2, r5, lsl #24
+    ldrb.w    r2, [r10, #0]
+    ldrb.w    r3, [r10, #1]
+    ldrb.w    r4, [r10, #2]
+    ldrb.w    r5, [r10, #3]
+    orr.w     r2, r2, r3, lsl #8
+    orr.w     r2, r2, r4, lsl #16
+    orr.w     r2, r2, r5, lsl #24
     /* r3 = w1 */
-    ldrb    r3, [r10, #4]
-    ldrb    r4, [r10, #5]
-    ldrb    r5, [r10, #6]
-    ldrb    r6, [r10, #7]
-    orr     r3, r3, r4, lsl #8
-    orr     r3, r3, r5, lsl #16
-    orr     r3, r3, r6, lsl #24
+    ldrb.w    r3, [r10, #4]
+    ldrb.w    r4, [r10, #5]
+    ldrb.w    r5, [r10, #6]
+    ldrb.w    r6, [r10, #7]
+    orr.w     r3, r3, r4, lsl #8
+    orr.w     r3, r3, r5, lsl #16
+    orr.w     r3, r3, r6, lsl #24
     /* r4 = w2 */
-    ldrb    r4, [r10, #8]
-    ldrb    r5, [r10, #9]
-    ldrb    r6, [r10, #10]
-    ldrb    r7, [r10, #11]
-    orr     r4, r4, r5, lsl #8
-    orr     r4, r4, r6, lsl #16
-    orr     r4, r4, r7, lsl #24
+    ldrb.w    r4, [r10, #8]
+    ldrb.w    r5, [r10, #9]
+    ldrb.w    r6, [r10, #10]
+    ldrb.w    r7, [r10, #11]
+    orr.w     r4, r4, r5, lsl #8
+    orr.w     r4, r4, r6, lsl #16
+    orr.w     r4, r4, r7, lsl #24
     /* r5 = w3 */
-    ldrb    r5, [r10, #12]
-    ldrb    r6, [r10, #13]
-    ldrb    r7, [r10, #14]
-    ldrb    r8, [r10, #15]
-    orr     r5, r5, r6, lsl #8
-    orr     r5, r5, r7, lsl #16
-    orr     r5, r5, r8, lsl #24
+    ldrb.w    r5, [r10, #12]
+    ldrb.w    r6, [r10, #13]
+    ldrb.w    r7, [r10, #14]
+    ldrb.w    r8, [r10, #15]
+    orr.w     r5, r5, r6, lsl #8
+    orr.w     r5, r5, r7, lsl #16
+    orr.w     r5, r5, r8, lsl #24
     /* r6 = w4 */
-    ldrb    r6, [r10, #16]
-    ldrb    r7, [r10, #17]
-    ldrb    r8, [r10, #18]
-    ldrb    r9, [r10, #19]
-    orr     r6, r6, r7, lsl #8
-    orr     r6, r6, r8, lsl #16
-    orr     r6, r6, r9, lsl #24
+    ldrb.w    r6, [r10, #16]
+    ldrb.w    r7, [r10, #17]
+    ldrb.w    r8, [r10, #18]
+    ldrb.w    r9, [r10, #19]
+    orr.w     r6, r6, r7, lsl #8
+    orr.w     r6, r6, r8, lsl #16
+    orr.w     r6, r6, r9, lsl #24
     /* r7 = w5 */
-    ldrb    r7, [r10, #20]
-    ldrb    r8, [r10, #21]
-    ldrb    r9, [r10, #22]
-    ldrb    r0, [r10, #23]
-    orr     r7, r7, r8, lsl #8
-    orr     r7, r7, r9, lsl #16
-    orr     r7, r7, r0, lsl #24
+    ldrb.w    r7, [r10, #20]
+    ldrb.w    r8, [r10, #21]
+    ldrb.w    r9, [r10, #22]
+    ldrb.w    r0, [r10, #23]
+    orr.w     r7, r7, r8, lsl #8
+    orr.w     r7, r7, r9, lsl #16
+    orr.w     r7, r7, r0, lsl #24
     /* r8 = w6 */
-    ldrb    r8, [r10, #24]
-    ldrb    r9, [r10, #25]
-    ldrb    r0, [r10, #26]
-    ldrb    r14,[r10, #27]
-    orr     r8, r8, r9,  lsl #8
-    orr     r8, r8, r0,  lsl #16
-    orr     r8, r8, r14, lsl #24
+    ldrb.w    r8, [r10, #24]
+    ldrb.w    r9, [r10, #25]
+    ldrb.w    r0, [r10, #26]
+    ldrb.w    r14,[r10, #27]
+    orr.w     r8, r8, r9,  lsl #8
+    orr.w     r8, r8, r0,  lsl #16
+    orr.w     r8, r8, r14, lsl #24
     /* r9 = w7 */
-    ldrb    r9,  [r10, #28]
-    ldrb    r0,  [r10, #29]
-    ldrb    r14, [r10, #30]
-    ldrb    r10, [r10, #31]
-    orr     r9,  r9,  r0,  lsl #8
-    orr     r9,  r9,  r14, lsl #16
-    orr     r9,  r9,  r10, lsl #24
+    ldrb.w    r9,  [r10, #28]
+    ldrb.w    r0,  [r10, #29]
+    ldrb.w    r14, [r10, #30]
+    ldrb.w    r10, [r10, #31]
+    orr.w     r9,  r9,  r0,  lsl #8
+    orr.w     r9,  r9,  r14, lsl #16
+    orr.w     r9,  r9,  r10, lsl #24
 
     /* -------- limb f0..f9 取值，存入 S0..S9（scratch） -------- */
     /* f0 = w0 & mask26 */
@@ -128,19 +131,19 @@ fe25519_square_core:
 
     /* f1 = ((w0>>26) | (w1<<6)) & mask25 */
     lsrs    r0, r2, #26
-    orr     r0, r0, r3, lsl #6
+    orr.w     r0, r0, r3, lsl #6
     and     r0, r0, r11
     vmov    s1, r0
 
     /* f2 = ((w1>>19)|(w2<<13)) & mask26 */
     lsrs    r0, r3, #19
-    orr     r0, r0, r4, lsl #13
+    orr.w     r0, r0, r4, lsl #13
     and     r0, r0, r12
     vmov    s2, r0
 
     /* f3 = ((w2>>13)|(w3<<19)) & mask25 */
     lsrs    r0, r4, #13
-    orr     r0, r0, r5, lsl #19
+    orr.w     r0, r0, r5, lsl #19
     and     r0, r0, r11
     vmov    s3, r0
 
@@ -155,19 +158,19 @@ fe25519_square_core:
 
     /* f6 = ((w4>>25)|(w5<<7)) & mask26 */
     lsrs    r0, r6, #25
-    orr     r0, r0, r7, lsl #7
+    orr.w     r0, r0, r7, lsl #7
     and     r0, r0, r12
     vmov    s6, r0
 
     /* f7 = ((w5>>19)|(w6<<13)) & mask25 */
     lsrs    r0, r7, #19
-    orr     r0, r0, r8, lsl #13
+    orr.w     r0, r0, r8, lsl #13
     and     r0, r0, r11
     vmov    s7, r0
 
     /* f8 = ((w6>>12)|(w7<<20)) & mask26 */
     lsrs    r0, r8, #12
-    orr     r0, r0, r9, lsl #20
+    orr.w     r0, r0, r9, lsl #20
     and     r0, r0, r12
     vmov    s8, r0
 
@@ -382,7 +385,7 @@ fe25519_square_core:
     ADC     r3, r3, #0            /* 進位進 hi */
     /* carry = (lo>>26) | (hi<<6) */
     LSRS    r4, r2, #26
-    ORR     r4, r4, r3, lsl #6
+    orr.w     r4, r4, r3, lsl #6
 .endm
 
     /* 宏：右移 25 得 32-bit carry 到 r4；輸入 (r2=lo, r3=hi)，會先加偏置 */
@@ -391,7 +394,7 @@ fe25519_square_core:
     ADDS    r2, r2, r5
     ADC     r3, r3, #0
     LSRS    r4, r2, #25
-    ORR     r4, r4, r3, lsl #7
+    orr.w     r4, r4, r3, lsl #7
 .endm
 
     /* 宏：h -= (carry<<k)，k=25/26；輸入 (r2=lo, r3=hi)，carry 在 r4 */
