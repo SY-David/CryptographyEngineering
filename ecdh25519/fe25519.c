@@ -593,15 +593,18 @@ void fe25519_square(fe25519 *r, const fe25519 *x)
 
   fe25519_pack(a, x);
 
-  int64_t h[10];
-  fe25519_square_core_s(a, h);
+  int64_t h_ref[10], h_asm[10];
+  fe25519_square_core(a, h_ref);   // C 版
+  fe25519_square_core_s(a, h_asm); // 彙編版
 
-  unsigned char s[32];
-  contract_limbs(s, h);
-
-  for (int i = 0; i < 32; ++i)
+  for (int i = 0; i < 10; ++i)
   {
-    r->v[i] = s[i];
+    if (h_ref[i] != h_asm[i])
+    {
+
+      printf("mismatch at h[%d]: ref=%lld asm=%lld\n", i, (long long)h_ref[i], (long long)h_asm[i]);
+      break;
+    }
   }
 }
 
