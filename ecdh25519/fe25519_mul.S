@@ -6,14 +6,14 @@ fe25519_square_core_s:
     stmdb   sp!, {r4-r11, lr}
     vpush   {s16-s31}
 
-    ldr     r3, [r0]         // ax0
-    ldr     r4, [r0, #4]     // ax1
-    ldr     r5, [r0, #8]     // ax2
-    ldr     r6, [r0, #12]    // ax3
-    ldr     r7, [r0, #16]    // ax4
-    ldr     r8, [r0, #20]    // ax5
-    ldr     r9, [r0, #24]    // ax6
-    ldr     r10, [r0, #28]   // ax7
+    ldr.w   r3, [r0]           // ax0
+    ldr.w   r4, [r0, #4]       // ax1
+    ldr.w   r5, [r0, #8]       // ax2
+    ldr.w   r6, [r0, #12]      // ax3
+    ldr.w   r7, [r0, #16]      // ax4
+    ldr.w   r8, [r0, #20]      // ax5
+    ldr.w   r9, [r0, #24]      // ax6
+    ldr.w   r10, [r0, #28]     // ax7
     mov     r0, r1
 
     ubfx    r2, r3, #0, #26
@@ -349,9 +349,9 @@ fe25519_square_core_s:
     vmov    s7, r1
     vmov    s8, r14
 // ---------------------------------------
-    ldr     r2, =0x02000000
-    ldr     r3, =0x01000000
-    ldr     r7, =0x13
+    ldr.w   r2, =0x02000000
+    ldr.w   r3, =0x01000000
+    ldr.w   r7, =0x13
     vmov    r12, s20
 
     vmov    r1, s21
