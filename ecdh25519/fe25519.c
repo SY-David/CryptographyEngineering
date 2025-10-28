@@ -614,7 +614,7 @@ void fe25519_square(fe25519 *r, const fe25519 *x)
   }
 
   unsigned char s[32];
-  contract_limbs(s, h_ref);
+  contract_limbs(s, h_asm);
 
   for (int i = 0; i < 32; ++i)
   {
