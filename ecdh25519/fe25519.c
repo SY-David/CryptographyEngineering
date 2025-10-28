@@ -605,6 +605,18 @@ void fe25519_square(fe25519 *r, const fe25519 *x)
       printf("mismatch at h[%d]: ref=%lld asm=%lld\n", i, (long long)h_ref[i], (long long)h_asm[i]);
       break;
     }
+    if (i == 9)
+    {
+      printf("AJFUSDHGIKEFLA\n");
+    }
+  }
+
+  unsigned char s[32];
+  contract_limbs(s, h);
+
+  for (int i = 0; i < 32; ++i)
+  {
+    r->v[i] = s[i];
   }
 }
 
