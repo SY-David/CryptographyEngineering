@@ -1,564 +1,588 @@
-.syntax unified
-.thumb
-.thumb_func
+
+.text
+
 .global fe25519_square_core_s
 fe25519_square_core_s:
-.macro UMUL_ADD acc_lo, acc_hi, rx, ry
-    UMULL   r6, r7, \rx, \ry
-    ADDS    \acc_lo, \acc_lo, r6
-    ADC     \acc_hi, \acc_hi, r7
-.endm
+    stmdb   sp!, {r4-r11, lr}
+    vpush   {s16-s31}
 
-.macro SCALE19 rd, rs
-    /* rd = rs*19 = rs*(16+2+1) */
-    LSLS    \rd, \rs, #4      /* *16 */
-    ADD     \rd, \rd, \rs, lsl #1  /* +*2 => *18 */
-    ADD     \rd, \rd, \rs          /* +*1 => *19 */
-.endm
+    ldr     r3, [r0]         // ax0
+    ldr     r4, [r0, #4]     // ax1
+    ldr     r5, [r0, #8]     // ax2
+    ldr     r6, [r0, #12]    // ax3
+    ldr     r7, [r0, #16]    // ax4
+    ldr     r8, [r0, #20]    // ax5
+    ldr     r9, [r0, #24]    // ax6
+    ldr     r10, [r0, #28]   // ax7
+    mov     r0, r1
 
-.macro UMUL_ADD_19 acc_lo, acc_hi, rx, ry
-    SCALE19 r5, \ry
-    UMUL_ADD \acc_lo, \acc_hi, \rx, r5
-.endm
+    ubfx    r2, r3, #0, #26
 
-.macro UMUL_ADD_38 acc_lo, acc_hi, rx, ry
-    SCALE19 r5, \ry
-    LSLS    r5, r5, #1        /* *38 = 2*19 */
-    UMUL_ADD \acc_lo, \acc_hi, \rx, r5
-.endm
+    lsr     r12, r3, #26
+    orr     r3, r12, r4, lsl#6
+    ubfx    r3, r3, #0, #25
 
-.macro UMUL_ADD_76 acc_lo, acc_hi, rx, ry
-    SCALE19 r5, \ry
-    LSLS    r5, r5, #2        /* *76 = 4*19 */
-    UMUL_ADD \acc_lo, \acc_hi, \rx, r5
-.endm
+    lsr     r12, r4, #19
+    orr     r4, r12, r5, lsl#13
+    ubfx    r4, r4, #0, #26
 
-.macro UMUL_ADD_2 acc_lo, acc_hi, rx, ry
-    LSLS    r5, \ry, #1
-    UMUL_ADD \acc_lo, \acc_hi, \rx, r5
-.endm
+    lsr     r12, r5, #13
+    orr     r5, r12, r6, lsl#19
+    ubfx    r5, r5, #0, #25
 
-.macro UMUL_ADD_4 acc_lo, acc_hi, rx, ry
-    LSLS    r5, \ry, #2
-    UMUL_ADD \acc_lo, \acc_hi, \rx, r5
-.endm
+    ubfx    r6, r6, #6, #26
 
-/* =============== 主函式開始 =============== */
-fe25519_square_core:
-    push    {r4-r11, lr}
-    /* 備份 a 指標於 r10；r0, r1 是引數 */
-    mov     r10, r0           /* r10 = a */
-    /* 配置 80B 暫存：H0..H9 各 64-bit */
-    sub     sp, sp, #80
+    lsr     r12, r7, #25
+    orr     r12, r12, r8, lsl#7
+    ubfx    r12, r12, #0, #26
 
-    /* 常數 */
-    ldr     r12, =0x03FFFFFF  /* mask26 */
-    ldr     r11, =0x01FFFFFF  /* mask25 */
+    lsr     r1, r8, #19
+    orr     r8, r1, r9, lsl#13
+    ubfx    r8, r8, #0, #25
 
-    /* -------- 安全讀取 w0..w7：r2..r9 -------- */
-    /* 用內聯小片段避免重複：每組 4 bytes -> rX */
-    /* 宏在 GAS 需 .irp/.rept 才能展開，這裡手寫避免過度複雜 */
+    lsr     r1, r9, #12
+    orr     r9, r1, r10, lsl#20
+    ubfx    r9, r9, #0, #26
 
-    /* r2 = w0 */
-    ldrb.w    r2, [r10, #0]
-    ldrb.w    r3, [r10, #1]
-    ldrb.w    r4, [r10, #2]
-    ldrb.w    r5, [r10, #3]
-    orr.w     r2, r2, r3, lsl #8
-    orr.w     r2, r2, r4, lsl #16
-    orr.w     r2, r2, r5, lsl #24
-    /* r3 = w1 */
-    ldrb.w    r3, [r10, #4]
-    ldrb.w    r4, [r10, #5]
-    ldrb.w    r5, [r10, #6]
-    ldrb.w    r6, [r10, #7]
-    orr.w     r3, r3, r4, lsl #8
-    orr.w     r3, r3, r5, lsl #16
-    orr.w     r3, r3, r6, lsl #24
-    /* r4 = w2 */
-    ldrb.w    r4, [r10, #8]
-    ldrb.w    r5, [r10, #9]
-    ldrb.w    r6, [r10, #10]
-    ldrb.w    r7, [r10, #11]
-    orr.w     r4, r4, r5, lsl #8
-    orr.w     r4, r4, r6, lsl #16
-    orr.w     r4, r4, r7, lsl #24
-    /* r5 = w3 */
-    ldrb.w    r5, [r10, #12]
-    ldrb.w    r6, [r10, #13]
-    ldrb.w    r7, [r10, #14]
-    ldrb.w    r8, [r10, #15]
-    orr.w     r5, r5, r6, lsl #8
-    orr.w     r5, r5, r7, lsl #16
-    orr.w     r5, r5, r8, lsl #24
-    /* r6 = w4 */
-    ldrb.w    r6, [r10, #16]
-    ldrb.w    r7, [r10, #17]
-    ldrb.w    r8, [r10, #18]
-    ldrb.w    r9, [r10, #19]
-    orr.w     r6, r6, r7, lsl #8
-    orr.w     r6, r6, r8, lsl #16
-    orr.w     r6, r6, r9, lsl #24
-    /* r7 = w5 */
-    ldrb.w    r7, [r10, #20]
-    ldrb.w    r8, [r10, #21]
-    ldrb.w    r9, [r10, #22]
-    ldrb.w    r0, [r10, #23]
-    orr.w     r7, r7, r8, lsl #8
-    orr.w     r7, r7, r9, lsl #16
-    orr.w     r7, r7, r0, lsl #24
-    /* r8 = w6 */
-    ldrb.w    r8, [r10, #24]
-    ldrb.w    r9, [r10, #25]
-    ldrb.w    r0, [r10, #26]
-    ldrb.w    r14,[r10, #27]
-    orr.w     r8, r8, r9,  lsl #8
-    orr.w     r8, r8, r0,  lsl #16
-    orr.w     r8, r8, r14, lsl #24
-    /* r9 = w7 */
-    ldrb.w    r9,  [r10, #28]
-    ldrb.w    r0,  [r10, #29]
-    ldrb.w    r14, [r10, #30]
-    ldrb.w    r10, [r10, #31]
-    orr.w     r9,  r9,  r0,  lsl #8
-    orr.w     r9,  r9,  r14, lsl #16
-    orr.w     r9,  r9,  r10, lsl #24
+    ubfx    r11, r10, #6, #25
 
-    /* -------- limb f0..f9 取值，存入 S0..S9（scratch） -------- */
-    /* f0 = w0 & mask26 */
-    and     r0, r2, r12
-    vmov    s0, r0
+    ubfx    r7, r7, #0, #25
 
-    /* f1 = ((w0>>26) | (w1<<6)) & mask25 */
-    lsrs    r0, r2, #26
-    orr.w     r0, r0, r3, lsl #6
-    and     r0, r0, r11
-    vmov    s1, r0
+    //   r2=f0, r3=f1, r4=f2, r5=f3, r6=f4, r7=f5, r12=f6, r8=f7, r9=f8, r11=f9
+    movw    r14, #19
+    mul     r10, r3, r14
+    vmov    s11, r10
+    mul     r10, r4, r14
+    vmov    s12, r10
+    mul     r10, r5, r14
+    vmov    s13, r10
+    mul     r10, r6, r14
+    vmov    s14, r10
+    mul     r10, r7, r14
+    vmov    s15, r10
+    mul     r10, r12, r14
+    vmov    s16, r10
+    mul     r10, r8, r14
+    vmov    s17, r10
+    mul     r10, r9, r14
+    vmov    s18, r10
+    mul     r10, r11, r14
+    vmov    s19, r10
 
-    /* f2 = ((w1>>19)|(w2<<13)) & mask26 */
-    lsrs    r0, r3, #19
-    orr.w     r0, r0, r4, lsl #13
-    and     r0, r0, r12
-    vmov    s2, r0
+    lsl     r10, r3, #1
+    vmov    s6, r10
+    lsl     r10, r5, #1
+    vmov    s7, r10
+    lsl     r10, r7, #1
+    vmov    s8, r10
+    lsl     r10, r8, #1
+    vmov    s9, r10
+    lsl     r10, r11, #1
+    vmov    s10, r10
 
-    /* f3 = ((w2>>13)|(w3<<19)) & mask25 */
-    lsrs    r0, r4, #13
-    orr.w     r0, r0, r5, lsl #19
-    and     r0, r0, r11
-    vmov    s3, r0
+// ---------------------------------------
+    vmov    s20, r0
 
-    /* f4 = (w3>>6) & mask26 */
-    lsrs    r0, r5, #6
-    and     r0, r0, r12
-    vmov    s4, r0
+    movs    r1, #0
+    movs    r14, #0
 
-    /* f5 = w4 & mask25 */
-    and     r0, r6, r11
-    vmov    s5, r0
+    vmov    r0, s6
+    vmov    r10, s19
+    umull   r1, r14, r0, r10
 
-    /* f6 = ((w4>>25)|(w5<<7)) & mask26 */
-    lsrs    r0, r6, #25
-    orr.w     r0, r0, r7, lsl #7
-    and     r0, r0, r12
-    vmov    s6, r0
+    vmov    r10, s18
+    umlal   r1, r14, r4, r10
 
-    /* f7 = ((w5>>19)|(w6<<13)) & mask25 */
-    lsrs    r0, r7, #19
-    orr.w     r0, r0, r8, lsl #13
-    and     r0, r0, r11
-    vmov    s7, r0
+    vmov    r10, s7
+    vmov    r0, s17
+    umlal   r1, r14, r0, r10
 
-    /* f8 = ((w6>>12)|(w7<<20)) & mask26 */
-    lsrs    r0, r8, #12
-    orr.w     r0, r0, r9, lsl #20
-    and     r0, r0, r12
-    vmov    s8, r0
+    vmov    r0, s16
+    umlal   r1, r14, r0, r6
 
-    /* f9 = (w7>>6) & mask25 */
-    lsrs    r0, r9, #6
-    and     r0, r0, r11
-    vmov    s9, r0
+    adds    r1, r1, r1
+    adcs    r14, r14, r14
 
-    /* =============== 計算 h0..h9，逐一累加→存棧 =============== */
-    /*   規則（化簡後）：
-     *   h0 = f0*f0 + 38*f5*f5 + 76*f1*f9 + 38*f2*f8 + 76*f3*f7 + 38*f4*f6
-     *   h1 = 2*f0*f1 + 38*f2*f9 + 38*f3*f8 + 38*f4*f7 + 38*f5*f6
-     *   h2 = 2*f1*f1 + 19*f6*f6 + 2*f0*f2 + 76*f3*f9 + 38*f4*f8 + 76*f5*f7
-     *   h3 = 2*f0*f3 + 2*f1*f2 + 38*f4*f9 + 38*f5*f8 + 38*f6*f7
-     *   h4 = f2*f2 + 38*f7*f7 + 2*f0*f4 + 4*f1*f3 + 76*f5*f9 + 38*f6*f8
-     *   h5 = 2*f0*f5 + 2*f1*f4 + 2*f2*f3 + 38*f6*f9 + 38*f7*f8
-     *   h6 = 2*f3*f3 + 19*f8*f8 + 2*f0*f6 + 4*f1*f5 + 2*f2*f4 + 76*f7*f9
-     *   h7 = 2*f0*f7 + 2*f1*f6 + 2*f2*f5 + 2*f3*f4 + 38*f8*f9
-     *   h8 = f4*f4 + 38*f9*f9 + 2*f0*f8 + 4*f1*f7 + 2*f2*f6 + 4*f3*f5
-     *   h9 = 2*f0*f9 + 2*f1*f8 + 2*f2*f7 + 2*f3*f6 + 2*f4*f5
-     */
+    umlal   r1, r14, r2, r2
 
-    /* --- helper: 從 Sx 取回到 r2..r? --- */
-    /* 我們會反覆 vmov Rx, Sx；每個 hK 計算時只取需要者 */
+    vmov    r0, s8
+    vmov    r10, s15
+    umlal   r1, r14, r0, r10
 
-    /* h0 */
-    movs    r2, #0      /* acc_lo */
-    movs    r3, #0      /* acc_hi */
-    vmov    r4, s0      /* f0 */
-    UMUL_ADD r2, r3, r4, r4    /* f0*f0 */
+    // store h0
 
-    vmov    r4, s5      /* f5 */
-    UMUL_ADD_38 r2, r3, r4, r4 /* +38*f5*f5 */
+    vmov    s21, r1
+    vmov    s22, r14
+// ---------------------------------------
 
-    vmov    r4, s1      /* f1 */
-    vmov    r5, s9      /* f9 */
-    UMUL_ADD_76 r2, r3, r4, r5
+    // acc = 0
+    movs    r1, #0
+    movs    r14, #0
 
-    vmov    r4, s2      /* f2 */
-    vmov    r5, s8      /* f8 */
-    UMUL_ADD_38 r2, r3, r4, r5
+    // + f0 * f1
+    umull   r1, r14, r2, r3
 
-    vmov    r4, s3      /* f3 */
-    vmov    r5, s7      /* f7 */
-    UMUL_ADD_76 r2, r3, r4, r5
+    // + f2 * f9_19
+    vmov    r0, s19 // r0 = f9_19
+    umlal   r1, r14, r4, r0
 
-    vmov    r4, s4      /* f4 */
-    vmov    r5, s6      /* f6 */
-    UMUL_ADD_38 r2, r3, r4, r5
+    // + f3 * f8_19
+    vmov    r10, s18
+    umlal   r1, r14, r5, r10
 
-    /* store h0 -> [sp+0] */
-    str     r2, [sp, #0]
-    str     r3, [sp, #4]
+    // + f4 * f7_19
+    vmov    r0, s17
+    umlal   r1, r14, r0, r6
 
-    /* h1 */
-    movs    r2, #0; movs r3, #0
-    vmov    r4, s0; vmov r5, s1
-    UMUL_ADD_2  r2, r3, r4, r5   /* 2*f0*f1 */
+    // + f5 * f6_19
+    vmov    r10, s16
+    umlal   r1, r14, r7, r10
 
-    vmov    r4, s2; vmov r5, s9
-    UMUL_ADD_38 r2, r3, r4, r5
-    vmov    r4, s3; vmov r5, s8
-    UMUL_ADD_38 r2, r3, r4, r5
-    vmov    r4, s4; vmov r5, s7
-    UMUL_ADD_38 r2, r3, r4, r5
-    vmov    r4, s5; vmov r5, s6
-    UMUL_ADD_38 r2, r3, r4, r5
-    str     r2, [sp, #8]
-    str     r3, [sp, #12]
+    adds    r1, r1, r1
+    adcs    r14, r14, r14
 
-    /* h2 */
-    movs    r2, #0; movs r3, #0
-    vmov    r4, s1
-    UMUL_ADD_2  r2, r3, r4, r4   /* 2*f1*f1 */
-    vmov    r4, s6
-    UMUL_ADD_19 r2, r3, r4, r4   /* +19*f6*f6 */
-    vmov    r4, s0; vmov r5, s2
-    UMUL_ADD_2  r2, r3, r4, r5   /* +2*f0*f2 */
-    vmov    r4, s3; vmov r5, s9
-    UMUL_ADD_76 r2, r3, r4, r5
-    vmov    r4, s4; vmov r5, s8
-    UMUL_ADD_38 r2, r3, r4, r5
-    vmov    r4, s5; vmov r5, s7
-    UMUL_ADD_76 r2, r3, r4, r5
-    str     r2, [sp, #16]
-    str     r3, [sp, #20]
+    vmov    s23, r1
+    vmov    s24, r14
 
-    /* h3 */
-    movs    r2, #0; movs r3, #0
-    vmov    r4, s0; vmov r5, s3
-    UMUL_ADD_2  r2, r3, r4, r5
-    vmov    r4, s1; vmov r5, s2
-    UMUL_ADD_2  r2, r3, r4, r5
-    vmov    r4, s4; vmov r5, s9
-    UMUL_ADD_38 r2, r3, r4, r5
-    vmov    r4, s5; vmov r5, s8
-    UMUL_ADD_38 r2, r3, r4, r5
-    vmov    r4, s6; vmov r5, s7
-    UMUL_ADD_38 r2, r3, r4, r5
-    str     r2, [sp, #24]
-    str     r3, [sp, #28]
+// ---------------------------------------
 
-    /* h4 */
-    movs    r2, #0; movs r3, #0
-    vmov    r4, s2
-    UMUL_ADD   r2, r3, r4, r4    /* f2*f2 */
-    vmov    r4, s7
-    UMUL_ADD_38 r2, r3, r4, r4   /* +38*f7*f7 */
-    vmov    r4, s0; vmov r5, s4
-    UMUL_ADD_2  r2, r3, r4, r5   /* +2*f0*f4 */
-    vmov    r4, s1; vmov r5, s3
-    UMUL_ADD_4  r2, r3, r4, r5   /* +4*f1*f3 */
-    vmov    r4, s5; vmov r5, s9
-    UMUL_ADD_76 r2, r3, r4, r5
-    vmov    r4, s6; vmov r5, s8
-    UMUL_ADD_38 r2, r3, r4, r5
-    str     r2, [sp, #32]
-    str     r3, [sp, #36]
+    movs    r1, #0
+    movs    r14, #0
 
-    /* h5 */
-    movs    r2, #0; movs r3, #0
-    vmov    r4, s0; vmov r5, s5
-    UMUL_ADD_2  r2, r3, r4, r5
-    vmov    r4, s1; vmov r5, s4
-    UMUL_ADD_2  r2, r3, r4, r5
-    vmov    r4, s2; vmov r5, s3
-    UMUL_ADD_2  r2, r3, r4, r5
-    vmov    r4, s6; vmov r5, s9
-    UMUL_ADD_38 r2, r3, r4, r5
-    vmov    r4, s7; vmov r5, s8
-    UMUL_ADD_38 r2, r3, r4, r5
-    str     r2, [sp, #40]
-    str     r3, [sp, #44]
+    umull   r1, r14, r2, r4
 
-    /* h6 */
-    movs    r2, #0; movs r3, #0
-    vmov    r4, s3
-    UMUL_ADD_2  r2, r3, r4, r4    /* 2*f3*f3 */
-    vmov    r4, s8
-    UMUL_ADD_19 r2, r3, r4, r4    /* +19*f8*f8 */
-    vmov    r4, s0; vmov r5, s6
-    UMUL_ADD_2  r2, r3, r4, r5
-    vmov    r4, s1; vmov r5, s5
-    UMUL_ADD_4  r2, r3, r4, r5
-    vmov    r4, s2; vmov r5, s4
-    UMUL_ADD_2  r2, r3, r4, r5
-    vmov    r4, s7; vmov r5, s9
-    UMUL_ADD_76 r2, r3, r4, r5
-    str     r2, [sp, #48]
-    str     r3, [sp, #52]
+    vmov    r10, s19
+    vmov    r0, s7
+    umlal   r1, r14, r0, r10
 
-    /* h7 */
-    movs    r2, #0; movs r3, #0
-    vmov    r4, s0; vmov r5, s7
-    UMUL_ADD_2  r2, r3, r4, r5
-    vmov    r4, s1; vmov r5, s6
-    UMUL_ADD_2  r2, r3, r4, r5
-    vmov    r4, s2; vmov r5, s5
-    UMUL_ADD_2  r2, r3, r4, r5
-    vmov    r4, s3; vmov r5, s4
-    UMUL_ADD_2  r2, r3, r4, r5
-    vmov    r4, s8; vmov r5, s9
-    UMUL_ADD_38 r2, r3, r4, r5
-    str     r2, [sp, #56]
-    str     r3, [sp, #60]
+    vmov    r0, s18
+    umlal   r1, r14, r0, r6
 
-    /* h8 */
-    movs    r2, #0; movs r3, #0
-    vmov    r4, s4
-    UMUL_ADD   r2, r3, r4, r4    /* f4*f4 */
-    vmov    r4, s9
-    UMUL_ADD_38 r2, r3, r4, r4   /* +38*f9*f9 */
-    vmov    r4, s0; vmov r5, s8
-    UMUL_ADD_2  r2, r3, r4, r5
-    vmov    r4, s1; vmov r5, s7
-    UMUL_ADD_4  r2, r3, r4, r5
-    vmov    r4, s2; vmov r5, s6
-    UMUL_ADD_2  r2, r3, r4, r5
-    vmov    r4, s3; vmov r5, s5
-    UMUL_ADD_4  r2, r3, r4, r5
-    str     r2, [sp, #64]
-    str     r3, [sp, #68]
+    vmov    r10, s8
+    vmov    r0, s17
+    umlal   r1, r14, r0, r10
 
-    /* h9 */
-    movs    r2, #0; movs r3, #0
-    vmov    r4, s0; vmov r5, s9
-    UMUL_ADD_2  r2, r3, r4, r5
-    vmov    r4, s1; vmov r5, s8
-    UMUL_ADD_2  r2, r3, r4, r5
-    vmov    r4, s2; vmov r5, s7
-    UMUL_ADD_2  r2, r3, r4, r5
-    vmov    r4, s3; vmov r5, s6
-    UMUL_ADD_2  r2, r3, r4, r5
-    vmov    r4, s4; vmov r5, s5
-    UMUL_ADD_2  r2, r3, r4, r5
-    str     r2, [sp, #72]
-    str     r3, [sp, #76]
+    adds    r1, r1, r1
+    adcs    r14, r14, r14
 
-    /* =============== carry 鏈（與 C 版一致） =============== */
-    /* helper：從 [sp+off] 取 64-bit -> (r2=lo, r3=hi)；存回同位址。 */
-    /* carry 計算：
-       carry = (h + 2^(k-1)) >> k       (k=26 或 25)
-       將 carry 加到下一個 h，然後 h -= carry<<k
-       64 位右移 k： (hi<< (32-k)) | (lo >> k)
-    */
+    vmov    r0, s6
+    umlal   r1, r14, r0, r3
 
-    /* 宏：右移 26 得 32-bit carry 到 r4；輸入 (r2=lo, r3=hi)，會先加偏置 */
-.macro CARRY26_WITH_ROUND
-    /* r12/r11 是 mask，現不用；載入偏置 1<<25 */
-    ldr     r5, =0x02000000       /* 1<<25 */
-    ADDS    r2, r2, r5            /* 加偏置到 lo */
-    ADC     r3, r3, #0            /* 進位進 hi */
-    /* carry = (lo>>26) | (hi<<6) */
-    LSRS    r4, r2, #26
-    orr.w     r4, r4, r3, lsl #6
-.endm
+    vmov    r10, s16
+    umlal   r1, r14, r12, r10
+    // store h0
 
-    /* 宏：右移 25 得 32-bit carry 到 r4；輸入 (r2=lo, r3=hi)，會先加偏置 */
-.macro CARRY25_WITH_ROUND
-    ldr     r5, =0x01000000       /* 1<<24 */
-    ADDS    r2, r2, r5
-    ADC     r3, r3, #0
-    LSRS    r4, r2, #25
-    orr.w     r4, r4, r3, lsl #7
-.endm
+    vmov    s25, r1
+    vmov    s26, r14
+// ---------------------------------------
 
-    /* 宏：h -= (carry<<k)，k=25/26；輸入 (r2=lo, r3=hi)，carry 在 r4 */
-.macro SUB_SHIFT acc_lo, acc_hi, k
-    LSLS    r5, r4, #\k
-    SUBS    \acc_lo, \acc_lo, r5
-    SBC     \acc_hi, \acc_hi, #0
-.endm
+    // acc = 0
+    movs    r1, #0
+    movs    r14, #0
 
-    /* --- carry0: h0 (k=26) --- */
-    ldr     r2, [sp, #0];  ldr r3, [sp, #4]
-    CARRY26_WITH_ROUND
-    /* h1 += carry0 */
-    ldr     r6, [sp, #8];  ldr r7, [sp, #12]
-    ADDS    r6, r6, r4
-    ADC     r7, r7, #0
-    str     r6, [sp, #8];  str r7, [sp, #12]
-    /* h0 -= carry0<<26 */
-    SUB_SHIFT r2, r3, 26
-    str     r2, [sp, #0];  str r3, [sp, #4]
+    umull   r1, r14, r2, r5
 
-    /* carry1: h1 (k=25) */
-    ldr     r2, [sp, #8];  ldr r3, [sp, #12]
-    CARRY25_WITH_ROUND
-    /* h2 += carry1 */
-    ldr     r6, [sp, #16]; ldr r7, [sp, #20]
-    ADDS    r6, r6, r4
-    ADC     r7, r7, #0
-    str     r6, [sp, #16]; str r7, [sp, #20]
-    /* h1 -= carry1<<25 */
-    SUB_SHIFT r2, r3, 25
-    str     r2, [sp, #8];  str r3, [sp, #12]
+    umlal   r1, r14, r3, r4
 
-    /* carry2: h2 (k=26) */
-    ldr     r2, [sp, #16]; ldr r3, [sp, #20]
-    CARRY26_WITH_ROUND
-    ldr     r6, [sp, #24]; ldr r7, [sp, #28]   /* h3 */
-    ADDS    r6, r6, r4
-    ADC     r7, r7, #0
-    str     r6, [sp, #24]; str r7, [sp, #28]
-    SUB_SHIFT r2, r3, 26
-    str     r2, [sp, #16]; str r3, [sp, #20]
+    vmov    r10, s19 // r10= f9_19
+    umlal   r1, r14, r6, r10
 
-    /* carry3: h3 (k=25) */
-    ldr     r2, [sp, #24]; ldr r3, [sp, #28]
-    CARRY25_WITH_ROUND
-    ldr     r6, [sp, #32]; ldr r7, [sp, #36]   /* h4 */
-    ADDS    r6, r6, r4
-    ADC     r7, r7, #0
-    str     r6, [sp, #32]; str r7, [sp, #36]
-    SUB_SHIFT r2, r3, 25
-    str     r2, [sp, #24]; str r3, [sp, #28]
+    vmov    r0, s18
+    umlal   r1, r14, r0, r7
 
-    /* carry4: h4 (k=26) */
-    ldr     r2, [sp, #32]; ldr r3, [sp, #36]
-    CARRY26_WITH_ROUND
-    ldr     r6, [sp, #40]; ldr r7, [sp, #44]   /* h5 */
-    ADDS    r6, r6, r4
-    ADC     r7, r7, #0
-    str     r6, [sp, #40]; str r7, [sp, #44]
-    SUB_SHIFT r2, r3, 26
-    str     r2, [sp, #32]; str r3, [sp, #36]
+    vmov    r10, s17
+    umlal   r1, r14, r12, r10
 
-    /* carry5: h5 (k=25) */
-    ldr     r2, [sp, #40]; ldr r3, [sp, #44]
-    CARRY25_WITH_ROUND
-    ldr     r6, [sp, #48]; ldr r7, [sp, #52]   /* h6 */
-    ADDS    r6, r6, r4
-    ADC     r7, r7, #0
-    str     r6, [sp, #48]; str r7, [sp, #52]
-    SUB_SHIFT r2, r3, 25
-    str     r2, [sp, #40]; str r3, [sp, #44]
+    adds    r1, r1, r1
+    adcs    r14, r14, r14
 
-    /* carry6: h6 (k=26) */
-    ldr     r2, [sp, #48]; ldr r3, [sp, #52]
-    CARRY26_WITH_ROUND
-    ldr     r6, [sp, #56]; ldr r7, [sp, #60]   /* h7 */
-    ADDS    r6, r6, r4
-    ADC     r7, r7, #0
-    str     r6, [sp, #56]; str r7, [sp, #60]
-    SUB_SHIFT r2, r3, 26
-    str     r2, [sp, #48]; str r3, [sp, #52]
+    vmov    s27, r1
+    vmov    s28, r14
 
-    /* carry7: h7 (k=25) */
-    ldr     r2, [sp, #56]; ldr r3, [sp, #60]
-    CARRY25_WITH_ROUND
-    ldr     r6, [sp, #64]; ldr r7, [sp, #68]   /* h8 */
-    ADDS    r6, r6, r4
-    ADC     r7, r7, #0
-    str     r6, [sp, #64]; str r7, [sp, #68]
-    SUB_SHIFT r2, r3, 25
-    str     r2, [sp, #56]; str r3, [sp, #60]
+// ---------------------------------------
 
-    /* carry8: h8 (k=26) */
-    ldr     r2, [sp, #64]; ldr r3, [sp, #68]
-    CARRY26_WITH_ROUND
-    ldr     r6, [sp, #72]; ldr r7, [sp, #76]   /* h9 */
-    ADDS    r6, r6, r4
-    ADC     r7, r7, #0
-    str     r6, [sp, #72]; str r7, [sp, #76]
-    SUB_SHIFT r2, r3, 26
-    str     r2, [sp, #64]; str r3, [sp, #68]
+    movs    r1, #0
+    movs    r14, #0
 
-    /* carry9: h9 (k=25)；h0 += carry9*19，h9 -= carry9<<25 */
-    ldr     r2, [sp, #72]; ldr r3, [sp, #76]   /* h9 */
-    CARRY25_WITH_ROUND           /* r4 = carry9 */
-    /* h0 += carry9*19 */
-    ldr     r6, [sp, #0];  ldr r7, [sp, #4]
-    SCALE19 r5, r4
-    ADDS    r6, r6, r5
-    ADC     r7, r7, #0
-    str     r6, [sp, #0];  str r7, [sp, #4]
-    /* h9 -= carry9<<25 */
-    SUB_SHIFT r2, r3, 25
-    str     r2, [sp, #72]; str r3, [sp, #76]
+    umull   r1, r14, r2, r6
 
-    /* 再做一次 carry0, carry1（與 C 相同） */
-    /* carry0 again (k=26) */
-    ldr     r2, [sp, #0];  ldr r3, [sp, #4]
-    CARRY26_WITH_ROUND
-    /* h1 += carry0' */
-    ldr     r6, [sp, #8];  ldr r7, [sp, #12]
-    ADDS    r6, r6, r4
-    ADC     r7, r7, #0
-    str     r6, [sp, #8];  str r7, [sp, #12]
-    SUB_SHIFT r2, r3, 26
-    str     r2, [sp, #0];  str r3, [sp, #4]
+    vmov    r0, s6
+    umlal   r1, r14, r0, r5
 
-    /* carry1 again (k=25) */
-    ldr     r2, [sp, #8];  ldr r3, [sp, #12]
-    CARRY25_WITH_ROUND
-    /* h2 += carry1' */
-    ldr     r6, [sp, #16]; ldr r7, [sp, #20]
-    ADDS    r6, r6, r4
-    ADC     r7, r7, #0
-    str     r6, [sp, #16]; str r7, [sp, #20]
-    SUB_SHIFT r2, r3, 25
-    str     r2, [sp, #8];  str r3, [sp, #12]
+    vmov    r0, s8
+    vmov    r10, s19
+    umlal   r1, r14, r0, r10
 
-    /* =========== 寫出最終 h[0..9] 到呼叫者緩衝區 =========== */
-    /* r1 = h */
-    /* h0..h9 位於 [sp + 0..76] */
-    /* 逐一存回（小端 64-bit）： */
-    ldr     r2, [sp, #0];  ldr r3, [sp, #4]
-    str     r2, [r1, #0];  str r3, [r1, #4]
-    ldr     r2, [sp, #8];  ldr r3, [sp, #12]
-    str     r2, [r1, #8];  str r3, [r1, #12]
-    ldr     r2, [sp, #16]; ldr r3, [sp, #20]
-    str     r2, [r1, #16]; str r3, [r1, #20]
-    ldr     r2, [sp, #24]; ldr r3, [sp, #28]
-    str     r2, [r1, #24]; str r3, [r1, #28]
-    ldr     r2, [sp, #32]; ldr r3, [sp, #36]
-    str     r2, [r1, #32]; str r3, [r1, #36]
-    ldr     r2, [sp, #40]; ldr r3, [sp, #44]
-    str     r2, [r1, #40]; str r3, [r1, #44]
-    ldr     r2, [sp, #48]; ldr r3, [sp, #52]
-    str     r2, [r1, #48]; str r3, [r1, #52]
-    ldr     r2, [sp, #56]; ldr r3, [sp, #60]
-    str     r2, [r1, #56]; str r3, [r1, #60]
-    ldr     r2, [sp, #64]; ldr r3, [sp, #68]
-    str     r2, [r1, #64]; str r3, [r1, #68]
-    ldr     r2, [sp, #72]; ldr r3, [sp, #76]
-    str     r2, [r1, #72]; str r3, [r1, #76]
+    vmov    r0, s18
+    umlal   r1, r14, r0, r12
 
-    /* 尾聲 */
-    add     sp, sp, #80
-    pop     {r4-r11, pc}
+    adds    r1, r1, r1
+    adcs    r14, r14, r14
+
+    umlal   r1, r14, r4, r4
+
+    vmov    r0, s17
+    vmov    r10, s9
+    umlal   r1, r14, r0, r10
+    // store h0
+
+    vmov    s29, r1
+    vmov    s30, r14
+// ---------------------------------------
+
+    // acc = 0
+    movs    r1, #0
+    movs    r14, #0
+
+    umull   r1, r14, r2, r7
+
+    umlal   r1, r14, r3, r6
+
+    umlal   r1, r14, r4, r5
+
+    vmov    r0, s19
+    umlal   r1, r14, r0, r12
+
+    vmov    r10, s18
+    umlal   r1, r14, r8, r10
+
+    adds    r1, r1, r1
+    adcs    r14, r14, r14
+
+    vmov    s31, r1
+    vmov    s0, r14
+// ---------------------------------------
+
+    movs    r1, #0
+    movs    r14, #0
+
+    umull   r1, r14, r2, r12
+
+    vmov    r10, s6
+    umlal   r1, r14, r10, r7
+
+    umlal   r1, r14, r4, r6
+
+    vmov    r0, s19
+    vmov    r10, s9
+    umlal   r1, r14, r0, r10
+
+    adds    r1, r1, r1
+    adcs    r14, r14, r14
+
+    vmov    r0, s7
+    umlal   r1, r14, r0, r5
+
+    vmov    r10, s18
+    umlal   r1, r14, r9, r10
+    // store h0
+
+    vmov    s1, r1
+    vmov    s2, r14
+// ---------------------------------------
+
+    // acc = 0
+    movs    r1, #0
+    movs    r14, #0
+
+    umull   r1, r14, r2, r8
+
+    umlal   r1, r14, r3, r12
+
+    umlal   r1, r14, r4, r7
+
+    umlal   r1, r14, r5, r6
+
+    vmov    r10, s19
+    umlal   r1, r14, r9, r10
+
+    adds    r1, r1, r1
+    adcs    r14, r14, r14
+
+    vmov    s3, r1
+    vmov    s4, r14
+// ---------------------------------------
+
+    // acc = 0
+    movs    r1, #0
+    movs    r14, #0
+
+    umull   r1, r14, r2, r9
+
+    vmov    r0, s6
+    umlal   r1, r14, r0, r8
+
+    umlal   r1, r14, r4, r12
+
+    vmov    r10, s7
+    umlal   r1, r14, r7, r10
+
+    adds    r1, r1, r1
+    adcs    r14, r14, r14
+
+    umlal   r1, r14, r6, r6
+
+    vmov    r0, s10
+    vmov    r10, s19
+    umlal   r1, r14, r0, r10
+
+    vmov    s5, r1
+    vmov    s6, r14
+// ---------------------------------------
+    movs    r1, #0
+    movs    r14, #0
+
+    umull   r1, r14, r2, r11
+
+    umlal   r1, r14, r3, r9
+
+    umlal   r1, r14, r4, r8
+
+    umlal   r1, r14, r5, r12
+
+    umlal   r1, r14, r6, r7
+    // store h0
+
+    adds    r1, r1, r1
+    adcs    r14, r14, r14
+
+    vmov    s7, r1
+    vmov    s8, r14
+// ---------------------------------------
+    ldr     r2, =0x02000000
+    ldr     r3, =0x01000000
+    ldr     r7, =0x13
+    vmov    r12, s20
+
+    vmov    r1, s21
+    vmov    r14, s22
+
+    adds    r1, r1, r2
+    adcs    r14, r14, #0
+
+    mov     r0, r1
+    lsr     r0, r0, #26
+    orr     r0, r0, r14, lsl#6
+
+    subs    r1, r1, r0, lsl#26
+    sbc     r14, r14, r0, lsr#6
+
+    vmov    s21, r1
+    vmov    s22, r14
+// ---------------------------------------
+    vmov    r1, s23
+    vmov    r14, s24
+    adds    r1, r1, r0
+    adcs    r14, r14, #0
+
+    adds    r1, r1, r3
+    adcs    r14, r14, #0
+
+    mov     r0, r1
+    lsr     r0, r0, #25
+    orr     r0, r0, r14, lsl#7
+
+    subs    r1, r1, r0, lsl#25
+    sbc     r14, r14, r0, lsr#7
+
+    vmov    s23, r1
+    vmov    s24, r14
+// ---------------------------------------
+    vmov    r1, s25
+    vmov    r14, s26
+    adds    r1, r1, r0
+    adcs    r14, r14, #0
+
+    adds    r1, r1, r2
+    adcs    r14, r14, #0
+
+    mov     r0, r1
+    lsr     r0, r0, #26
+    orr     r0, r0, r14, lsl#6
+
+    subs    r1, r1, r0, lsl#26
+    sbc     r14, r14, r0, lsr#6
+
+    vmov    s25, r1
+    vmov    s26, r14
+
+// ---------------------------------------
+    vmov    r1, s27
+    vmov    r14, s28
+    adds    r1, r1, r0
+    adcs    r14, r14, #0
+
+    adds    r1, r1, r3
+    adcs    r14, r14, #0
+
+    mov     r0, r1
+    lsr     r0, r0, #25
+    orr     r0, r0, r14, lsl#7
+
+    subs    r1, r1, r0, lsl#25
+    sbc     r14, r14, r0, lsr#7
+
+    str     r1, [r12, #24]
+    str     r14, [r12, #28]
+// ---------------------------------------
+    vmov    r1, s29
+    vmov    r14, s30
+    adds    r1, r1, r0
+    adcs    r14, r14, #0
+
+    adds    r1, r1, r2
+    adcs    r14, r14, #0
+
+    mov     r0, r1
+    lsr     r0, r0, #26
+    orr     r0, r0, r14, lsl#6
+
+    subs    r1, r1, r0, lsl#26
+    sbc     r14, r14, r0, lsr#6
+
+    str     r1, [r12, #32]
+    str     r14, [r12, #36]
+// ---------------------------------------
+    vmov    r1, s31
+    vmov    r14, s0
+    adds    r1, r1, r0
+    adcs    r14, r14, #0
+
+    adds    r1, r1, r3
+    adcs    r14, r14, #0
+
+    mov     r0, r1
+    lsr     r0, r0, #25
+    orr     r0, r0, r14, lsl#7
+
+    subs    r1, r1, r0, lsl#25
+    sbc     r14, r14, r0, lsr#7
+
+    str     r1, [r12, #40]
+    str     r14, [r12, #44]
+// ---------------------------------------
+// ---------------------------------------
+    vmov    r1, s1
+    vmov    r14, s2
+    adds    r1, r1, r0
+    adcs    r14, r14, #0
+
+    adds    r1, r1, r2
+    adcs    r14, r14, #0
+
+    mov     r0, r1
+    lsr     r0, r0, #26
+    orr     r0, r0, r14, lsl#6
+
+    subs    r1, r1, r0, lsl#26
+    sbc     r14, r14, r0, lsr#6
+
+    str     r1, [r12, #48]
+    str     r14, [r12, #52]
+// ---------------------------------------
+    vmov    r1, s3
+    vmov    r14, s4
+    adds    r1, r1, r0
+    adcs    r14, r14, #0
+
+    adds    r1, r1, r3
+    adcs    r14, r14, #0
+
+    mov     r0, r1
+    lsr     r0, r0, #25
+    orr     r0, r0, r14, lsl#7
+
+    subs    r1, r1, r0, lsl#25
+    sbc     r14, r14, r0, lsr#7
+
+    str     r1, [r12, #56]
+    str     r14, [r12, #60]
+// ---------------------------------------
+    vmov    r1, s5
+    vmov    r14, s6
+    adds    r1, r1, r0
+    adcs    r14, r14, #0
+
+    adds    r1, r1, r2
+    adcs    r14, r14, #0
+
+    mov     r0, r1
+    lsr     r0, r0, #26
+    orr     r0, r0, r14, lsl#6
+
+    subs    r1, r1, r0, lsl#26
+    sbc     r14, r14, r0, lsr#6
+
+    str     r1, [r12, #64]
+    str     r14, [r12, #68]
+// ---------------------------------------
+    vmov    r1, s7
+    vmov    r14, s8
+
+    adds    r1, r1, r0
+    adcs    r14, r14, #0
+
+    adds    r1, r1, r3
+    adcs    r14, r14, #0
+
+    mov     r0, r1
+    lsrs    r0, r0, #25
+    orr     r0, r0, r14, lsl#7
+
+    subs    r1, r1, r0, lsl#25
+    sbc     r14, r14, r0, lsr#7
+
+    str     r1, [r12, #72]
+    str     r14, [r12, #76]
+// ---------------------------------------
+    vmov    r1, s21
+    vmov    r14, s22
+
+    mul     r10, r0, r7
+
+    adds    r1, r1, r10
+    adcs    r14, r14, #0
+
+    adds    r1, r1, r2
+    adcs    r14, r14, #0
+
+    mov     r0, r1
+    lsr     r0, r0, #26
+    orr     r0, r0, r14, lsl#6
+
+    subs    r1, r1, r0, lsl#26
+    sbc     r14, r14, r0, lsr#6
+
+    str     r1, [r12]
+    str     r14, [r12, #4]
+// ---------------------------------------
+    vmov    r1, s23
+    vmov    r14, s24
+
+    adds    r1, r1, r0
+    adcs    r14, r14, #0
+
+    adds    r1, r1, r3
+    adcs    r14, r14, #0
+
+    mov     r0, r1
+    lsrs    r0, r0, #25
+    orr     r0, r0, r14, lsl#7
+
+    subs    r1, r1, r0, lsl#25
+    sbc     r14, r14, r0, lsr#7
+
+    str     r1, [r12, #8]
+    str     r14, [r12, #12]
+// ---------------------------------------
+    vmov    r1, s25
+    vmov    r14, s26
+    adds    r1, r1, r0
+    adcs    r14, r14, #0
+    str     r1, [r12, #16]
+    str     r14, [r12, #20]
+
+    vpop    {s16-s31}
+    ldmia   sp!, {r4-r11, lr}
+
+    bx      lr
