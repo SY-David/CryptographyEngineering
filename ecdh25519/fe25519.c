@@ -476,6 +476,8 @@ void fe25519_mul(fe25519 *r, const fe25519 *x, const fe25519 *y)
     r->v[i] = s[i];
   }
 }
+extern void fe25519_square_core_s(const unsigned char *a,
+                                  int64_t h[10]);
 static inline void fe25519_square_core(const unsigned char *a,
                                        int64_t h[10])
 {
