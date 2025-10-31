@@ -608,12 +608,7 @@ void fe25519_square(fe25519 *r, const fe25519 *x)
 
       sprintf(outstr, "mismatch at h[%d]: ref=%lld asm=%lld\n", i, (long long)h_ref[i], (long long)h_asm[i]);
       hal_send_str(outstr);
-      break;
-    }
-    if (i == 9)
-    {
-      printf("AJFUSDHGIKEFLA\n");
-    }
+        }
   }
 
   unsigned char s[32];
