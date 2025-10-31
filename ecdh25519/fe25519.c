@@ -328,7 +328,7 @@ extern void fe25519_mul_core_s(const unsigned char *a, const unsigned char *b, i
 
 static inline void fe25519_mul_core(const unsigned char *a,
                                     const unsigned char *b,
-                                    uint64_t h[10])
+                                    int64_t h[10])
 {
   uint32_t ax0 = load4(a + 0);
   uint32_t ax1 = load4(a + 4);
