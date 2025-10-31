@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "fe25519.h"
-
+#include <string.h>
+#include "hal.h"
 const fe25519 fe25519_zero = {{0}};
 const fe25519 fe25519_one = {{1}};
 const fe25519 fe25519_two = {{2}};
@@ -599,12 +600,14 @@ void fe25519_square(fe25519 *r, const fe25519 *x)
   fe25519_square_core(a, h_ref);   // C 版
   fe25519_square_core_s(a, h_asm); // 彙編版
 
+  char outstr[128];
   for (int i = 0; i < 10; ++i)
   {
     if (h_ref[i] != h_asm[i])
     {
 
-      printf("mismatch at h[%d]: ref=%lld asm=%lld\n", i, (long long)h_ref[i], (long long)h_asm[i]);
+      sprintf(outstr, "mismatch at h[%d]: ref=%lld asm=%lld\n", i, (long long)h_ref[i], (long long)h_asm[i]);
+      hal_send_str(outstr);
       break;
     }
     if (i == 9)
