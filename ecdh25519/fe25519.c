@@ -563,7 +563,9 @@ void fe25519_square(fe25519 *r, const fe25519 *x)
     }
     if (i == 9)
     {
-      printf("AJFUSDHGIKEFLA\n");
+      sprintf(outstr, "Pass\n");
+      hal_send_str(outstr);
+      break;
     }
   }
 
