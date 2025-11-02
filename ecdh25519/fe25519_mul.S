@@ -9,6 +9,7 @@
 .global fe25519_square_core_s
 fe25519_square_core_s:
     stmdb.w sp!, {r4-r11, lr}
+    sub     sp, sp, #4
     vpush   {s16-s31}
 
     ldr     r3, [r0]         // ax0
@@ -588,6 +589,7 @@ fe25519_square_core_s:
     str     r14, [r12, #20]
 
     vpop    {s16-s31}
+    add     sp, sp, #4
     ldmia.w sp!, {r4-r11, lr}
 
     bx      lr
