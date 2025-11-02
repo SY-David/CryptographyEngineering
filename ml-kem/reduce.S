@@ -1,8 +1,8 @@
 .syntax unified
 .thumb
 .text
-.global montgomery_add
-montgomery_add:
+.global montgomery
+montgomery:
     smulbb  r0, r0, r1
     movw    r2, #3327
     smulbb  r3, r0, r2
