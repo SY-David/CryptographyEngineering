@@ -10,6 +10,9 @@
 #define montgomery_reduce KYBER_NAMESPACE(montgomery_reduce)
 int16_t montgomery_reduce(int32_t a);
 
+#define montgomery KYBER_NAMESPACE(montgomery)
+int16_t montgomery(int16_t a, int16_t b);
+
 #define barrett_reduce KYBER_NAMESPACE(barrett_reduce)
 int16_t barrett_reduce(int16_t a);
 
