@@ -6,6 +6,12 @@ r_prime:
     .word -1044
 prime:
     .word 3329
+.syntax unified
+.thumb
+.thumb_func
+.arch armv7e-m
+.fpu fpv4-sp-d16
+.type fe25519_square_core_s, %function
 .text
 montgomery:
     stmdb.w sp!, {r4-r11, lr}
