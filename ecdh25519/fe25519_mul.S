@@ -363,51 +363,17 @@ fe25519_square_core_s:
     vmov    r1, s21
     vmov    r14, s22
 
-    adds.w  r1, r1, r2
-    adcs.w  r14, r14, #0
-
-    mov.w   r0, r1
-    lsr.w   r0, r0, #26
-    orr.w   r0, r0, r14, lsl#6
-
-    subs.w  r1, r1, r0, lsl#26
-    sbc.w   r14, r14, r0, lsr#6
-
     vmov    s21, r1
     vmov    s22, r14
 // ---------------------------------------
     vmov    r1, s23
     vmov    r14, s24
-    adds.w  r1, r1, r0
-    adcs.w  r14, r14, #0
-
-    adds.w  r1, r1, r3
-    adcs.w  r14, r14, #0
-
-    mov.w   r0, r1
-    lsr.w   r0, r0, #25
-    orr.w   r0, r0, r14, lsl#7
-
-    subs.w  r1, r1, r0, lsl#25
-    sbc.w   r14, r14, r0, lsr#7
 
     vmov    s23, r1
     vmov    s24, r14
 // ---------------------------------------
     vmov    r1, s25
     vmov    r14, s26
-    adds.w  r1, r1, r0
-    adcs.w  r14, r14, #0
-
-    adds.w  r1, r1, r2
-    adcs.w  r14, r14, #0
-
-    mov.w   r0, r1
-    lsr.w   r0, r0, #26
-    orr.w   r0, r0, r14, lsl#6
-
-    subs.w  r1, r1, r0, lsl#26
-    sbc.w   r14, r14, r0, lsr#6
 
     vmov    s25, r1
     vmov    s26, r14
@@ -415,54 +381,18 @@ fe25519_square_core_s:
 // ---------------------------------------
     vmov    r1, s27
     vmov    r14, s28
-    adds.w  r1, r1, r0
-    adcs.w  r14, r14, #0
-
-    adds.w  r1, r1, r3
-    adcs.w  r14, r14, #0
-
-    mov.w   r0, r1
-    lsr.w   r0, r0, #25
-    orr.w   r0, r0, r14, lsl#7
-
-    subs.w  r1, r1, r0, lsl#25
-    sbc.w   r14, r14, r0, lsr#7
 
     str     r1, [r12, #24]
     str     r14, [r12, #28]
 // ---------------------------------------
     vmov    r1, s29
     vmov    r14, s30
-    adds.w  r1, r1, r0
-    adcs.w  r14, r14, #0
-
-    adds.w  r1, r1, r2
-    adcs.w  r14, r14, #0
-
-    mov.w   r0, r1
-    lsr.w   r0, r0, #26
-    orr.w   r0, r0, r14, lsl#6
-
-    subs.w  r1, r1, r0, lsl#26
-    sbc.w   r14, r14, r0, lsr#6
 
     str     r1, [r12, #32]
     str     r14, [r12, #36]
 // ---------------------------------------
     vmov    r1, s31
     vmov    r14, s0
-    adds.w  r1, r1, r0
-    adcs.w  r14, r14, #0
-
-    adds.w  r1, r1, r3
-    adcs.w  r14, r14, #0
-
-    mov.w   r0, r1
-    lsr.w   r0, r0, #25
-    orr.w   r0, r0, r14, lsl#7
-
-    subs.w  r1, r1, r0, lsl#25
-    sbc.w   r14, r14, r0, lsr#7
 
     str     r1, [r12, #40]
     str     r14, [r12, #44]
@@ -470,54 +400,18 @@ fe25519_square_core_s:
 // ---------------------------------------
     vmov    r1, s1
     vmov    r14, s2
-    adds.w  r1, r1, r0
-    adcs.w  r14, r14, #0
-
-    adds.w  r1, r1, r2
-    adcs.w  r14, r14, #0
-
-    mov.w   r0, r1
-    lsr.w   r0, r0, #26
-    orr.w   r0, r0, r14, lsl#6
-
-    subs.w  r1, r1, r0, lsl#26
-    sbc.w   r14, r14, r0, lsr#6
 
     str     r1, [r12, #48]
     str     r14, [r12, #52]
 // ---------------------------------------
     vmov    r1, s3
     vmov    r14, s4
-    adds.w  r1, r1, r0
-    adcs.w  r14, r14, #0
-
-    adds.w  r1, r1, r3
-    adcs.w  r14, r14, #0
-
-    mov.w   r0, r1
-    lsr.w   r0, r0, #25
-    orr.w   r0, r0, r14, lsl#7
-
-    subs.w  r1, r1, r0, lsl#25
-    sbc.w   r14, r14, r0, lsr#7
 
     str     r1, [r12, #56]
     str     r14, [r12, #60]
 // ---------------------------------------
     vmov    r1, s5
     vmov    r14, s6
-    adds.w  r1, r1, r0
-    adcs.w  r14, r14, #0
-
-    adds.w  r1, r1, r2
-    adcs.w  r14, r14, #0
-
-    mov.w   r0, r1
-    lsr.w   r0, r0, #26
-    orr.w   r0, r0, r14, lsl#6
-
-    subs.w  r1, r1, r0, lsl#26
-    sbc.w   r14, r14, r0, lsr#6
 
     str     r1, [r12, #64]
     str     r14, [r12, #68]
@@ -525,39 +419,11 @@ fe25519_square_core_s:
     vmov    r1, s7
     vmov    r14, s8
 
-    adds.w  r1, r1, r0
-    adcs.w  r14, r14, #0
-
-    adds.w  r1, r1, r3
-    adcs.w  r14, r14, #0
-
-    mov.w   r0, r1
-    lsrs    r0, r0, #25
-    orr.w   r0, r0, r14, lsl#7
-
-    subs.w  r1, r1, r0, lsl#25
-    sbc.w   r14, r14, r0, lsr#7
-
     str     r1, [r12, #72]
     str     r14, [r12, #76]
 // ---------------------------------------
     vmov    r1, s21
     vmov    r14, s22
-
-    mul     r10, r0, r7
-
-    adds.w  r1, r1, r10
-    adcs.w  r14, r14, #0
-
-    adds.w  r1, r1, r2
-    adcs.w  r14, r14, #0
-
-    mov.w   r0, r1
-    lsr.w   r0, r0, #26
-    orr.w   r0, r0, r14, lsl#6
-
-    subs.w  r1, r1, r0, lsl#26
-    sbc.w   r14, r14, r0, lsr#6
 
     str     r1, [r12]
     str     r14, [r12, #4]
@@ -565,26 +431,12 @@ fe25519_square_core_s:
     vmov    r1, s23
     vmov    r14, s24
 
-    adds.w  r1, r1, r0
-    adcs.w  r14, r14, #0
-
-    adds.w  r1, r1, r3
-    adcs.w  r14, r14, #0
-
-    mov.w   r0, r1
-    lsrs    r0, r0, #25
-    orr.w   r0, r0, r14, lsl#7
-
-    subs.w  r1, r1, r0, lsl#25
-    sbc.w   r14, r14, r0, lsr#7
-
     str     r1, [r12, #8]
     str     r14, [r12, #12]
 // ---------------------------------------
     vmov    r1, s25
     vmov    r14, s26
-    adds.w  r1, r1, r0
-    adcs.w  r14, r14, #0
+
     str     r1, [r12, #16]
     str     r14, [r12, #20]
 
