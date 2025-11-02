@@ -64,7 +64,7 @@ const int16_t zetas[128] = {
  *
  * Returns 16-bit integer congruent to a*b*R^{-1} mod q
  **************************************************/
-extern int16_t montgomery(int16_t a, int16_t b);
+
 static int16_t fqmul(int16_t a, int16_t b)
 {
   // return montgomery_reduce((int32_t)a * b);
