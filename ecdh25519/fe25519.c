@@ -601,21 +601,6 @@ void fe25519_square(fe25519 *r, const fe25519 *x)
   fe25519_square_core_s(a, h_asm); // 彙編版
 
   char outstr[128];
-  for (int i = 0; i < 10; ++i)
-  {
-    if (h_ref[i] != h_asm[i])
-    {
-      sprintf(outstr, "mismatch at h[%d]: ref=%lld asm=%lld\n", i, (long long)h_ref[i], (long long)h_asm[i]);
-      hal_send_str(outstr);
-      break;
-    }
-    if (i == 9)
-    {
-      sprintf(outstr, "Pass\n");
-      hal_send_str(outstr);
-      break;
-    }
-  }
 
   unsigned char s[32];
   contract_limbs(s, h_ref);
