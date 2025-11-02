@@ -549,18 +549,42 @@ fe25519_square_core_s:
     adds.w  r1, r1, r10
     adcs.w  r14, r14, #0
 
+    adds.w  r1, r1, r2
+    adcs.w  r14, r14, #0
+
+    mov.w   r0, r1
+    lsr.w   r0, r0, #26
+    orr.w   r0, r0, r14, lsl#6
+
+    subs.w  r1, r1, r0, lsl#26
+    sbc.w   r14, r14, r0, lsr#6
+
     str     r1, [r12]
     str     r14, [r12, #4]
 // ---------------------------------------
     vmov    r1, s23
     vmov    r14, s24
 
+    adds.w  r1, r1, r0
+    adcs.w  r14, r14, #0
+
+    adds.w  r1, r1, r3
+    adcs.w  r14, r14, #0
+
+    mov.w   r0, r1
+    lsrs    r0, r0, #25
+    orr.w   r0, r0, r14, lsl#7
+
+    subs.w  r1, r1, r0, lsl#25
+    sbc.w   r14, r14, r0, lsr#7
+
     str     r1, [r12, #8]
     str     r14, [r12, #12]
 // ---------------------------------------
     vmov    r1, s25
     vmov    r14, s26
-
+    adds.w  r1, r1, r0
+    adcs.w  r14, r14, #0
     str     r1, [r12, #16]
     str     r14, [r12, #20]
 
