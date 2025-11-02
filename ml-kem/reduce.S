@@ -13,6 +13,7 @@ prime:
 .fpu fpv4-sp-d16
 .type fe25519_square_core_s, %function
 .text
+.global montgomery:
 montgomery:
     stmdb.w sp!, {r4-r11, lr}
     ldr r4, =prime_invr
