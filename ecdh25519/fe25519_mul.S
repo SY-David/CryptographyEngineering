@@ -363,6 +363,16 @@ fe25519_square_core_s:
     vmov    r1, s21
     vmov    r14, s22
 
+    adds.w  r1, r1, r2
+    adcs.w  r14, r14, #0
+
+    mov.w   r0, r1
+    lsr.w   r0, r0, #26
+    orr.w   r0, r0, r14, lsl#6
+
+    subs.w  r1, r1, r0, lsl#26
+    sbc.w   r14, r14, r0, lsr#6
+
     vmov    s21, r1
     vmov    s22, r14
 // ---------------------------------------

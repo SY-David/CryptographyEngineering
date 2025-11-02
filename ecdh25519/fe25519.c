@@ -530,6 +530,10 @@ static inline void fe25519_square_core(const unsigned char *a,
   int64_t h8 = f4 * f4 + f9_2 * f9_19 + 2 * (f0 * f8 + f1_2 * f7 + f2 * f6 + f3_2 * f5);
   int64_t h9 = 2 * (f0 * f9 + f1 * f8 + f2 * f7 + f3 * f6 + f4 * f5);
 
+  int64_t carry0 = (h0 + ((int64_t)1 << 25)) >> 26;
+
+  h0 -= carry0 << 26;
+
   h[0] = h0;
   h[1] = h1;
   h[2] = h2;
