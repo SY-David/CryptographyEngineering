@@ -15,9 +15,9 @@ prime:
 .text
 montgomery:
     stmdb.w sp!, {r4-r11, lr}
-    ldr r4=prime_invr
-    ldr r5=r_prime
-    ldr r6=prime
+    ldr r4, =prime_invr
+    ldr r5, =r_prime
+    ldr r6, =prime
     smulbb r2, r0, r1
     smulbb r3, r2, r4
     smlabb r3, r3, r6, r2
