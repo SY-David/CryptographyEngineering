@@ -7,42 +7,11 @@
 #include <stdint.h>
 #include "fips202.h"
 
-extern void KeccakP1600_Permute_24rounds(uint64_t s[25]);
-/*************************************************
- * Name:        load64
- *
- * Description: Load 8 bytes into uint64_t in little-endian order
- *
- * Arguments:   - const uint8_t *x: pointer to input byte array
- *
- * Returns the loaded 64-bit unsigned integer
- **************************************************/
-static uint64_t load64(const uint8_t x[8])
-{
-  unsigned int i;
-  uint64_t r = 0;
-
-  for (i = 0; i < 8; i++)
-    r |= (uint64_t)x[i] << 8 * i;
-
-  return r;
-}
-
-/*************************************************
- * Name:        store64
- *
- * Description: Store a 64-bit integer to array of 8 bytes in little-endian order
- *
- * Arguments:   - uint8_t *x: pointer to the output byte array (allocated)
- *              - uint64_t u: input 64-bit unsigned integer
- **************************************************/
-static void store64(uint8_t x[8], uint64_t u)
-{
-  unsigned int i;
-
-  for (i = 0; i < 8; i++)
-    x[i] = u >> 8 * i;
-}
+extern void KeccakP1600_OverwriteWithZeroes(void *state, unsigned int byteCount);
+extern void KeccakP1600_AddByte(void *state, unsigned char byte, unsigned int offset);
+extern void KeccakP1600_AddBytes(void *state, const unsigned char *data, unsigned int offset, unsigned int length);
+extern void KeccakP1600_ExtractBytes(const void *state, unsigned char *out, unsigned int offset, unsigned int length);
+extern void KeccakP1600_Permute_24rounds(void *state);
 
 /*************************************************
  * Name:        keccak_init
@@ -53,9 +22,7 @@ static void store64(uint8_t x[8], uint64_t u)
  **************************************************/
 static void keccak_init(uint64_t s[25])
 {
-  unsigned int i;
-  for (i = 0; i < 25; i++)
-    s[i] = 0;
+  KeccakP1600_OverwriteWithZeroes(s, 200);
 }
 
 /*************************************************
@@ -71,27 +38,24 @@ static void keccak_init(uint64_t s[25])
  *
  * Returns new position pos in current block
  **************************************************/
-static unsigned int keccak_absorb(uint64_t s[25],
-                                  unsigned int pos,
-                                  unsigned int r,
-                                  const uint8_t *in,
-                                  size_t inlen)
+static unsigned int keccak_absorb(uint64_t s[25], unsigned int pos, unsigned int r,
+                                  const uint8_t *in, size_t inlen)
 {
-  unsigned int i;
-
   while (pos + inlen >= r)
   {
-    for (i = pos; i < r; i++)
-      s[i / 8] ^= (uint64_t)*in++ << 8 * (i % 8);
-    inlen -= r - pos;
+    unsigned int take = r - pos;
+    KeccakP1600_AddBytes(s, in, pos, take);
+    in += take;
+    inlen -= take;
     KeccakP1600_Permute_24rounds(s);
     pos = 0;
   }
-
-  for (i = pos; i < pos + inlen; i++)
-    s[i / 8] ^= (uint64_t)*in++ << 8 * (i % 8);
-
-  return i;
+  if (inlen)
+  {
+    KeccakP1600_AddBytes(s, in, pos, (unsigned int)inlen);
+    pos += (unsigned int)inlen;
+  }
+  return pos;
 }
 
 /*************************************************
@@ -106,8 +70,8 @@ static unsigned int keccak_absorb(uint64_t s[25],
  **************************************************/
 static void keccak_finalize(uint64_t s[25], unsigned int pos, unsigned int r, uint8_t p)
 {
-  s[pos / 8] ^= (uint64_t)p << 8 * (pos % 8);
-  s[r / 8 - 1] ^= 1ULL << 63;
+  KeccakP1600_AddByte(s, p, pos);
+  KeccakP1600_AddByte(s, 0x80, r - 1);
 }
 
 /*************************************************
@@ -125,14 +89,9 @@ static void keccak_finalize(uint64_t s[25], unsigned int pos, unsigned int r, ui
  *
  * Returns new position pos in current block
  **************************************************/
-static unsigned int keccak_squeeze(uint8_t *out,
-                                   size_t outlen,
-                                   uint64_t s[25],
-                                   unsigned int pos,
-                                   unsigned int r)
+static unsigned int keccak_squeeze(uint8_t *out, size_t outlen, uint64_t s[25],
+                                   unsigned int pos, unsigned int r)
 {
-  unsigned int i;
-
   while (outlen)
   {
     if (pos == r)
@@ -140,15 +99,16 @@ static unsigned int keccak_squeeze(uint8_t *out,
       KeccakP1600_Permute_24rounds(s);
       pos = 0;
     }
-    for (i = pos; i < r && i < pos + outlen; i++)
-      *out++ = s[i / 8] >> 8 * (i % 8);
-    outlen -= i - pos;
-    pos = i;
+    size_t chunk = r - pos;
+    if (chunk > outlen)
+      chunk = outlen;
+    KeccakP1600_ExtractBytes(s, out, pos, (unsigned int)chunk);
+    out += chunk;
+    outlen -= chunk;
+    pos += (unsigned int)chunk;
   }
-
   return pos;
 }
-
 /*************************************************
  * Name:        keccak_absorb_once
  *
@@ -161,60 +121,32 @@ static unsigned int keccak_squeeze(uint8_t *out,
  *              - size_t inlen: length of input in bytes
  *              - uint8_t p: domain-separation byte for different Keccak-derived functions
  **************************************************/
-static void keccak_absorb_once(uint64_t s[25],
-                               unsigned int r,
-                               const uint8_t *in,
-                               size_t inlen,
-                               uint8_t p)
+static void keccak_absorb_once(uint64_t s[25], unsigned int r,
+                               const uint8_t *in, size_t inlen, uint8_t p)
 {
-  unsigned int i;
-
-  for (i = 0; i < 25; i++)
-    s[i] = 0;
-
+  KeccakP1600_OverwriteWithZeroes(s, 200);
   while (inlen >= r)
   {
-    for (i = 0; i < r / 8; i++)
-      s[i] ^= load64(in + 8 * i);
+    KeccakP1600_AddBytes(s, in, 0, r);
     in += r;
     inlen -= r;
     KeccakP1600_Permute_24rounds(s);
   }
-
-  for (i = 0; i < inlen; i++)
-    s[i / 8] ^= (uint64_t)in[i] << 8 * (i % 8);
-
-  s[i / 8] ^= (uint64_t)p << 8 * (i % 8);
-  s[(r - 1) / 8] ^= 1ULL << 63;
+  /* 剩餘 inlen (< r) 直接加在 offset 0 */
+  if (inlen)
+    KeccakP1600_AddBytes(s, in, 0, (unsigned int)inlen);
+  /* 此時本輪位置即為 pos = inlen */
+  KeccakP1600_AddByte(s, p, (unsigned int)inlen);
+  KeccakP1600_AddByte(s, 0x80, r - 1);
 }
 
-/*************************************************
- * Name:        keccak_squeezeblocks
- *
- * Description: Squeeze step of Keccak. Squeezes full blocks of r bytes each.
- *              Modifies the state. Can be called multiple times to keep
- *              squeezing, i.e., is incremental. Assumes zero bytes of current
- *              block have already been squeezed.
- *
- * Arguments:   - uint8_t *out: pointer to output blocks
- *              - size_t nblocks: number of blocks to be squeezed (written to out)
- *              - uint64_t *s: pointer to input/output Keccak state
- *              - unsigned int r: rate in bytes (e.g., 168 for SHAKE128)
- **************************************************/
-static void keccak_squeezeblocks(uint8_t *out,
-                                 size_t nblocks,
-                                 uint64_t s[25],
-                                 unsigned int r)
+static void keccak_squeezeblocks(uint8_t *out, size_t nblocks, uint64_t s[25], unsigned int r)
 {
-  unsigned int i;
-
-  while (nblocks)
+  while (nblocks--)
   {
     KeccakP1600_Permute_24rounds(s);
-    for (i = 0; i < r / 8; i++)
-      store64(out + 8 * i, s[i]);
+    KeccakP1600_ExtractBytes(s, out, 0, r);
     out += r;
-    nblocks -= 1;
   }
 }
 
@@ -449,13 +381,10 @@ void shake256(uint8_t *out, size_t outlen, const uint8_t *in, size_t inlen)
  **************************************************/
 void sha3_256(uint8_t h[32], const uint8_t *in, size_t inlen)
 {
-  unsigned int i;
   uint64_t s[25];
-
   keccak_absorb_once(s, SHA3_256_RATE, in, inlen, 0x06);
   KeccakP1600_Permute_24rounds(s);
-  for (i = 0; i < 4; i++)
-    store64(h + 8 * i, s[i]);
+  KeccakP1600_ExtractBytes(s, h, 0, 32);
 }
 
 /*************************************************
@@ -469,11 +398,8 @@ void sha3_256(uint8_t h[32], const uint8_t *in, size_t inlen)
  **************************************************/
 void sha3_512(uint8_t h[64], const uint8_t *in, size_t inlen)
 {
-  unsigned int i;
   uint64_t s[25];
-
   keccak_absorb_once(s, SHA3_512_RATE, in, inlen, 0x06);
   KeccakP1600_Permute_24rounds(s);
-  for (i = 0; i < 8; i++)
-    store64(h + 8 * i, s[i]);
+  KeccakP1600_ExtractBytes(s, h, 0, 64);
 }
