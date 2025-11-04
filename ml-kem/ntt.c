@@ -124,7 +124,7 @@ void invntt(int16_t r[256])
       for (j = start; j < start + len; j++)
       {
         t = r[j];
-        r[j] = barrett_reduce(t + r[j + len]);
+        r[j] = barrett(t + r[j + len]);
         r[j + len] = r[j + len] - t;
         r[j + len] = fqmul(zeta, r[j + len]);
       }
