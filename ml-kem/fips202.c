@@ -7,7 +7,7 @@
 #include <stdint.h>
 #include "fips202.h"
 
-extern void KeccakF1600_StatePermute(uint64_t s[25]);
+extern void KeccakP1600_Permute_24rounds(uint64_t s[25]);
 /*************************************************
  * Name:        load64
  *
@@ -84,7 +84,7 @@ static unsigned int keccak_absorb(uint64_t s[25],
     for (i = pos; i < r; i++)
       s[i / 8] ^= (uint64_t)*in++ << 8 * (i % 8);
     inlen -= r - pos;
-    KeccakF1600_StatePermute(s);
+    KeccakP1600_Permute_24rounds(s);
     pos = 0;
   }
 
@@ -137,7 +137,7 @@ static unsigned int keccak_squeeze(uint8_t *out,
   {
     if (pos == r)
     {
-      KeccakF1600_StatePermute(s);
+      KeccakP1600_Permute_24rounds(s);
       pos = 0;
     }
     for (i = pos; i < r && i < pos + outlen; i++)
@@ -178,7 +178,7 @@ static void keccak_absorb_once(uint64_t s[25],
       s[i] ^= load64(in + 8 * i);
     in += r;
     inlen -= r;
-    KeccakF1600_StatePermute(s);
+    KeccakP1600_Permute_24rounds(s);
   }
 
   for (i = 0; i < inlen; i++)
@@ -210,7 +210,7 @@ static void keccak_squeezeblocks(uint8_t *out,
 
   while (nblocks)
   {
-    KeccakF1600_StatePermute(s);
+    KeccakP1600_Permute_24rounds(s);
     for (i = 0; i < r / 8; i++)
       store64(out + 8 * i, s[i]);
     out += r;
@@ -453,7 +453,7 @@ void sha3_256(uint8_t h[32], const uint8_t *in, size_t inlen)
   uint64_t s[25];
 
   keccak_absorb_once(s, SHA3_256_RATE, in, inlen, 0x06);
-  KeccakF1600_StatePermute(s);
+  KeccakP1600_Permute_24rounds(s);
   for (i = 0; i < 4; i++)
     store64(h + 8 * i, s[i]);
 }
@@ -473,7 +473,7 @@ void sha3_512(uint8_t h[64], const uint8_t *in, size_t inlen)
   uint64_t s[25];
 
   keccak_absorb_once(s, SHA3_512_RATE, in, inlen, 0x06);
-  KeccakF1600_StatePermute(s);
+  KeccakP1600_Permute_24rounds(s);
   for (i = 0; i < 8; i++)
     store64(h + 8 * i, s[i]);
 }
