@@ -81,6 +81,216 @@ static int16_t fqmul(int16_t a, int16_t b)
  **************************************************/
 void ntt(int16_t r[256])
 {
+  /* Fuse the layers as 2+2+2+1 radix-4 style blocks to cut redundant loads. */
+  unsigned int k = 1;
+  unsigned int base, block, offset;
+  int16_t t0, t1;
+
+  /* Layers len=128 and len=64 */
+  const int16_t zeta128 = zetas[k++];
+  const int16_t zeta64_top = zetas[k++];
+  const int16_t zeta64_bottom = zetas[k++];
+
+  for (base = 0; base < 64; base += 2)
+  {
+    int16_t a0 = r[base];
+    int16_t a1 = r[base + 1];
+    int16_t b0 = r[base + 128];
+    int16_t b1 = r[base + 129];
+
+    int16_t t128_0 = fqmul(zeta128, b0);
+    int16_t t128_1 = fqmul(zeta128, b1);
+
+    int16_t top0 = a0 + t128_0;
+    int16_t top1 = a1 + t128_1;
+    int16_t bot0 = a0 - t128_0;
+    int16_t bot1 = a1 - t128_1;
+
+    int16_t a2 = r[base + 64];
+    int16_t a3 = r[base + 65];
+    int16_t b2 = r[base + 192];
+    int16_t b3 = r[base + 193];
+
+    int16_t t128_2 = fqmul(zeta128, b2);
+    int16_t t128_3 = fqmul(zeta128, b3);
+
+    int16_t top2 = a2 + t128_2;
+    int16_t top3 = a3 + t128_3;
+    int16_t bot2 = a2 - t128_2;
+    int16_t bot3 = a3 - t128_3;
+
+    int16_t t64_0 = fqmul(zeta64_top, top2);
+    int16_t t64_1 = fqmul(zeta64_top, top3);
+
+    r[base] = top0 + t64_0;
+    r[base + 64] = top0 - t64_0;
+    r[base + 1] = top1 + t64_1;
+    r[base + 65] = top1 - t64_1;
+
+    int16_t t64_2 = fqmul(zeta64_bottom, bot2);
+    int16_t t64_3 = fqmul(zeta64_bottom, bot3);
+
+    r[base + 128] = bot0 + t64_2;
+    r[base + 192] = bot0 - t64_2;
+    r[base + 129] = bot1 + t64_3;
+    r[base + 193] = bot1 - t64_3;
+  }
+
+  /* Layers len=32 and len=16 */
+  for (block = 0; block < 256; block += 64)
+  {
+    const int16_t zeta32 = zetas[k++];
+    const int16_t zeta16_top = zetas[k++];
+    const int16_t zeta16_bottom = zetas[k++];
+
+    for (offset = 0; offset < 16; offset += 2)
+    {
+      unsigned int idx0 = block + offset;
+      unsigned int idx1 = idx0 + 1;
+      unsigned int idx2 = idx0 + 16;
+      unsigned int idx3 = idx1 + 16;
+      unsigned int idx4 = idx0 + 32;
+      unsigned int idx5 = idx1 + 32;
+      unsigned int idx6 = idx0 + 48;
+      unsigned int idx7 = idx1 + 48;
+
+      int16_t x0 = r[idx0];
+      int16_t x1 = r[idx1];
+      int16_t y0 = r[idx4];
+      int16_t y1 = r[idx5];
+      int16_t t32_0 = fqmul(zeta32, y0);
+      int16_t t32_1 = fqmul(zeta32, y1);
+      r[idx0] = x0 + t32_0;
+      r[idx1] = x1 + t32_1;
+      r[idx4] = x0 - t32_0;
+      r[idx5] = x1 - t32_1;
+
+      int16_t x2 = r[idx2];
+      int16_t x3 = r[idx3];
+      int16_t y2 = r[idx6];
+      int16_t y3 = r[idx7];
+      int16_t t32_2 = fqmul(zeta32, y2);
+      int16_t t32_3 = fqmul(zeta32, y3);
+      r[idx2] = x2 + t32_2;
+      r[idx3] = x3 + t32_3;
+      r[idx6] = x2 - t32_2;
+      r[idx7] = x3 - t32_3;
+
+      int16_t u0 = r[idx0];
+      int16_t u1 = r[idx1];
+      int16_t v0 = r[idx2];
+      int16_t v1 = r[idx3];
+      t0 = fqmul(zeta16_top, v0);
+      t1 = fqmul(zeta16_top, v1);
+      r[idx0] = u0 + t0;
+      r[idx2] = u0 - t0;
+      r[idx1] = u1 + t1;
+      r[idx3] = u1 - t1;
+
+      int16_t u2 = r[idx4];
+      int16_t u3 = r[idx5];
+      int16_t v2 = r[idx6];
+      int16_t v3 = r[idx7];
+      t0 = fqmul(zeta16_bottom, v2);
+      t1 = fqmul(zeta16_bottom, v3);
+      r[idx4] = u2 + t0;
+      r[idx6] = u2 - t0;
+      r[idx5] = u3 + t1;
+      r[idx7] = u3 - t1;
+    }
+  }
+
+  /* Layers len=8 and len=4 */
+  for (block = 0; block < 256; block += 16)
+  {
+    const int16_t zeta8 = zetas[k++];
+    const int16_t zeta4_top = zetas[k++];
+    const int16_t zeta4_bottom = zetas[k++];
+
+    for (offset = 0; offset < 4; offset += 2)
+    {
+      unsigned int idx0 = block + offset;
+      unsigned int idx1 = idx0 + 1;
+      unsigned int idx4 = idx0 + 4;
+      unsigned int idx5 = idx1 + 4;
+      unsigned int idx8 = idx0 + 8;
+      unsigned int idx9 = idx1 + 8;
+      unsigned int idx12 = idx4 + 8;
+      unsigned int idx13 = idx5 + 8;
+
+      int16_t a0 = r[idx0];
+      int16_t a1 = r[idx1];
+      int16_t b0 = r[idx8];
+      int16_t b1 = r[idx9];
+      int16_t t8_0 = fqmul(zeta8, b0);
+      int16_t t8_1 = fqmul(zeta8, b1);
+      r[idx0] = a0 + t8_0;
+      r[idx1] = a1 + t8_1;
+      r[idx8] = a0 - t8_0;
+      r[idx9] = a1 - t8_1;
+
+      int16_t a2 = r[idx4];
+      int16_t a3 = r[idx5];
+      int16_t b2 = r[idx12];
+      int16_t b3 = r[idx13];
+      int16_t t8_2 = fqmul(zeta8, b2);
+      int16_t t8_3 = fqmul(zeta8, b3);
+      r[idx4] = a2 + t8_2;
+      r[idx5] = a3 + t8_3;
+      r[idx12] = a2 - t8_2;
+      r[idx13] = a3 - t8_3;
+
+      int16_t s0 = r[idx0];
+      int16_t s1 = r[idx1];
+      int16_t s2 = r[idx4];
+      int16_t s3 = r[idx5];
+      t0 = fqmul(zeta4_top, s2);
+      t1 = fqmul(zeta4_top, s3);
+      r[idx0] = s0 + t0;
+      r[idx4] = s0 - t0;
+      r[idx1] = s1 + t1;
+      r[idx5] = s1 - t1;
+
+      int16_t s4 = r[idx8];
+      int16_t s5 = r[idx9];
+      int16_t s6 = r[idx12];
+      int16_t s7 = r[idx13];
+      t0 = fqmul(zeta4_bottom, s6);
+      t1 = fqmul(zeta4_bottom, s7);
+      r[idx8] = s4 + t0;
+      r[idx12] = s4 - t0;
+      r[idx9] = s5 + t1;
+      r[idx13] = s5 - t1;
+    }
+  }
+
+  /* Final len=2 layer */
+  for (block = 0; block < 256; block += 4)
+  {
+    const int16_t zeta2 = zetas[k++];
+    unsigned int idx0 = block;
+    unsigned int idx1 = block + 1;
+    unsigned int idx2 = block + 2;
+    unsigned int idx3 = block + 3;
+
+    int16_t p0 = r[idx0];
+    int16_t p1 = r[idx1];
+    int16_t q0 = r[idx2];
+    int16_t q1 = r[idx3];
+
+    t0 = fqmul(zeta2, q0);
+    t1 = fqmul(zeta2, q1);
+    r[idx0] = p0 + t0;
+    r[idx2] = p0 - t0;
+    r[idx1] = p1 + t1;
+    r[idx3] = p1 - t1;
+  }
+}
+
+#if 0
+/* Reference loop for comparison with the unrolled version above. */
+static void ntt_reference(int16_t r[256])
+{
   unsigned int len, start, j, k;
   int16_t t, zeta;
 
@@ -99,6 +309,140 @@ void ntt(int16_t r[256])
     }
   }
 }
+
+/* 半展開示範：先把前兩層 (len = 128, 64) 攤開，後續仍用一般迴圈。 */
+static void ntt_unrolled_first_two_layers(int16_t r[256])
+{
+  unsigned int k = 1;
+  unsigned int j, start, len;
+  int16_t t, zeta;
+
+  zeta = zetas[k++];
+  for (j = 0; j < 128; ++j)
+  {
+    t = fqmul(zeta, r[j + 128]);
+    r[j + 128] = r[j] - t;
+    r[j] = r[j] + t;
+  }
+
+  zeta = zetas[k++];
+  for (j = 0; j < 64; ++j)
+  {
+    t = fqmul(zeta, r[j + 64]);
+    r[j + 64] = r[j] - t;
+    r[j] = r[j] + t;
+  }
+
+  zeta = zetas[k++];
+  for (j = 128; j < 192; ++j)
+  {
+    t = fqmul(zeta, r[j + 64]);
+    r[j + 64] = r[j] - t;
+    r[j] = r[j] + t;
+  }
+
+  for (len = 32; len >= 2; len >>= 1)
+  {
+    for (start = 0; start < 256; start = j + len)
+    {
+      zeta = zetas[k++];
+      for (j = start; j < start + len; ++j)
+      {
+        t = fqmul(zeta, r[j + len]);
+        r[j + len] = r[j] - t;
+        r[j] = r[j] + t;
+      }
+    }
+  }
+}
+
+/* 完整展開：把 7 個階段重組成 2+2+2+1 四個 group，
+ * 每組先跑上一層的全部蝴蝶，再進入下一層，方便觀察暫存器重用。 */
+static void ntt_unrolled_pairwise(int16_t r[256])
+{
+  unsigned int k = 1;
+  unsigned int j, start;
+  int16_t t, zeta;
+
+  /* Group 1: len = 128, 64 */
+  zeta = zetas[k++];
+  for (j = 0; j < 128; ++j)
+  {
+    t = fqmul(zeta, r[j + 128]);
+    r[j + 128] = r[j] - t;
+    r[j] = r[j] + t;
+  }
+
+  for (start = 0; start < 256; start += 128)
+  {
+    zeta = zetas[k++];
+    for (j = start; j < start + 64; ++j)
+    {
+      t = fqmul(zeta, r[j + 64]);
+      r[j + 64] = r[j] - t;
+      r[j] = r[j] + t;
+    }
+  }
+
+  /* Group 2: len = 32, 16 */
+  for (start = 0; start < 256; start += 64)
+  {
+    zeta = zetas[k++];
+    for (j = start; j < start + 32; ++j)
+    {
+      t = fqmul(zeta, r[j + 32]);
+      r[j + 32] = r[j] - t;
+      r[j] = r[j] + t;
+    }
+  }
+
+  for (start = 0; start < 256; start += 32)
+  {
+    zeta = zetas[k++];
+    for (j = start; j < start + 16; ++j)
+    {
+      t = fqmul(zeta, r[j + 16]);
+      r[j + 16] = r[j] - t;
+      r[j] = r[j] + t;
+    }
+  }
+
+  /* Group 3: len = 8, 4 */
+  for (start = 0; start < 256; start += 16)
+  {
+    zeta = zetas[k++];
+    for (j = start; j < start + 8; ++j)
+    {
+      t = fqmul(zeta, r[j + 8]);
+      r[j + 8] = r[j] - t;
+      r[j] = r[j] + t;
+    }
+  }
+
+  for (start = 0; start < 256; start += 8)
+  {
+    zeta = zetas[k++];
+    for (j = start; j < start + 4; ++j)
+    {
+      t = fqmul(zeta, r[j + 4]);
+      r[j + 4] = r[j] - t;
+      r[j] = r[j] + t;
+    }
+  }
+
+  /* Group 4: len = 2 */
+  for (start = 0; start < 256; start += 4)
+  {
+    zeta = zetas[k++];
+    for (j = start; j < start + 2; ++j)
+    {
+      t = fqmul(zeta, r[j + 2]);
+      r[j + 2] = r[j] - t;
+      r[j] = r[j] + t;
+    }
+  }
+}
+#endif
 
 /*************************************************
  * Name:        invntt_tomont
@@ -124,7 +468,7 @@ void invntt(int16_t r[256])
       for (j = start; j < start + len; j++)
       {
         t = r[j];
-        r[j] = barrett(t + r[j + len]);
+        r[j] = barrett_reduce(t + r[j + len]);
         r[j + len] = r[j + len] - t;
         r[j + len] = fqmul(zeta, r[j + len]);
       }
