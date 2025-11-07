@@ -62,7 +62,7 @@ loop2:
     add             r12, r12, r4
     mul             r12, r12, r5
     lsr             \reg, r12, #28
-    uxth            \reg, \reg
+    and             \reg, \reg, #15
 .endm
 
 .global poly_compress_s
@@ -153,35 +153,35 @@ loop_comp160:
     COMPRESS_5BIT   r6          @ t0
     COMPRESS_5BIT   r7          @ t1
     mov             r12, r6
-    orr             r12, r12, r7, lsl #5
+    orr             r12, r12, r7, lsl#5
     strb            r12, [r0], #1
 
     COMPRESS_5BIT   r8          @ t2
     COMPRESS_5BIT   r9          @ t3
     mov             r12, r7
     lsrs            r12, r12, #3
-    orr             r12, r12, r8, lsl #2
-    orr             r12, r12, r9, lsl #7
+    orr             r12, r12, r8, lsl#2
+    orr             r12, r12, r9, lsl#7
     strb            r12, [r0], #1
 
-    COMPRESS_5BIT   r10         @ t4
+    COMPRESS_5BIT   r10 @ t4
     mov             r12, r9
     lsrs            r12, r12, #1
-    orr             r12, r12, r10, lsl #4
+    orr             r12, r12, r10, lsl#4
     strb            r12, [r0], #1
 
     COMPRESS_5BIT   r11         @ t5
     COMPRESS_5BIT   r6          @ t6 (reuse r6)
     mov             r12, r10
     lsrs            r12, r12, #4
-    orr             r12, r12, r11, lsl #1
-    orr             r12, r12, r6, lsl #6
+    orr             r12, r12, r11, lsl#1
+    orr             r12, r12, r6, lsl#6
     strb            r12, [r0], #1
 
-    COMPRESS_5BIT   r7          @ t7 (reuse r7)
+    COMPRESS_5BIT   r7 @ t7 (reuse r7)
     mov             r12, r6
     lsrs            r12, r12, #2
-    orr             r12, r12, r7, lsl #3
+    orr             r12, r12, r7, lsl#3
     strb            r12, [r0], #1
 
     subs            r2, r2, #1
@@ -216,7 +216,7 @@ loop_decomp160:
 
     mov             r10, r5
     lsrs            r10, r10, #5
-    orr             r10, r10, r6, lsl #3
+    orr             r10, r10, r6, lsl#3
     and             r10, r10, #31
     DECOMP_STORE5   r10, r11
 
@@ -227,13 +227,13 @@ loop_decomp160:
 
     mov             r10, r6
     lsrs            r10, r10, #7
-    orr             r10, r10, r7, lsl #1
+    orr             r10, r10, r7, lsl#1
     and             r10, r10, #31
     DECOMP_STORE5   r10, r11
 
     mov             r10, r7
     lsrs            r10, r10, #4
-    orr             r10, r10, r8, lsl #4
+    orr             r10, r10, r8, lsl#4
     and             r10, r10, #31
     DECOMP_STORE5   r10, r11
 
@@ -244,7 +244,7 @@ loop_decomp160:
 
     mov             r10, r8
     lsrs            r10, r10, #6
-    orr             r10, r10, r9, lsl #2
+    orr             r10, r10, r9, lsl#2
     and             r10, r10, #31
     DECOMP_STORE5   r10, r11
 
