@@ -53,6 +53,15 @@ loop2:
     pop             {r4-r5, pc}
 .size poly_sub_s, .-poly_sub_s
 
+poly_compress_s:
+    push            {r4-r7, lr}
+    movs            r2, #32
+    ldr             r3, =3329          @ q
+    ldr             r4, =1665          @ ⇐ 4-bit 用 1665 (與 C 一致)
+    ldr             r5, =80635         @ ⌊2^28 / q⌋
+
+@ 單顆係數壓成 4-bit 的巨集：與 C 的
+@ t = ((((u + ((u>>15)&q)) << 4) + 1665) * 80635) >> 28) & 0xF
 .macro COMPRESS_NIBBLE reg
     ldrsh           \reg, [r1], #2
     asr             r12, \reg, #15
@@ -65,53 +74,43 @@ loop2:
     uxth            \reg, \reg
 .endm
 
-.global poly_compress_s
-.type poly_compress_s, %function
-poly_compress_s:
-    push            {r4-r7, lr}
-    movs            r2, #32
-    ldr             r3, =3329
-    ldr             r4, =1665
-    ldr             r5, =80635
 loop_comp:
-    COMPRESS_NIBBLE r6
+    COMPRESS_NIBBLE r6 @ t0
     mov             r12, r6
-    COMPRESS_NIBBLE r6
+    COMPRESS_NIBBLE r6 @ t1
     orr             r6, r12, r6, lsl#4
     strb            r6, [r0], #1
 
-    COMPRESS_NIBBLE r6
+    COMPRESS_NIBBLE r6 @ t2
     mov             r12, r6
-    COMPRESS_NIBBLE r6
+    COMPRESS_NIBBLE r6 @ t3
     orr             r6, r12, r6, lsl#4
     strb            r6, [r0], #1
 
-    COMPRESS_NIBBLE r6
+    COMPRESS_NIBBLE r6 @ t4
     mov             r12, r6
-    COMPRESS_NIBBLE r6
+    COMPRESS_NIBBLE r6 @ t5
     orr             r6, r12, r6, lsl#4
     strb            r6, [r0], #1
 
-    COMPRESS_NIBBLE r6
+    COMPRESS_NIBBLE r6 @ t6
     mov             r12, r6
-    COMPRESS_NIBBLE r6
+    COMPRESS_NIBBLE r6 @ t7
     orr             r6, r12, r6, lsl#4
     strb            r6, [r0], #1
 
     subs            r2, r2, #1
     bne             loop_comp
     pop             {r4-r7, pc}
-.size poly_compress_s, .-poly_compress_s
 
-.global poly_decompress_s
-.type poly_decompress_s, %function
 poly_decompress_s:
     push            {r4-r7, lr}
     movs            r2, #128
     ldr             r3, =3329
-    movs            r4, #8
+    movs            r4, #8 @ ⇐ 四捨五入 +8
 loop_decomp:
     ldrb            r6, [r1], #1
+
     and             r7, r6, #0x0F
     mul             r7, r7, r3
     add             r7, r7, r4
@@ -127,7 +126,6 @@ loop_decomp:
     subs            r2, r2, #1
     bne             loop_decomp
     pop             {r4-r7, pc}
-.size poly_decompress_s, .-poly_decompress_s
 
 .macro COMPRESS_5BIT reg
     ldrsh           \reg, [r1], #2
