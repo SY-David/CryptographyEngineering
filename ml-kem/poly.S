@@ -73,6 +73,7 @@ poly_compress_s:
     add             r12, r12, r4
     mul             r12, r12, r5
     lsr             \reg, r12, #28
+    and             \reg, \reg, #0xF
     uxth            \reg, \reg
 .endm
 
@@ -139,6 +140,7 @@ loop_decomp:
     add             r12, r12, r4
     mul             r12, r12, r5
     lsr             \reg, r12, #27
+    and             \reg, \reg, #0x1F
     uxth            \reg, \reg
 .endm
 
