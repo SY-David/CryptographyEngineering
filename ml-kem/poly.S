@@ -53,6 +53,8 @@ loop2:
     pop             {r4-r5, pc}
 .size poly_sub_s, .-poly_sub_s
 
+.global poly_compress_s
+.type poly_compress_s, %function
 poly_compress_s:
     push            {r4-r7, lr}
     movs            r2, #32
@@ -102,7 +104,8 @@ loop_comp:
     subs            r2, r2, #1
     bne             loop_comp
     pop             {r4-r7, pc}
-
+.global poly_decompress_s
+.type poly_decompress_s, %function
 poly_decompress_s:
     push            {r4-r7, lr}
     movs            r2, #128
