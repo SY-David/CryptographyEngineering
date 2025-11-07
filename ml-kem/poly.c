@@ -7,6 +7,9 @@
 #include "symmetric.h"
 #include "verify.h"
 
+extern void poly_add_s(int16_t *r, const int16_t *a, const int16_t *b);
+extern void poly_sub_s(int16_t *r, const int16_t *a, const int16_t *b);
+
 /*************************************************
  * Name:        poly_compress
  *
@@ -351,9 +354,7 @@ void poly_reduce(poly *r)
  **************************************************/
 void poly_add(poly *r, const poly *a, const poly *b)
 {
-  unsigned int i;
-  for (i = 0; i < KYBER_N; i++)
-    r->coeffs[i] = a->coeffs[i] + b->coeffs[i];
+  poly_add_s(r->coeffs, a->coeffs, b->coeffs);
 }
 
 /*************************************************
@@ -367,7 +368,5 @@ void poly_add(poly *r, const poly *a, const poly *b)
  **************************************************/
 void poly_sub(poly *r, const poly *a, const poly *b)
 {
-  unsigned int i;
-  for (i = 0; i < KYBER_N; i++)
-    r->coeffs[i] = a->coeffs[i] - b->coeffs[i];
+  poly_sub_s(r->coeffs, a->coeffs, b->coeffs);
 }
