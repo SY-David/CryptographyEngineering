@@ -12,9 +12,6 @@ extern void poly_sub_s(int16_t *r, const int16_t *a, const int16_t *b);
 #if (KYBER_POLYCOMPRESSEDBYTES == 128)
 extern void poly_compress_s(uint8_t *r, const int16_t *a);
 extern void poly_decompress_s(int16_t *r, const uint8_t *a);
-#elif (KYBER_POLYCOMPRESSEDBYTES == 160)
-extern void poly_compress160_s(uint8_t *r, const int16_t *a);
-extern void poly_decompress160_s(int16_t *r, const uint8_t *a);
 #endif
 
 /*************************************************
@@ -31,7 +28,33 @@ void poly_compress(uint8_t r[KYBER_POLYCOMPRESSEDBYTES], const poly *a)
 #if (KYBER_POLYCOMPRESSEDBYTES == 128)
   poly_compress_s(r, a->coeffs);
 #elif (KYBER_POLYCOMPRESSEDBYTES == 160)
-  poly_compress160_s(r, a->coeffs);
+  unsigned int i, j;
+  int16_t u;
+  uint32_t d0;
+  uint8_t t[8];
+
+  for (i = 0; i < KYBER_N / 8; i++)
+  {
+    for (j = 0; j < 8; j++)
+    {
+      // map to positive standard representatives
+      u = a->coeffs[8 * i + j];
+      u += (u >> 15) & KYBER_Q;
+      /*    t[j] = ((((uint32_t)u << 5) + KYBER_Q/2)/KYBER_Q) & 31; */
+      d0 = u << 5;
+      d0 += 1664;
+      d0 *= 40318;
+      d0 >>= 27;
+      t[j] = d0 & 0x1f;
+    }
+
+    r[0] = (t[0] >> 0) | (t[1] << 5);
+    r[1] = (t[1] >> 3) | (t[2] << 2) | (t[3] << 7);
+    r[2] = (t[3] >> 1) | (t[4] << 4);
+    r[3] = (t[4] >> 4) | (t[5] << 1) | (t[6] << 6);
+    r[4] = (t[6] >> 2) | (t[7] << 3);
+    r += 5;
+  }
 #else
 #error "KYBER_POLYCOMPRESSEDBYTES needs to be in {128, 160}"
 #endif
@@ -52,7 +75,23 @@ void poly_decompress(poly *r, const uint8_t a[KYBER_POLYCOMPRESSEDBYTES])
 #if (KYBER_POLYCOMPRESSEDBYTES == 128)
   poly_decompress_s(r->coeffs, a);
 #elif (KYBER_POLYCOMPRESSEDBYTES == 160)
-  poly_decompress160_s(r->coeffs, a);
+  unsigned int i, j;
+  uint8_t t[8];
+  for (i = 0; i < KYBER_N / 8; i++)
+  {
+    t[0] = (a[0] >> 0);
+    t[1] = (a[0] >> 5) | (a[1] << 3);
+    t[2] = (a[1] >> 2);
+    t[3] = (a[1] >> 7) | (a[2] << 1);
+    t[4] = (a[2] >> 4) | (a[3] << 4);
+    t[5] = (a[3] >> 1);
+    t[6] = (a[3] >> 6) | (a[4] << 2);
+    t[7] = (a[4] >> 3);
+    a += 5;
+
+    for (j = 0; j < 8; j++)
+      r->coeffs[8 * i + j] = ((uint32_t)(t[j] & 31) * KYBER_Q + 16) >> 5;
+  }
 #else
 #error "KYBER_POLYCOMPRESSEDBYTES needs to be in {128, 160}"
 #endif
@@ -141,17 +180,20 @@ void poly_frommsg(poly *r, const uint8_t msg[KYBER_INDCPA_MSGBYTES])
  **************************************************/
 void poly_tomsg(uint8_t msg[KYBER_INDCPA_MSGBYTES], const poly *a)
 {
-  for (unsigned i = 0; i < KYBER_N / 8; i++)
+  unsigned int i, j;
+  uint32_t t;
+
+  for (i = 0; i < KYBER_N / 8; i++)
   {
     msg[i] = 0;
-    for (unsigned j = 0; j < 8; j++)
+    for (j = 0; j < 8; j++)
     {
-      uint32_t t = (uint16_t)a->coeffs[8 * i + j]; // 係數輸入需已是 0..q-1
-
-      t += ((int16_t)t >> 15) & KYBER_Q;
+      t = a->coeffs[8 * i + j];
+      // t += ((int16_t)t >> 15) & KYBER_Q;
+      // t  = (((t << 1) + KYBER_Q/2)/KYBER_Q) & 1;
       t <<= 1;
-      t += 1665;  // 與 4-bit 壓縮相同的中點偏移
-      t *= 80635; // ⌊2^28 / 3329⌋
+      t += 1665;
+      t *= 80635;
       t >>= 28;
       t &= 1;
       msg[i] |= t << j;
