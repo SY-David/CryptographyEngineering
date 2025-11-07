@@ -99,8 +99,7 @@ void ntt(int16_t r[256])
   zetap += 32;
   const int16_t *zeta2 = zetap;
 
-  /* Layers len=128 and len=64 */
-  const int16_t zeta64_top = zeta64[0];
+    const int16_t zeta64_top = zeta64[0];
   const int16_t zeta64_bottom = zeta64[1];
 
   for (base = 0; base < 64; base += 2)

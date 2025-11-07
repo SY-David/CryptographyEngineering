@@ -2,6 +2,8 @@
 .thumb
 .text
 
+.extern zetas
+
 .macro montgomery acc, mult, tmp
     smulbb      \acc, \acc, \mult
     smulbb      \tmp, \acc, r6         @ r6 = QINV
@@ -13,26 +15,26 @@
 .type basemul_s, %function
 basemul_s:
     push        {r4-r7, lr}
-    movw        r6, #3327 @ QINV = 3327
-    movw        r7, #3329 @ q
+    movw        r6, #3327
+    movw        r7, #3329
 
-    ldrsh       r4, [r1, #2]          @ a1
-    ldrsh       r5, [r2, #2]          @ b1
+    ldrsh       r4, [r1, #2]
+    ldrsh       r5, [r2, #2]
     montgomery  r4, r5, r5
-    montgomery  r4, r3, r5 @ r4 = fqmul(a1,b1)*zeta
+    montgomery  r4, r3, r5
 
-    ldrsh       r5, [r1]              @ a0
-    ldrsh       r3, [r2]              @ b0
+    ldrsh       r5, [r1]
+    ldrsh       r3, [r2]
     montgomery  r5, r3, r3
     add         r4, r4, r5
     strh        r4, [r0]
 
-    ldrsh       r4, [r1]              @ reuse r4 for r1 term
-    ldrsh       r5, [r2, #2]          @ b1
+    ldrsh       r4, [r1]
+    ldrsh       r5, [r2, #2]
     montgomery  r4, r5, r5
 
-    ldrsh       r5, [r1, #2]          @ a1
-    ldrsh       r3, [r2]              @ b0
+    ldrsh       r5, [r1, #2]
+    ldrsh       r3, [r2]
     montgomery  r5, r3, r3
     add         r4, r4, r5
     strh        r4, [r0, #2]
