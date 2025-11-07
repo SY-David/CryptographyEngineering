@@ -12,7 +12,7 @@ loop1:
     uadd16  r3, r3, r4
     str     r3, [r0], #4
     subs    r12, r12, #1
-    bne     LOOP1
+    bne     loop1
     bx      lr
 
 .global poly_sub_s
@@ -25,5 +25,5 @@ loop2:
     usub16  r3, r3, r4
     str     r3, [r0], #4
     subs    r12, r12, #1
-    bne     LOOP2
+    bne     loop2
     bx      lr
