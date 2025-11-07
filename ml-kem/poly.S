@@ -62,7 +62,7 @@ loop2:
     add             r12, r12, r4
     mul             r12, r12, r5
     lsr             \reg, r12, #28
-    ubfx            \reg \reg
+    uxth            \reg, \reg
 .endm
 
 .global poly_compress_s
@@ -138,7 +138,7 @@ loop_decomp:
     add             r12, r12, r4
     mul             r12, r12, r5
     lsr             \reg, r12, #27
-
+    uxth            \reg, \reg
 .endm
 
 .global poly_compress160_s
