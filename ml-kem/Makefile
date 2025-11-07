@@ -1,6 +1,6 @@
 # ML-KEM Project Makefile
 PROJECT_C_SOURCES = test.c kem.c indcpa.c poly.c polyvec.c ntt.c reduce.c cbd.c verify.c symmetric-shake.c fips202.c
-PROJECT_ASM_SOURCES = reduce.S keccakp1600_balanced_cortexm3-4.S
+PROJECT_ASM_SOURCES = reduce.S keccakp1600_balanced_cortexm3-4.S ntt.S
 PROJECT_C_OBJS = $(addprefix obj/,$(PROJECT_C_SOURCES:.c=.c.o))
 PROJECT_ASM_OBJS = $(addprefix obj/,$(PROJECT_ASM_SOURCES:.S=.S.o))
 PROJECT_OBJS = $(PROJECT_C_OBJS) $(PROJECT_ASM_OBJS)

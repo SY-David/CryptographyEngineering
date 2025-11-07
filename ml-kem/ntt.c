@@ -347,11 +347,14 @@ void invntt(int16_t r[256])
  *              - const int16_t b[2]: pointer to the second factor
  *              - int16_t zeta: integer defining the reduction polynomial
  **************************************************/
+extern void basemul_s(int16_t r[2], const int16_t a[2], const int16_t b[2], int16_t zeta);
 void basemul(int16_t r[2], const int16_t a[2], const int16_t b[2], int16_t zeta)
 {
-  r[0] = fqmul(a[1], b[1]);
+  basemul_s(r, a, b, zeta);
+  /*r[0] = fqmul(a[1], b[1]);
   r[0] = fqmul(r[0], zeta);
   r[0] += fqmul(a[0], b[0]);
   r[1] = fqmul(a[0], b[1]);
   r[1] += fqmul(a[1], b[0]);
+  */
 }
