@@ -189,10 +189,9 @@ void poly_tomsg(uint8_t msg[KYBER_INDCPA_MSGBYTES], const poly *a)
     for (j = 0; j < 8; j++)
     {
       t = a->coeffs[8 * i + j];
-      // t += ((int16_t)t >> 15) & KYBER_Q;
-      // t  = (((t << 1) + KYBER_Q/2)/KYBER_Q) & 1;
+      t += ((int16_t)t >> 15) & KYBER_Q;
       t <<= 1;
-      t += 1665;
+      t += KYBER_Q / 2;
       t *= 80635;
       t >>= 28;
       t &= 1;

@@ -71,7 +71,7 @@ poly_compress_s:
     push            {r4-r7, lr}
     movs            r2, #32
     ldr             r3, =#3329
-    ldr             r4, =#1665
+    ldr             r4, =#1664
     ldr             r5, =#80635
 loop_comp:
     COMPRESS_NIBBLE r6
