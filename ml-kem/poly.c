@@ -9,6 +9,10 @@
 
 extern void poly_add_s(int16_t *r, const int16_t *a, const int16_t *b);
 extern void poly_sub_s(int16_t *r, const int16_t *a, const int16_t *b);
+#if (KYBER_POLYCOMPRESSEDBYTES == 128)
+extern void poly_compress_s(uint8_t *r, const int16_t *a);
+extern void poly_decompress_s(int16_t *r, const uint8_t *a);
+#endif
 
 /*************************************************
  * Name:        poly_compress
@@ -21,35 +25,14 @@ extern void poly_sub_s(int16_t *r, const int16_t *a, const int16_t *b);
  **************************************************/
 void poly_compress(uint8_t r[KYBER_POLYCOMPRESSEDBYTES], const poly *a)
 {
+#if (KYBER_POLYCOMPRESSEDBYTES == 128)
+  poly_compress_s(r, a->coeffs);
+#elif (KYBER_POLYCOMPRESSEDBYTES == 160)
   unsigned int i, j;
   int16_t u;
   uint32_t d0;
   uint8_t t[8];
 
-#if (KYBER_POLYCOMPRESSEDBYTES == 128)
-
-  for (i = 0; i < KYBER_N / 8; i++)
-  {
-    for (j = 0; j < 8; j++)
-    {
-      // map to positive standard representatives
-      u = a->coeffs[8 * i + j];
-      u += (u >> 15) & KYBER_Q;
-      /*    t[j] = ((((uint16_t)u << 4) + KYBER_Q/2)/KYBER_Q) & 15; */
-      d0 = u << 4;
-      d0 += 1665;
-      d0 *= 80635;
-      d0 >>= 28;
-      t[j] = d0 & 0xf;
-    }
-
-    r[0] = t[0] | (t[1] << 4);
-    r[1] = t[2] | (t[3] << 4);
-    r[2] = t[4] | (t[5] << 4);
-    r[3] = t[6] | (t[7] << 4);
-    r += 4;
-  }
-#elif (KYBER_POLYCOMPRESSEDBYTES == 160)
   for (i = 0; i < KYBER_N / 8; i++)
   {
     for (j = 0; j < 8; j++)
@@ -89,17 +72,10 @@ void poly_compress(uint8_t r[KYBER_POLYCOMPRESSEDBYTES], const poly *a)
  **************************************************/
 void poly_decompress(poly *r, const uint8_t a[KYBER_POLYCOMPRESSEDBYTES])
 {
-  unsigned int i;
-
 #if (KYBER_POLYCOMPRESSEDBYTES == 128)
-  for (i = 0; i < KYBER_N / 2; i++)
-  {
-    r->coeffs[2 * i + 0] = (((uint16_t)(a[0] & 15) * KYBER_Q) + 8) >> 4;
-    r->coeffs[2 * i + 1] = (((uint16_t)(a[0] >> 4) * KYBER_Q) + 8) >> 4;
-    a += 1;
-  }
+  poly_decompress_s(r->coeffs, a);
 #elif (KYBER_POLYCOMPRESSEDBYTES == 160)
-  unsigned int j;
+  unsigned int i, j;
   uint8_t t[8];
   for (i = 0; i < KYBER_N / 8; i++)
   {
