@@ -62,7 +62,7 @@ loop2:
     add             r12, r12, r4
     mul             r12, r12, r5
     lsr             \reg, r12, #28
-    and             \reg, \reg, #15
+
 .endm
 
 .global poly_compress_s
@@ -138,7 +138,7 @@ loop_decomp:
     add             r12, r12, r4
     mul             r12, r12, r5
     lsr             \reg, r12, #27
-    and             \reg, \reg, #31
+
 .endm
 
 .global poly_compress160_s
