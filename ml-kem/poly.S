@@ -8,15 +8,18 @@ poly_add_s:
     push    {r4-r5, lr}
     movs    r12, #128
 loop1:
-    ldrh    r3, [r1], #2
-    ldrh    r4, [r1], #2
-    pkhbt   r3, r3, r4
+    ldrh    r3, [r1], #2    // r3 = a[i]
+    ldrh    r4, [r1], #2    // r4 = a[i+1]
+    // *** 修正 A ***
+    pkhbt   r3, r3, r4, lsl#16 // r3 = [ a[i+1] | a[i] ]
 
     ldrh    r4, [r2], #2
     ldrh    r5, [r2], #2
-    pkhbt   r4, r4, r5
+
+    pkhbt   r4, r4, r5, lsl#16 // r4 = [ b[i+1] | b[i] ]
 
     sadd16  r3, r3, r4
+
     strh    r3, [r0], #2
     lsr     r4, r3, #16
     strh    r4, [r0], #2
@@ -34,11 +37,11 @@ poly_sub_s:
 loop2:
     ldrh    r3, [r1], #2
     ldrh    r4, [r1], #2
-    pkhbt   r3, r3, r4
+    pkhbt   r3, r3, r4, lsl#16
 
     ldrh    r4, [r2], #2
     ldrh    r5, [r2], #2
-    pkhbt   r4, r4, r5
+    pkhbt   r4, r4, r5, lsl#16
 
     ssub16  r3, r3, r4
     strh    r3, [r0], #2
