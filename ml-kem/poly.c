@@ -25,14 +25,14 @@ extern void poly_decompress_s(int16_t *r, const uint8_t *a);
  **************************************************/
 void poly_compress(uint8_t r[KYBER_POLYCOMPRESSEDBYTES], const poly *a)
 {
+#if (KYBER_POLYCOMPRESSEDBYTES == 128)
+  poly_compress_s(r, a->coeffs);
+#elif (KYBER_POLYCOMPRESSEDBYTES == 160)
   unsigned int i, j;
   int16_t u;
   uint32_t d0;
   uint8_t t[8];
 
-#if (KYBER_POLYCOMPRESSEDBYTES == 128)
-  poly_compress_s(r, a->coeffs);
-#elif (KYBER_POLYCOMPRESSEDBYTES == 160)
   for (i = 0; i < KYBER_N / 8; i++)
   {
     for (j = 0; j < 8; j++)
@@ -72,12 +72,10 @@ void poly_compress(uint8_t r[KYBER_POLYCOMPRESSEDBYTES], const poly *a)
  **************************************************/
 void poly_decompress(poly *r, const uint8_t a[KYBER_POLYCOMPRESSEDBYTES])
 {
-  unsigned int i;
-
 #if (KYBER_POLYCOMPRESSEDBYTES == 128)
   poly_decompress_s(r->coeffs, a);
 #elif (KYBER_POLYCOMPRESSEDBYTES == 160)
-  unsigned int j;
+  unsigned int i, j;
   uint8_t t[8];
   for (i = 0; i < KYBER_N / 8; i++)
   {
