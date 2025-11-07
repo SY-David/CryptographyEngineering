@@ -13,8 +13,8 @@
 .type basemul_s, %function
 basemul_s:
     push        {r4-r7, lr}
-    movw        r6, #0xF301           @ QINV = -3327
-    movw        r7, #3329             @ q
+    movw        r6, #3327 @ QINV = 3327
+    movw        r7, #3329 @ q
 
     ldrsh       r4, [r1, #2]          @ a1
     ldrsh       r5, [r2, #2]          @ b1
