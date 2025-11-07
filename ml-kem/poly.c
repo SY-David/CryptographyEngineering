@@ -147,6 +147,8 @@ void poly_tomsg(uint8_t msg[KYBER_INDCPA_MSGBYTES], const poly *a)
     for (unsigned j = 0; j < 8; j++)
     {
       uint32_t t = (uint16_t)a->coeffs[8 * i + j]; // 係數輸入需已是 0..q-1
+
+      t += ((int16_t)t >> 15) & KYBER_Q;
       t <<= 1;
       t += 1665;  // 與 4-bit 壓縮相同的中點偏移
       t *= 80635; // ⌊2^28 / 3329⌋
