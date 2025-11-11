@@ -142,19 +142,17 @@ ntt_layer0_2way_s:
     bne         1b
 
     sub         r4, r4, #128        @ reset base pointer
-
-    mov         r6, r4              @ block base pointer
+    ldr         r5, [sp]            @ load zeta32 pointer
+    ldr         r6, [sp, #4]        @ load zeta16 pointer
+    add         sp, sp, #8
     movs        r8, #4              @ 4 blocks of 64 coeffs
 2:
-    ldr         r5, [sp]            @ load zeta32 pointer
-    ldrsh       r11, [r5], #2
-    str         r5, [sp]
-    ldr         r5, [sp, #4]        @ load zeta16 pointer
-    ldrsh       r12, [r5], #2
-    ldrsh       r1, [r5], #2
-    str         r5, [sp, #4]
-    movs        r5, #8              @ offsets per block
-    mov         r7, r6
+    ldrsh       r11, [r5], #2       @ zeta32_cur
+    ldrsh       r12, [r6], #2       @ zeta16_top
+    ldrsh       r1,  [r6], #2       @ zeta16_bottom
+    push        {r5}                @ save zeta32 pointer
+    movs        r3, #8              @ offsets per block
+    mov         r7, r4
 3:
     ldr         r0, [r7]            @ idx0/idx1
     ldr         r2, [r7, #64]       @ idx4/idx5
@@ -169,11 +167,11 @@ ntt_layer0_2way_s:
     asr         r4, r4, #16
     sxth        r4, r4
     pkhbt       r14, r14, r4, lsl #16
-    mov         r3, r0
+    mov         r5, r0
     uadd16      r0, r0, r14
-    usub16      r3, r3, r14
+    usub16      r5, r5, r14
     str         r0, [r7]
-    str         r3, [r7, #64]
+    str         r5, [r7, #64]
 
     ldr         r0, [r7, #32]       @ idx2/idx3
     ldr         r2, [r7, #96]       @ idx6/idx7
@@ -188,11 +186,11 @@ ntt_layer0_2way_s:
     asr         r4, r4, #16
     sxth        r4, r4
     pkhbt       r14, r14, r4, lsl #16
-    mov         r3, r0
+    mov         r5, r0
     uadd16      r0, r0, r14
-    usub16      r3, r3, r14
+    usub16      r5, r5, r14
     str         r0, [r7, #32]
-    str         r3, [r7, #96]
+    str         r5, [r7, #96]
 
     ldr         r0, [r7]            @ stage len16 top
     ldr         r2, [r7, #32]
@@ -207,11 +205,11 @@ ntt_layer0_2way_s:
     asr         r4, r4, #16
     sxth        r4, r4
     pkhbt       r14, r14, r4, lsl #16
-    mov         r3, r0
+    mov         r5, r0
     uadd16      r0, r0, r14
-    usub16      r3, r3, r14
+    usub16      r5, r5, r14
     str         r0, [r7]
-    str         r3, [r7, #32]
+    str         r5, [r7, #32]
 
     ldr         r0, [r7, #64]       @ stage len16 bottom
     ldr         r2, [r7, #96]
@@ -226,19 +224,19 @@ ntt_layer0_2way_s:
     asr         r4, r4, #16
     sxth        r4, r4
     pkhbt       r14, r14, r4, lsl #16
-    mov         r3, r0
+    mov         r5, r0
     uadd16      r0, r0, r14
-    usub16      r3, r3, r14
+    usub16      r5, r5, r14
     str         r0, [r7, #64]
-    str         r3, [r7, #96]
+    str         r5, [r7, #96]
 
     add         r7, r7, #4
-    subs        r5, r5, #1
+    subs        r3, r3, #1
     bne         3b
 
-    add         r6, r6, #128
+    pop         {r5}                @ restore zeta32 pointer
+    add         r4, r4, #128
     subs        r8, r8, #1
     bne         2b
 
-    add         sp, sp, #8
     pop         {r4-r12, pc}
