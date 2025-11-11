@@ -45,11 +45,17 @@ basemul_s:
 .type ntt_layer0_2way_s, %function
 ntt_layer0_2way_s:
     push        {r4-r12, lr}
+    sub         sp, sp, #8
+    str         r2, [sp]            @ save zeta32 pointer
+    str         r3, [sp, #4]        @ save zeta16 pointer
     mov         r4, r0              @ base pointer
-    mov         r11, r2             @ zeta64_top
-    mov         r12, r3             @ zeta64_bottom
     movw        r9, #3329           @ q
     movw        r10, #3327          @ qinv
+    mov         r5, r1
+    ldrsh       r11, [r5]           @ zeta64_top
+    ldrsh       r12, [r5, #2]       @ zeta64_bottom
+    sub         r5, r5, #2
+    ldrsh       r1, [r5]            @ zeta128
     movs        r8, #32             @ 64 coefficients / 2 per loop
 1:
     ldr         r2, [r4]            @ top pair (a0|a1)
@@ -135,4 +141,104 @@ ntt_layer0_2way_s:
     subs        r8, r8, #1
     bne         1b
 
+    sub         r4, r4, #128        @ reset base pointer
+
+    mov         r6, r4              @ block base pointer
+    movs        r8, #4              @ 4 blocks of 64 coeffs
+2:
+    ldr         r5, [sp]            @ load zeta32 pointer
+    ldrsh       r11, [r5], #2
+    str         r5, [sp]
+    ldr         r5, [sp, #4]        @ load zeta16 pointer
+    ldrsh       r12, [r5], #2
+    ldrsh       r1, [r5], #2
+    str         r5, [sp, #4]
+    movs        r5, #8              @ offsets per block
+    mov         r7, r6
+3:
+    ldr         r0, [r7]            @ idx0/idx1
+    ldr         r2, [r7, #64]       @ idx4/idx5
+    smulbb      r14, r2, r11
+    smulbb      r4, r14, r10
+    smlabb      r14, r4, r9, r14
+    asr         r14, r14, #16
+    sxth        r14, r14
+    smultb      r4, r2, r11
+    smulbb      r4, r4, r10
+    smlabb      r4, r4, r9, r4
+    asr         r4, r4, #16
+    sxth        r4, r4
+    pkhbt       r14, r14, r4, lsl #16
+    mov         r3, r0
+    uadd16      r0, r0, r14
+    usub16      r3, r3, r14
+    str         r0, [r7]
+    str         r3, [r7, #64]
+
+    ldr         r0, [r7, #32]       @ idx2/idx3
+    ldr         r2, [r7, #96]       @ idx6/idx7
+    smulbb      r14, r2, r11
+    smulbb      r4, r14, r10
+    smlabb      r14, r4, r9, r14
+    asr         r14, r14, #16
+    sxth        r14, r14
+    smultb      r4, r2, r11
+    smulbb      r4, r4, r10
+    smlabb      r4, r4, r9, r4
+    asr         r4, r4, #16
+    sxth        r4, r4
+    pkhbt       r14, r14, r4, lsl #16
+    mov         r3, r0
+    uadd16      r0, r0, r14
+    usub16      r3, r3, r14
+    str         r0, [r7, #32]
+    str         r3, [r7, #96]
+
+    ldr         r0, [r7]            @ stage len16 top
+    ldr         r2, [r7, #32]
+    smulbb      r14, r2, r12
+    smulbb      r4, r14, r10
+    smlabb      r14, r4, r9, r14
+    asr         r14, r14, #16
+    sxth        r14, r14
+    smultb      r4, r2, r12
+    smulbb      r4, r4, r10
+    smlabb      r4, r4, r9, r4
+    asr         r4, r4, #16
+    sxth        r4, r4
+    pkhbt       r14, r14, r4, lsl #16
+    mov         r3, r0
+    uadd16      r0, r0, r14
+    usub16      r3, r3, r14
+    str         r0, [r7]
+    str         r3, [r7, #32]
+
+    ldr         r0, [r7, #64]       @ stage len16 bottom
+    ldr         r2, [r7, #96]
+    smulbb      r14, r2, r1
+    smulbb      r4, r14, r10
+    smlabb      r14, r4, r9, r14
+    asr         r14, r14, #16
+    sxth        r14, r14
+    smultb      r4, r2, r1
+    smulbb      r4, r4, r10
+    smlabb      r4, r4, r9, r4
+    asr         r4, r4, #16
+    sxth        r4, r4
+    pkhbt       r14, r14, r4, lsl #16
+    mov         r3, r0
+    uadd16      r0, r0, r14
+    usub16      r3, r3, r14
+    str         r0, [r7, #64]
+    str         r3, [r7, #96]
+
+    add         r7, r7, #4
+    subs        r5, r5, #1
+    bne         3b
+
+    add         r6, r6, #128
+    subs        r8, r8, #1
+    bne         2b
+
+    add         sp, sp, #8
     pop         {r4-r12, pc}

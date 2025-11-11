@@ -71,7 +71,7 @@ static int16_t fqmul(int16_t a, int16_t b)
   return montgomery(a, b);
 }
 
-extern void ntt_layer0_2way_s(int16_t *r, int16_t zeta128, int16_t zeta64_top, int16_t zeta64_bottom);
+extern void ntt_layer0_2way_s(int16_t *r, const int16_t *zeta64, const int16_t *zeta32, const int16_t *zeta16);
 
 /*************************************************
  * Name:        ntt
@@ -87,89 +87,14 @@ void ntt(int16_t r[256])
   unsigned int block, offset;
   int16_t t0, t1;
 
-  const int16_t *zetap = zetas + 1;
-  const int16_t zeta128 = *zetap++;
-  const int16_t *zeta64 = zetap;
-  zetap += 2;
-  const int16_t *zeta32 = zetap;
-  zetap += 4;
-  const int16_t *zeta16 = zetap;
-  zetap += 8;
-  const int16_t *zeta8 = zetap;
-  zetap += 16;
-  const int16_t *zeta4 = zetap;
-  zetap += 32;
-  const int16_t *zeta2 = zetap;
+  const int16_t *zeta64 = zetas + 2;
+  const int16_t *zeta32 = zeta64 + 2;
+  const int16_t *zeta16 = zeta32 + 4;
+  const int16_t *zeta8 = zeta16 + 8;
+  const int16_t *zeta4 = zeta8 + 16;
+  const int16_t *zeta2 = zeta4 + 32;
 
-  const int16_t zeta64_top = zeta64[0];
-  const int16_t zeta64_bottom = zeta64[1];
-
-  ntt_layer0_2way_s(r, zeta128, zeta64_top, zeta64_bottom);
-
-  /* Layers len=32 and len=16 */
-  for (block = 0; block < 256; block += 64)
-  {
-    unsigned int blk = block >> 6;
-    const int16_t zeta32_cur = zeta32[blk];
-    const int16_t zeta16_top = zeta16[2 * blk];
-    const int16_t zeta16_bottom = zeta16[2 * blk + 1];
-
-    for (offset = 0; offset < 16; offset += 2)
-    {
-      unsigned int idx0 = block + offset;
-      unsigned int idx1 = idx0 + 1;
-      unsigned int idx2 = idx0 + 16;
-      unsigned int idx3 = idx1 + 16;
-      unsigned int idx4 = idx0 + 32;
-      unsigned int idx5 = idx1 + 32;
-      unsigned int idx6 = idx0 + 48;
-      unsigned int idx7 = idx1 + 48;
-
-      int16_t x0 = r[idx0];
-      int16_t x1 = r[idx1];
-      int16_t y0 = r[idx4];
-      int16_t y1 = r[idx5];
-      int16_t t32_0 = fqmul(zeta32_cur, y0);
-      int16_t t32_1 = fqmul(zeta32_cur, y1);
-      r[idx0] = x0 + t32_0;
-      r[idx1] = x1 + t32_1;
-      r[idx4] = x0 - t32_0;
-      r[idx5] = x1 - t32_1;
-
-      int16_t x2 = r[idx2];
-      int16_t x3 = r[idx3];
-      int16_t y2 = r[idx6];
-      int16_t y3 = r[idx7];
-      int16_t t32_2 = fqmul(zeta32_cur, y2);
-      int16_t t32_3 = fqmul(zeta32_cur, y3);
-      r[idx2] = x2 + t32_2;
-      r[idx3] = x3 + t32_3;
-      r[idx6] = x2 - t32_2;
-      r[idx7] = x3 - t32_3;
-
-      int16_t u0 = r[idx0];
-      int16_t u1 = r[idx1];
-      int16_t v0 = r[idx2];
-      int16_t v1 = r[idx3];
-      t0 = fqmul(zeta16_top, v0);
-      t1 = fqmul(zeta16_top, v1);
-      r[idx0] = u0 + t0;
-      r[idx2] = u0 - t0;
-      r[idx1] = u1 + t1;
-      r[idx3] = u1 - t1;
-
-      int16_t u2 = r[idx4];
-      int16_t u3 = r[idx5];
-      int16_t v2 = r[idx6];
-      int16_t v3 = r[idx7];
-      t0 = fqmul(zeta16_bottom, v2);
-      t1 = fqmul(zeta16_bottom, v3);
-      r[idx4] = u2 + t0;
-      r[idx6] = u2 - t0;
-      r[idx5] = u3 + t1;
-      r[idx7] = u3 - t1;
-    }
-  }
+  ntt_layer0_2way_s(r, zeta64, zeta32, zeta16);
 
   /* Layers len=8 and len=4 */
   for (block = 0; block < 256; block += 16)
