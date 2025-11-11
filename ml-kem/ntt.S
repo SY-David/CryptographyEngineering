@@ -150,7 +150,7 @@ ntt_layer0_2way_s:
     ldrsh       r11, [r5], #2       @ zeta32_cur
     ldrsh       r12, [r6], #2       @ zeta16_top
     ldrsh       r1,  [r6], #2       @ zeta16_bottom
-    push        {r5}                @ save zeta32 pointer
+    push        {r4, r5}            @ save poly base and zeta32 pointers
     movs        r3, #8              @ offsets per block
     mov         r7, r4
 3:
@@ -234,7 +234,7 @@ ntt_layer0_2way_s:
     subs        r3, r3, #1
     bne         3b
 
-    pop         {r5}                @ restore zeta32 pointer
+    pop         {r4, r5}            @ restore poly base and zeta32 pointers
     add         r4, r4, #128
     subs        r8, r8, #1
     bne         2b
