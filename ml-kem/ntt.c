@@ -71,7 +71,7 @@ static int16_t fqmul(int16_t a, int16_t b)
   return montgomery(a, b);
 }
 
-extern void ntt_layer0_2way_s(int16_t *r, const int16_t *zeta64, const int16_t *zeta32, const int16_t *zeta16);
+extern void ntt_layer0_2way_s(int16_t *r, int16_t zeta128, int16_t zeta64_top, int16_t zeta64_bottom);
 
 /*************************************************
  * Name:        ntt
@@ -87,14 +87,26 @@ void ntt(int16_t r[256])
   unsigned int block, offset;
   int16_t t0, t1;
 
-  const int16_t *zeta64 = zetas + 2;
-  const int16_t *zeta32 = zeta64 + 2;
-  const int16_t *zeta16 = zeta32 + 4;
-  const int16_t *zeta8 = zeta16 + 8;
-  const int16_t *zeta4 = zeta8 + 16;
-  const int16_t *zeta2 = zeta4 + 32;
+  const int16_t *zetap = zetas + 1;
+  const int16_t zeta128 = *zetap++;
+  const int16_t *zeta64 = zetap;
+  zetap += 2;
+  const int16_t *zeta32 = zetap;
+  zetap += 4;
+  const int16_t *zeta16 = zetap;
+  zetap += 8;
+  const int16_t *zeta8 = zetap;
+  zetap += 16;
+  const int16_t *zeta4 = zetap;
+  zetap += 32;
+  const int16_t *zeta2 = zetap;
+  (void)zeta32;
+  (void)zeta16;
 
-  ntt_layer0_2way_s(r, zeta64, zeta32, zeta16);
+  const int16_t zeta64_top = zeta64[0];
+  const int16_t zeta64_bottom = zeta64[1];
+
+  ntt_layer0_2way_s(r, zeta128, zeta64_top, zeta64_bottom);
 
   /* Layers len=8 and len=4 */
   for (block = 0; block < 256; block += 16)

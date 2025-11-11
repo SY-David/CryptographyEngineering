@@ -11,6 +11,20 @@
     asr         \acc, \acc, #16
 .endm
 
+.macro mul_pair pair, zeta, tmp
+    smulbb      r14, \pair, \zeta
+    smulbb      \tmp, r14, r10
+    smlabb      r14, \tmp, r9, r14
+    asr         r14, r14, #16
+    sxth        r14, r14
+    smultb      \tmp, \pair, \zeta
+    smulbb      \tmp, \tmp, r10
+    smlabb      \tmp, \tmp, r9, \tmp
+    asr         \tmp, \tmp, #16
+    sxth        \tmp, \tmp
+    pkhbt       r14, r14, \tmp, lsl #16
+.endm
+
 .global basemul_s
 .type basemul_s, %function
 basemul_s:
@@ -45,17 +59,11 @@ basemul_s:
 .type ntt_layer0_2way_s, %function
 ntt_layer0_2way_s:
     push        {r4-r12, lr}
-    sub         sp, sp, #8
-    str         r2, [sp]            @ save zeta32 pointer
-    str         r3, [sp, #4]        @ save zeta16 pointer
     mov         r4, r0              @ base pointer
+    mov         r11, r2             @ zeta64_top
+    mov         r12, r3             @ zeta64_bottom
     movw        r9, #3329           @ q
     movw        r10, #3327          @ qinv
-    mov         r5, r1
-    ldrsh       r11, [r5]           @ zeta64_top
-    ldrsh       r12, [r5, #2]       @ zeta64_bottom
-    sub         r5, r5, #2
-    ldrsh       r1, [r5]            @ zeta128
     movs        r8, #32             @ 64 coefficients / 2 per loop
 1:
     ldr         r2, [r4]            @ top pair (a0|a1)
@@ -66,23 +74,23 @@ ntt_layer0_2way_s:
     add.w       r6, r4, #384        @ base + 192
     ldr         r6, [r6]            @ mid-bottom pair (b2|b3)
 
-    smulbb      r14, r3, r1         @ t128 low
+    smulbb      r14, r3, r1 @ t128 low
     smulbb      r7, r14, r10
     smlabb      r14, r7, r9, r14
     asr         r14, r14, #16
     sxth        r14, r14
-    smultb      r7, r3, r1          @ t128 high
+    smultb      r7, r3, r1 @ t128 high
     smulbb      r3, r7, r10
     smlabb      r7, r3, r9, r7
     asr         r7, r7, #16
     sxth        r7, r7
-    pkhbt       r14, r14, r7, lsl #16
+    pkhbt       r14, r14, r7, lsl#16
 
     mov         r0, r2
     uadd16      r2, r2, r14         @ top pair
     usub16      r0, r0, r14         @ bottom pair
 
-    smulbb      r14, r6, r1         @ mid t128 low
+    smulbb      r14, r6, r1 @ mid t128 low
     smulbb      r3, r14, r10
     smlabb      r14, r3, r9, r14
     asr         r14, r14, #16
@@ -92,13 +100,13 @@ ntt_layer0_2way_s:
     smlabb      r7, r3, r9, r7
     asr         r7, r7, #16
     sxth        r7, r7
-    pkhbt       r14, r14, r7, lsl #16
+    pkhbt       r14, r14, r7, lsl#16
 
     mov         r6, r5
     uadd16      r5, r5, r14         @ top_mid
     usub16      r6, r6, r14         @ bot_mid
 
-    smulbb      r14, r5, r11        @ t64 top low
+    smulbb      r14, r5, r11 @ t64 top low
     smulbb      r3, r14, r10
     smlabb      r14, r3, r9, r14
     asr         r14, r14, #16
@@ -108,9 +116,9 @@ ntt_layer0_2way_s:
     smlabb      r7, r3, r9, r7
     asr         r7, r7, #16
     sxth        r7, r7
-    pkhbt       r14, r14, r7, lsl #16
+    pkhbt       r14, r14, r7, lsl#16
 
-    smulbb      r3, r6, r12         @ t64 bottom low
+    smulbb      r3, r6, r12 @ t64 bottom low
     smulbb      r5, r3, r10
     smlabb      r3, r5, r9, r3
     asr         r3, r3, #16
@@ -120,7 +128,7 @@ ntt_layer0_2way_s:
     smlabb      r5, r6, r9, r5
     asr         r5, r5, #16
     sxth        r5, r5
-    pkhbt       r3, r3, r5, lsl #16
+    pkhbt       r3, r3, r5, lsl#16
 
     mov         r5, r2
     uadd16      r6, r2, r14
@@ -141,32 +149,23 @@ ntt_layer0_2way_s:
     subs        r8, r8, #1
     bne         1b
 
-    sub         r4, r4, #128        @ reset base pointer
-    ldr         r5, [sp]            @ load zeta32 pointer
-    ldr         r6, [sp, #4]        @ load zeta16 pointer
-    add         sp, sp, #8
-    movs        r8, #4              @ 4 blocks of 64 coeffs
+    sub         r4, r4, #128        @ reset pointer to block start
+    ldr         r5, =zetas
+    add         r5, r5, #8          @ zeta32 region
+    mov         r6, r5
+    add         r6, r6, #8          @ zeta16 region
+    movs        r8, #4              @ four blocks
 2:
-    ldrsh       r11, [r5], #2       @ zeta32_cur
-    ldrsh       r12, [r6], #2       @ zeta16_top
-    ldrsh       r1,  [r6], #2       @ zeta16_bottom
-    push        {r4, r5}            @ save poly base and zeta32 pointers
-    movs        r3, #8              @ offsets per block
+    ldrsh       r11, [r5], #2       @ zeta32 current
+    ldrsh       r12, [r6], #2       @ zeta16 top
+    ldrsh       r1,  [r6], #2       @ zeta16 bottom
+    push        {r5, r6}
+    movs        r2, #8              @ offsets in block
     mov         r7, r4
 3:
     ldr         r0, [r7]            @ idx0/idx1
-    ldr         r2, [r7, #64]       @ idx4/idx5
-    smulbb      r14, r2, r11
-    smulbb      r4, r14, r10
-    smlabb      r14, r4, r9, r14
-    asr         r14, r14, #16
-    sxth        r14, r14
-    smultb      r4, r2, r11
-    smulbb      r4, r4, r10
-    smlabb      r4, r4, r9, r4
-    asr         r4, r4, #16
-    sxth        r4, r4
-    pkhbt       r14, r14, r4, lsl #16
+    ldr         r6, [r7, #64]       @ idx4/idx5
+    mul_pair    r6, r11, r5
     mov         r5, r0
     uadd16      r0, r0, r14
     usub16      r5, r5, r14
@@ -174,56 +173,26 @@ ntt_layer0_2way_s:
     str         r5, [r7, #64]
 
     ldr         r0, [r7, #32]       @ idx2/idx3
-    ldr         r2, [r7, #96]       @ idx6/idx7
-    smulbb      r14, r2, r11
-    smulbb      r4, r14, r10
-    smlabb      r14, r4, r9, r14
-    asr         r14, r14, #16
-    sxth        r14, r14
-    smultb      r4, r2, r11
-    smulbb      r4, r4, r10
-    smlabb      r4, r4, r9, r4
-    asr         r4, r4, #16
-    sxth        r4, r4
-    pkhbt       r14, r14, r4, lsl #16
+    ldr         r6, [r7, #96]       @ idx6/idx7
+    mul_pair    r6, r11, r5
     mov         r5, r0
     uadd16      r0, r0, r14
     usub16      r5, r5, r14
     str         r0, [r7, #32]
     str         r5, [r7, #96]
 
-    ldr         r0, [r7]            @ stage len16 top
-    ldr         r2, [r7, #32]
-    smulbb      r14, r2, r12
-    smulbb      r4, r14, r10
-    smlabb      r14, r4, r9, r14
-    asr         r14, r14, #16
-    sxth        r14, r14
-    smultb      r4, r2, r12
-    smulbb      r4, r4, r10
-    smlabb      r4, r4, r9, r4
-    asr         r4, r4, #16
-    sxth        r4, r4
-    pkhbt       r14, r14, r4, lsl #16
+    ldr         r0, [r7]            @ len16 top
+    ldr         r6, [r7, #32]
+    mul_pair    r6, r12, r5
     mov         r5, r0
     uadd16      r0, r0, r14
     usub16      r5, r5, r14
     str         r0, [r7]
     str         r5, [r7, #32]
 
-    ldr         r0, [r7, #64]       @ stage len16 bottom
-    ldr         r2, [r7, #96]
-    smulbb      r14, r2, r1
-    smulbb      r4, r14, r10
-    smlabb      r14, r4, r9, r14
-    asr         r14, r14, #16
-    sxth        r14, r14
-    smultb      r4, r2, r1
-    smulbb      r4, r4, r10
-    smlabb      r4, r4, r9, r4
-    asr         r4, r4, #16
-    sxth        r4, r4
-    pkhbt       r14, r14, r4, lsl #16
+    ldr         r0, [r7, #64]       @ len16 bottom
+    ldr         r6, [r7, #96]
+    mul_pair    r6, r1, r5
     mov         r5, r0
     uadd16      r0, r0, r14
     usub16      r5, r5, r14
@@ -231,10 +200,10 @@ ntt_layer0_2way_s:
     str         r5, [r7, #96]
 
     add         r7, r7, #4
-    subs        r3, r3, #1
+    subs        r2, r2, #1
     bne         3b
 
-    pop         {r4, r5}            @ restore poly base and zeta32 pointers
+    pop         {r5, r6}
     add         r4, r4, #128
     subs        r8, r8, #1
     bne         2b
