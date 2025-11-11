@@ -71,6 +71,8 @@ static int16_t fqmul(int16_t a, int16_t b)
   return montgomery(a, b);
 }
 
+extern void ntt_layer0_2way_s(int16_t *r, int16_t zeta128, int16_t zeta64_top, int16_t zeta64_bottom);
+
 /*************************************************
  * Name:        ntt
  *
@@ -82,7 +84,7 @@ static int16_t fqmul(int16_t a, int16_t b)
 void ntt(int16_t r[256])
 {
   /* Fuse the layers as 2+2+2+1 radix-4 style blocks to cut redundant loads. */
-  unsigned int base, block, offset;
+  unsigned int block, offset;
   int16_t t0, t1;
 
   const int16_t *zetap = zetas + 1;
@@ -99,53 +101,10 @@ void ntt(int16_t r[256])
   zetap += 32;
   const int16_t *zeta2 = zetap;
 
-    const int16_t zeta64_top = zeta64[0];
+  const int16_t zeta64_top = zeta64[0];
   const int16_t zeta64_bottom = zeta64[1];
 
-  for (base = 0; base < 64; base += 2)
-  {
-    int16_t a0 = r[base];
-    int16_t a1 = r[base + 1];
-    int16_t b0 = r[base + 128];
-    int16_t b1 = r[base + 129];
-
-    int16_t t128_0 = fqmul(zeta128, b0);
-    int16_t t128_1 = fqmul(zeta128, b1);
-
-    int16_t top0 = a0 + t128_0;
-    int16_t top1 = a1 + t128_1;
-    int16_t bot0 = a0 - t128_0;
-    int16_t bot1 = a1 - t128_1;
-
-    int16_t a2 = r[base + 64];
-    int16_t a3 = r[base + 65];
-    int16_t b2 = r[base + 192];
-    int16_t b3 = r[base + 193];
-
-    int16_t t128_2 = fqmul(zeta128, b2);
-    int16_t t128_3 = fqmul(zeta128, b3);
-
-    int16_t top2 = a2 + t128_2;
-    int16_t top3 = a3 + t128_3;
-    int16_t bot2 = a2 - t128_2;
-    int16_t bot3 = a3 - t128_3;
-
-    int16_t t64_0 = fqmul(zeta64_top, top2);
-    int16_t t64_1 = fqmul(zeta64_top, top3);
-
-    r[base] = top0 + t64_0;
-    r[base + 64] = top0 - t64_0;
-    r[base + 1] = top1 + t64_1;
-    r[base + 65] = top1 - t64_1;
-
-    int16_t t64_2 = fqmul(zeta64_bottom, bot2);
-    int16_t t64_3 = fqmul(zeta64_bottom, bot3);
-
-    r[base + 128] = bot0 + t64_2;
-    r[base + 192] = bot0 - t64_2;
-    r[base + 129] = bot1 + t64_3;
-    r[base + 193] = bot1 - t64_3;
-  }
+  ntt_layer0_2way_s(r, zeta128, zeta64_top, zeta64_bottom);
 
   /* Layers len=32 and len=16 */
   for (block = 0; block < 256; block += 64)
