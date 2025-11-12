@@ -1,11 +1,12 @@
 .data
+zetas:
     .short -1044, -758, -359, -1517, 1493, 1422, 287, 202,
     .short -171, 622, 1577, 182, 962, -1202, -1474, 1468,
     .short 573, -1325, 264, 383, -829, 1458, -1602, -130,
     .short -681, 1017, 732, 608, -1542, 411, -205, -1571,
     .short 1223, 652, -552, 1015, -1293, 1491, -282, -1544,
     .short 516, -8, -320, -666, -1618, -1162, 126, 1469,
-    .short -853, -90, -271, 830, 107, -1421, -247, -951,
+    .short -853, -90, -271, 8d30, 107, -1421, -247, -951,
     .short -398, 961, -1508, -725, 448, -1065, 677, -1275,
     .short -1103, 430, 555, 843, -1251, 871, 1550, 105,
     .short 422, 587, 177, -235, -291, -460, 1574, 1653,
@@ -25,6 +26,20 @@
     smulbb      \tmp, \acc, r6         @ r6 = QINV
     smlabb      \acc, \tmp, r7, \acc   @ r7 = q
     asr         \acc, \acc, #16
+.endm
+
+.macro mul_pair result, pair, zeta, tmp
+    smulbb      \result, \pair, \zeta
+    smulbb      \tmp, \result, r10
+    smlabb      \result, \tmp, r9, \result
+    asr         \result, \result, #16
+    sxth        \result, \result
+    smultb      \tmp, \pair, \zeta
+    smulbb      \tmp, \tmp, r10
+    smlabb      \tmp, \tmp, r9, \tmp
+    asr         \tmp, \tmp, #16
+    sxth        \tmp, \tmp
+    pkhbt       \result, \result, \tmp, lsl#16
 .endm
 
 .global basemul_s
@@ -67,7 +82,7 @@ ntt_layer0_2way_s:
     movw        r9, #3329           @ q
     movw        r10, #3327          @ qinv
     movs        r8, #32             @ 64 coefficients / 2 per loop
-1:
+loop1start:
     ldr         r2, [r4]            @ top pair (a0|a1)
     add.w       r5, r4, #256        @ base + 128 coeffs
     ldr         r3, [r5]            @ bottom pair (b0|b1)
@@ -149,6 +164,63 @@ ntt_layer0_2way_s:
 
     add         r4, r4, #4
     subs        r8, r8, #1
-    bne         1b
+    bne         loop1start
+
+    sub         r4, r4, #128 @ reset pointer to block start
+    ldr         r5, =zetas
+    add         r5, r5, #8 @ point to zeta32 region
+    mov         r6, r5
+    add         r6, r6, #8          @ point to zeta16 region
+    movs        r8, #4              @ four blocks
+loop2_block:
+    ldrsh       r11, [r5], #2       @ zeta32 current
+    ldrsh       r12, [r6], #2       @ zeta16 top
+    ldrsh       r1, [r6], #2        @ zeta16 bottom
+    movs        r2, #8              @ offsets within block
+    mov         r7, r4
+loop2_offset:
+    ldr         r0, [r7]
+    ldr         r14, [r7, #64]
+    mul_pair    r14, r14, r11, r3
+    mov         r5, r0
+    uadd16      r0, r0, r14
+    usub16      r5, r5, r14
+    str         r0, [r7]
+    str         r5, [r7, #64]
+
+    ldr         r0, [r7, #32]
+    ldr         r14, [r7, #96]
+    mul_pair    r14, r14, r11, r3
+    mov         r5, r0
+    uadd16      r0, r0, r14
+    usub16      r5, r5, r14
+    str         r0, [r7, #32]
+    str         r5, [r7, #96]
+
+    ldr         r0, [r7]
+    ldr         r14, [r7, #32]
+    mul_pair    r14, r14, r12, r3
+    mov         r5, r0
+    uadd16      r0, r0, r14
+    usub16      r5, r5, r14
+    str         r0, [r7]
+    str         r5, [r7, #32]
+
+    ldr         r0, [r7, #64]
+    ldr         r14, [r7, #96]
+    mul_pair    r14, r14, r1, r3
+    mov         r5, r0
+    uadd16      r0, r0, r14
+    usub16      r5, r5, r14
+    str         r0, [r7, #64]
+    str         r5, [r7, #96]
+
+    add         r7, r7, #4
+    subs        r2, r2, #1
+    bne         loop2_offset
+
+    add         r4, r4, #128
+    subs        r8, r8, #1
+    bne         loop2_block
 
     pop         {r4-r12, pc}
