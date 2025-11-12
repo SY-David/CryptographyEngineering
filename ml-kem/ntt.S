@@ -176,6 +176,12 @@ loop2_block:
     ldrsh       r11, [r5], #2       @ zeta32 current
     ldrsh       r12, [r6], #2       @ zeta16 top
     ldrsh       r1, [r6], #2        @ zeta16 bottom
+    sxth        r11, r11
+    pkhbt       r11, r11, r11, lsl #16
+    sxth        r12, r12
+    pkhbt       r12, r12, r12, lsl #16
+    sxth        r1, r1
+    pkhbt       r1, r1, r1, lsl #16
     push        {r5, r6}            @ save advanced pointers
     movs        r2, #8              @ offsets within block
     mov         r7, r4
