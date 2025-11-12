@@ -4,9 +4,7 @@
 #include "reduce.h"
 
 /* Code to generate zetas and zetas_inv used in the number-theoretic transform:
-
 #define KYBER_ROOT_OF_UNITY 17
-
 static const uint8_t tree[128] = {
   0, 64, 32, 96, 16, 80, 48, 112, 8, 72, 40, 104, 24, 88, 56, 120,
   4, 68, 36, 100, 20, 84, 52, 116, 12, 76, 44, 108, 28, 92, 60, 124,
@@ -17,15 +15,12 @@ static const uint8_t tree[128] = {
   3, 67, 35, 99, 19, 83, 51, 115, 11, 75, 43, 107, 27, 91, 59, 123,
   7, 71, 39, 103, 23, 87, 55, 119, 15, 79, 47, 111, 31, 95, 63, 127
 };
-
 void init_ntt() {
   unsigned int i;
   int16_t tmp[128];
-
   tmp[0] = MONT;
   for(i=1;i<128;i++)
     tmp[i] = fqmul(tmp[i-1],MONT*KYBER_ROOT_OF_UNITY % KYBER_Q);
-
   for(i=0;i<128;i++) {
     zetas[i] = tmp[tree[i]];
     if(zetas[i] > KYBER_Q/2)
@@ -100,13 +95,76 @@ void ntt(int16_t r[256])
   const int16_t *zeta4 = zetap;
   zetap += 32;
   const int16_t *zeta2 = zetap;
-  (void)zeta32;
-  (void)zeta16;
 
   const int16_t zeta64_top = zeta64[0];
   const int16_t zeta64_bottom = zeta64[1];
 
   ntt_layer0_2way_s(r, zeta128, zeta64_top, zeta64_bottom);
+
+  /* Layers len=32 and len=16 */
+  for (block = 0; block < 256; block += 64)
+  {
+    unsigned int blk = block >> 6;
+    const int16_t zeta32_cur = zeta32[blk];
+    const int16_t zeta16_top = zeta16[2 * blk];
+    const int16_t zeta16_bottom = zeta16[2 * blk + 1];
+
+    for (offset = 0; offset < 16; offset += 2)
+    {
+      unsigned int idx0 = block + offset;
+      unsigned int idx1 = idx0 + 1;
+      unsigned int idx2 = idx0 + 16;
+      unsigned int idx3 = idx1 + 16;
+      unsigned int idx4 = idx0 + 32;
+      unsigned int idx5 = idx1 + 32;
+      unsigned int idx6 = idx0 + 48;
+      unsigned int idx7 = idx1 + 48;
+
+      int16_t x0 = r[idx0];
+      int16_t x1 = r[idx1];
+      int16_t y0 = r[idx4];
+      int16_t y1 = r[idx5];
+      int16_t t32_0 = fqmul(zeta32_cur, y0);
+      int16_t t32_1 = fqmul(zeta32_cur, y1);
+      r[idx0] = x0 + t32_0;
+      r[idx1] = x1 + t32_1;
+      r[idx4] = x0 - t32_0;
+      r[idx5] = x1 - t32_1;
+
+      int16_t x2 = r[idx2];
+      int16_t x3 = r[idx3];
+      int16_t y2 = r[idx6];
+      int16_t y3 = r[idx7];
+      int16_t t32_2 = fqmul(zeta32_cur, y2);
+      int16_t t32_3 = fqmul(zeta32_cur, y3);
+      r[idx2] = x2 + t32_2;
+      r[idx3] = x3 + t32_3;
+      r[idx6] = x2 - t32_2;
+      r[idx7] = x3 - t32_3;
+
+      int16_t u0 = r[idx0];
+      int16_t u1 = r[idx1];
+      int16_t v0 = r[idx2];
+      int16_t v1 = r[idx3];
+      t0 = fqmul(zeta16_top, v0);
+      t1 = fqmul(zeta16_top, v1);
+      r[idx0] = u0 + t0;
+      r[idx2] = u0 - t0;
+      r[idx1] = u1 + t1;
+      r[idx3] = u1 - t1;
+
+      int16_t u2 = r[idx4];
+      int16_t u3 = r[idx5];
+      int16_t v2 = r[idx6];
+      int16_t v3 = r[idx7];
+      t0 = fqmul(zeta16_bottom, v2);
+      t1 = fqmul(zeta16_bottom, v3);
+      r[idx4] = u2 + t0;
+      r[idx6] = u2 - t0;
+      r[idx5] = u3 + t1;
+      r[idx7] = u3 - t1;
+    }
+  }
 
   /* Layers len=8 and len=4 */
   for (block = 0; block < 256; block += 16)

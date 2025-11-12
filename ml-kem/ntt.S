@@ -1,28 +1,30 @@
+.data
+    .short -1044, -758, -359, -1517, 1493, 1422, 287, 202,
+    .short -171, 622, 1577, 182, 962, -1202, -1474, 1468,
+    .short 573, -1325, 264, 383, -829, 1458, -1602, -130,
+    .short -681, 1017, 732, 608, -1542, 411, -205, -1571,
+    .short 1223, 652, -552, 1015, -1293, 1491, -282, -1544,
+    .short 516, -8, -320, -666, -1618, -1162, 126, 1469,
+    .short -853, -90, -271, 830, 107, -1421, -247, -951,
+    .short -398, 961, -1508, -725, 448, -1065, 677, -1275,
+    .short -1103, 430, 555, 843, -1251, 871, 1550, 105,
+    .short 422, 587, 177, -235, -291, -460, 1574, 1653,
+    .short -246, 778, 1159, -147, -777, 1483, -602, 1119,
+    .short -1590, 644, -872, 349, 418, 329, -156, -75,
+    .short 817, 1097, 603, 610, 1322, -1285, -1465, 384,
+    .short -1215, -136, 1218, -1335, -874, 220, -1187, -1659,
+    .short -1185, -1530, -1278, 794, -1510, -854, -870, 478,
+    .short -108, -308, 996, 991, 958, -1460, 1522, 1628
+
 .syntax unified
 .thumb
 .text
-
-.extern zetas
 
 .macro montgomery acc, mult, tmp
     smulbb      \acc, \acc, \mult
     smulbb      \tmp, \acc, r6         @ r6 = QINV
     smlabb      \acc, \tmp, r7, \acc   @ r7 = q
     asr         \acc, \acc, #16
-.endm
-
-.macro mul_pair pair, zeta, tmp
-    smulbb      r14, \pair, \zeta
-    smulbb      \tmp, r14, r10
-    smlabb      r14, \tmp, r9, r14
-    asr         r14, r14, #16
-    sxth        r14, r14
-    smultb      \tmp, \pair, \zeta
-    smulbb      \tmp, \tmp, r10
-    smlabb      \tmp, \tmp, r9, \tmp
-    asr         \tmp, \tmp, #16
-    sxth        \tmp, \tmp
-    pkhbt       r14, r14, \tmp, lsl#16
 .endm
 
 .global basemul_s
@@ -148,64 +150,5 @@ ntt_layer0_2way_s:
     add         r4, r4, #4
     subs        r8, r8, #1
     bne         1b
-
-    sub         r4, r4, #128 @ reset pointer to block start
-    ldr         r5, =zetas
-    add         r5, r5, #8 @ zeta32 region
-    mov         r6, r5
-    add         r6, r6, #8          @ zeta16 region
-    movs        r8, #4              @ four blocks
-2:
-    ldrsh       r11, [r5], #2       @ zeta32 current
-    ldrsh       r12, [r6], #2       @ zeta16 top
-    ldrsh       r1, [r6], #2        @ zeta16 bottom
-    push        {r5, r6}
-    movs        r2, #8 @ offsets in block
-    mov         r7, r4
-3:
-    ldr         r0, [r7]            @ idx0/idx1
-    ldr         r6, [r7, #64]       @ idx4/idx5
-    mul_pair    r6, r11, r5
-    mov         r5, r0
-    uadd16      r0, r0, r14
-    usub16      r5, r5, r14
-    str         r0, [r7]
-    str         r5, [r7, #64]
-
-    ldr         r0, [r7, #32]       @ idx2/idx3
-    ldr         r6, [r7, #96]       @ idx6/idx7
-    mul_pair    r6, r11, r5
-    mov         r5, r0
-    uadd16      r0, r0, r14
-    usub16      r5, r5, r14
-    str         r0, [r7, #32]
-    str         r5, [r7, #96]
-
-    ldr         r0, [r7]@ len16 top
-    ldr         r6, [r7, #32]
-    mul_pair    r6, r12, r5
-    mov         r5, r0
-    uadd16      r0, r0, r14
-    usub16      r5, r5, r14
-    str         r0, [r7]
-    str         r5, [r7, #32]
-
-    ldr         r0, [r7, #64]@ len16 bottom
-    ldr         r6, [r7, #96]
-    mul_pair    r6, r1, r5
-    mov         r5, r0
-    uadd16      r0, r0, r14
-    usub16      r5, r5, r14
-    str         r0, [r7, #64]
-    str         r5, [r7, #96]
-
-    add         r7, r7, #4
-    subs        r2, r2, #1
-    bne         3b
-
-    pop         {r5, r6}
-    add         r4, r4, #128
-    subs        r8, r8, #1
-    bne         2b
 
     pop         {r4-r12, pc}
