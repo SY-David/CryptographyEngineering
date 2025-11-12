@@ -166,16 +166,17 @@ loop1start:
     subs        r8, r8, #1
     bne         loop1start
 
-    sub         r4, r4, #128 @ reset pointer to block start
+    sub         r4, r4, #128        @ reset pointer to block start
     ldr         r5, =zetas
-    add         r5, r5, #8 @ point to zeta32 region
+    add         r5, r5, #6          @ skip zeta128 (1) + zeta64 (2)
     mov         r6, r5
-    add         r6, r6, #8          @ point to zeta16 region
+    add         r6, r6, #8          @ move to zeta16 region
     movs        r8, #4              @ four blocks
 loop2_block:
     ldrsh       r11, [r5], #2       @ zeta32 current
     ldrsh       r12, [r6], #2       @ zeta16 top
     ldrsh       r1, [r6], #2        @ zeta16 bottom
+    push        {r5, r6}            @ save advanced pointers
     movs        r2, #8              @ offsets within block
     mov         r7, r4
 loop2_offset:
@@ -220,6 +221,7 @@ loop2_offset:
     bne         loop2_offset
 
     add         r4, r4, #128
+    pop         {r5, r6}            @ restore pointers for next block
     subs        r8, r8, #1
     bne         loop2_block
 
