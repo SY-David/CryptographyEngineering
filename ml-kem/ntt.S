@@ -168,7 +168,7 @@ loop1start:
 
     sub         r4, r4, #128 @ reset pointer to block start
     ldr         r5, =zetas
-    add         r5, r5, #8          @ skip zeta128 (1) + zeta64 (2)
+    add         r5, r5, #8 @ skip zeta128 (1) + zeta64 (2)
     mov         r6, r5
     add         r6, r6, #8          @ move to zeta16 region
     movs        r8, #4              @ four blocks
@@ -177,49 +177,56 @@ loop2_block:
     ldrsh       r12, [r6], #2       @ zeta16 top
     ldrsh       r1, [r6], #2        @ zeta16 bottom
     sxth        r11, r11
-    pkhbt       r11, r11, r11, lsl #16
+    pkhbt       r11, r11, r11, lsl#16
     sxth        r12, r12
-    pkhbt       r12, r12, r12, lsl #16
+    pkhbt       r12, r12, r12, lsl#16
     sxth        r1, r1
-    pkhbt       r1, r1, r1, lsl #16
+    pkhbt       r1, r1, r1, lsl#16
     push        {r5, r6}            @ save advanced pointers
     movs        r2, #8              @ offsets within block
     mov         r7, r4
 loop2_offset:
+    @ --- Block 1 (Offset 0 & 64) ---
     ldr         r0, [r7]
     ldr         r14, [r7, #64]
-    mul_pair    r14, r14, r11, r3
-    mov         r5, r0
-    uadd16      r0, r0, r14
-    usub16      r5, r5, r14
-    str         r0, [r7]
-    str         r5, [r7, #64]
+    @ 修復關鍵：結果存入 r5 (Output)，輸入 r14 (Input) 保持不變
+    mul_pair    r5, r14, r11, r3
 
+    @ 蝴蝶運算 (Butterfly)
+    @ r0 = a, r5 = b*zeta
+    uadd16      r14, r0, r5         @ r14 = a + b (Sum)
+    usub16      r5, r0, r5          @ r5 = a - b (Diff)
+    str         r14, [r7]           @ Store Sum
+    str         r5, [r7, #64]       @ Store Diff
+
+    @ --- Block 2 (Offset 32 & 96) ---
     ldr         r0, [r7, #32]
     ldr         r14, [r7, #96]
-    mul_pair    r14, r14, r11, r3
-    mov         r5, r0
-    uadd16      r0, r0, r14
-    usub16      r5, r5, r14
-    str         r0, [r7, #32]
+    mul_pair    r5, r14, r11, r3 @ Output to r5
+
+    uadd16      r14, r0, r5         @ Sum -> r14
+    usub16      r5, r0, r5          @ Diff -> r5
+    str         r14, [r7, #32]
     str         r5, [r7, #96]
 
+    @ --- Block 3 (Offset 0 & 32 using zeta16_top) ---
     ldr         r0, [r7]
     ldr         r14, [r7, #32]
-    mul_pair    r14, r14, r12, r3
-    mov         r5, r0
-    uadd16      r0, r0, r14
-    usub16      r5, r5, r14
-    str         r0, [r7]
+    mul_pair    r5, r14, r12, r3 @ Output to r5, using r12 (zeta16_top)
+
+    uadd16      r14, r0, r5
+    usub16      r5, r0, r5
+    str         r14, [r7]
     str         r5, [r7, #32]
 
+    @ --- Block 4 (Offset 64 & 96 using zeta16_bottom) ---
     ldr         r0, [r7, #64]
     ldr         r14, [r7, #96]
-    mul_pair    r14, r14, r1, r3
-    mov         r5, r0
-    uadd16      r0, r0, r14
-    usub16      r5, r5, r14
-    str         r0, [r7, #64]
+    mul_pair    r5, r14, r1, r3 @ Output to r5, using r1 (zeta16_bottom)
+
+    uadd16      r14, r0, r5
+    usub16      r5, r0, r5
+    str         r14, [r7, #64]
     str         r5, [r7, #96]
 
     add         r7, r7, #4
