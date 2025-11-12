@@ -168,7 +168,7 @@ loop1start:
 
     sub         r4, r4, #128 @ reset pointer to block start
     ldr         r5, =zetas
-    add         r5, r5, #8          @ skip zeta128 (1) + zeta64 (2)
+    add         r5, r5, #6          @ skip zeta128 (1) + zeta64 (2)
     mov         r6, r5
     add         r6, r6, #8          @ move to zeta16 region
     movs        r8, #4              @ four blocks
