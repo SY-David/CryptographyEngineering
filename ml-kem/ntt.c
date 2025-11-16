@@ -4,7 +4,9 @@
 #include "reduce.h"
 
 /* Code to generate zetas and zetas_inv used in the number-theoretic transform:
+
 #define KYBER_ROOT_OF_UNITY 17
+
 static const uint8_t tree[128] = {
   0, 64, 32, 96, 16, 80, 48, 112, 8, 72, 40, 104, 24, 88, 56, 120,
   4, 68, 36, 100, 20, 84, 52, 116, 12, 76, 44, 108, 28, 92, 60, 124,
@@ -15,12 +17,15 @@ static const uint8_t tree[128] = {
   3, 67, 35, 99, 19, 83, 51, 115, 11, 75, 43, 107, 27, 91, 59, 123,
   7, 71, 39, 103, 23, 87, 55, 119, 15, 79, 47, 111, 31, 95, 63, 127
 };
+
 void init_ntt() {
   unsigned int i;
   int16_t tmp[128];
+
   tmp[0] = MONT;
   for(i=1;i<128;i++)
     tmp[i] = fqmul(tmp[i-1],MONT*KYBER_ROOT_OF_UNITY % KYBER_Q);
+
   for(i=0;i<128;i++) {
     zetas[i] = tmp[tree[i]];
     if(zetas[i] > KYBER_Q/2)
@@ -66,8 +71,6 @@ static int16_t fqmul(int16_t a, int16_t b)
   return montgomery(a, b);
 }
 
-extern void ntt_layer0_2way_s(int16_t *r, int16_t zeta128, int16_t zeta64_top, int16_t zeta64_bottom);
-
 /*************************************************
  * Name:        ntt
  *
@@ -79,7 +82,7 @@ extern void ntt_layer0_2way_s(int16_t *r, int16_t zeta128, int16_t zeta64_top, i
 void ntt(int16_t r[256])
 {
   /* Fuse the layers as 2+2+2+1 radix-4 style blocks to cut redundant loads. */
-  unsigned int block, offset;
+  unsigned int base, block, offset;
   int16_t t0, t1;
 
   const int16_t *zetap = zetas + 1;
@@ -99,10 +102,52 @@ void ntt(int16_t r[256])
   const int16_t zeta64_top = zeta64[0];
   const int16_t zeta64_bottom = zeta64[1];
 
-  ntt_layer0_2way_s(r, zeta128, zeta64_top, zeta64_bottom);
+  for (base = 0; base < 64; base += 2)
+  {
+    int16_t a0 = r[base];
+    int16_t a1 = r[base + 1];
+    int16_t b0 = r[base + 128];
+    int16_t b1 = r[base + 129];
+
+    int16_t t128_0 = fqmul(zeta128, b0);
+    int16_t t128_1 = fqmul(zeta128, b1);
+
+    int16_t top0 = a0 + t128_0;
+    int16_t top1 = a1 + t128_1;
+    int16_t bot0 = a0 - t128_0;
+    int16_t bot1 = a1 - t128_1;
+
+    int16_t a2 = r[base + 64];
+    int16_t a3 = r[base + 65];
+    int16_t b2 = r[base + 192];
+    int16_t b3 = r[base + 193];
+
+    int16_t t128_2 = fqmul(zeta128, b2);
+    int16_t t128_3 = fqmul(zeta128, b3);
+
+    int16_t top2 = a2 + t128_2;
+    int16_t top3 = a3 + t128_3;
+    int16_t bot2 = a2 - t128_2;
+    int16_t bot3 = a3 - t128_3;
+
+    int16_t t64_0 = fqmul(zeta64_top, top2);
+    int16_t t64_1 = fqmul(zeta64_top, top3);
+
+    r[base] = top0 + t64_0;
+    r[base + 64] = top0 - t64_0;
+    r[base + 1] = top1 + t64_1;
+    r[base + 65] = top1 - t64_1;
+
+    int16_t t64_2 = fqmul(zeta64_bottom, bot2);
+    int16_t t64_3 = fqmul(zeta64_bottom, bot3);
+
+    r[base + 128] = bot0 + t64_2;
+    r[base + 192] = bot0 - t64_2;
+    r[base + 129] = bot1 + t64_3;
+    r[base + 193] = bot1 - t64_3;
+  }
 
   /* Layers len=32 and len=16 */
-  /*
   for (block = 0; block < 256; block += 64)
   {
     unsigned int blk = block >> 6;
@@ -166,7 +211,7 @@ void ntt(int16_t r[256])
       r[idx7] = u3 - t1;
     }
   }
-  */
+
   /* Layers len=8 and len=4 */
   for (block = 0; block < 256; block += 16)
   {
