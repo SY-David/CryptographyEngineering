@@ -92,10 +92,10 @@ ntt_s:
 
 loop1start:
     cmp         r1, #64
-    b.ge        loop1end
+    bge         loop1end
 
     add         r11, r0, r1, lsl#1
-    fmov        s0, r11
+
     ldrh        r4, [r11]
     ldrh        r5, [r11, #2]
     pkhbt       r4, r4, r5, lsl#16
@@ -133,27 +133,26 @@ loop1start:
     uadd16      r6, r6, r7      // r6 = bot + t64_bottom
     uadd16      r7, r7, r7      // r7 = 2 * t64_bottom
     usub16      r7, r6, r7      // r7 = bot - t64_bottom
-    fmov        r11, s0
+    add         r11, r0, r1, lsl#1
 
     strh        r4, [r11]
-    mov         r8, r4
-    asr         r8, r8, #16
-    strh        r8, [r11, #2]
+    asr         r4, r4, #16
+    strh        r4, [r11, #2]
 
     strh        r5, [r11, #128]
-    mov         r8, r5
-    asr         r8, r8, #16
-    strh        r8, [r11, #130]
+
+    asr         r5, r5, #16
+    strh        r5, [r11, #130]
 
     strh        r6, [r11, #256]
-    mov         r8, r6
-    asr         r8, r8, #16
-    strh        r8, [r11, #258]
+
+    asr         r6, r6, #16
+    strh        r6, [r11, #258]
 
     strh        r7, [r11, #384]
-    mov         r8, r7
-    asr         r8, r8, #16
-    strh        r8, [r11, #386]
+
+    asr         r7, r7, #16
+    strh        r7, [r11, #386]
 
     add         r1, r1, #2
     b           loop1start
