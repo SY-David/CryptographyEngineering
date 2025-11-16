@@ -234,7 +234,7 @@ innerloop2start:
 
     vmov        r4, s0
     add         r8, r1, r4
-    add         r8, r8, r0
+    add         r8, r0, r8, lsl#1
 
     strh        r9, [r8]
     asr         r9, r9, #16
