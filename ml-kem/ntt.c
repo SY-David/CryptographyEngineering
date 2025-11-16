@@ -150,6 +150,8 @@ void ntt(int16_t r[256])
   }*/
 
   /* Layers len=32 and len=16 */
+
+  /*
   for (block = 0; block < 256; block += 64)
   {
     unsigned int blk = block >> 6;
@@ -213,6 +215,7 @@ void ntt(int16_t r[256])
       r[idx7] = u3 - t1;
     }
   }
+  */
 
   /* Layers len=8 and len=4 */
   for (block = 0; block < 256; block += 16)
