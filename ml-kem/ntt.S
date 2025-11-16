@@ -192,7 +192,7 @@ innerloop2start:
     bge         innerloop2end
 
     add         r8, r1, r4
-    add         r8, r8, r0
+    add         r8, r0, r8, lsl#1
     vmov        s0, r4
     ldrh        r9, [r8]
     ldrh        r10, [r8, #2]
