@@ -79,6 +79,7 @@ static int16_t fqmul(int16_t a, int16_t b)
  *
  * Arguments:   - int16_t r[256]: pointer to input/output vector of elements of Zq
  **************************************************/
+extern void ntt_s(int16_t r[256]);
 void ntt(int16_t r[256])
 {
   /* Fuse the layers as 2+2+2+1 radix-4 style blocks to cut redundant loads. */
@@ -102,7 +103,8 @@ void ntt(int16_t r[256])
   const int16_t zeta64_top = zeta64[0];
   const int16_t zeta64_bottom = zeta64[1];
 
-  for (base = 0; base < 64; base += 2)
+  ntt_s(r);
+  /*for (base = 0; base < 64; base += 2)
   {
     int16_t a0 = r[base];
     int16_t a1 = r[base + 1];
@@ -145,7 +147,7 @@ void ntt(int16_t r[256])
     r[base + 192] = bot0 - t64_2;
     r[base + 129] = bot1 + t64_3;
     r[base + 193] = bot1 - t64_3;
-  }
+  }*/
 
   /* Layers len=32 and len=16 */
   for (block = 0; block < 256; block += 64)
