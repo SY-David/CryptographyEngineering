@@ -193,7 +193,7 @@ innerloop2start:
 
     add         r8, r1, r4
     add         r8, r0, r8, lsl#1
-    vmov        lr, r4
+    vmov        s0, r4
     ldrh        r9, [r8]
     ldrh        r10, [r8, #2]
     pkhbt       r9, r9, r10, lsl#16
@@ -232,6 +232,7 @@ innerloop2start:
     uadd16      r12, r12, r12 // r7 = 2 * t64_bottom
     usub16      r12, r11, r12
 
+    vmov        r4, s0
     add         r8, r1, r4
     add         r8, r8, r0
 
@@ -251,7 +252,6 @@ innerloop2start:
     asr         r12, r12, #16
     strh        r12, [r8, #98]
 
-    vmov        r4, lr
     add         r4, r4, #2
     b           innerloop2start
 innerloop2end:
