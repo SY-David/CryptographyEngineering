@@ -285,6 +285,7 @@ void ntt(int16_t r[256])
   */
 
   /* Final len=2 layer */
+  /*
   for (block = 0; block < 256; block += 4)
   {
     const int16_t zeta2_cur = zeta2[block >> 2];
@@ -305,6 +306,7 @@ void ntt(int16_t r[256])
     r[idx1] = p1 + t1;
     r[idx3] = p1 - t1;
   }
+  */
 }
 
 /*************************************************

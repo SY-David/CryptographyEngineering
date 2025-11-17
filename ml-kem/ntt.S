@@ -348,4 +348,40 @@ innerloop3end:
 
     b           outloop3start
 outloop3end:
+
+    movw        r1, #0
+    ldr         r8, =zeta2
+loop4start:
+    cmp         r1, #256
+    bge         loop4end
+
+    lsr         r9, r1, #1
+    ldrsh       r10, [r8, r9]
+
+    add         r9, r0, r1, lsl#1
+
+    ldrh        r4, [r9]
+    ldrh        r5, [r9, #2]
+    pkhbt       r4, r4, r5, lsl#16
+
+    ldrh        r5, [r9, #4]
+    ldrh        r6, [r9, #6]
+    pkhbt       r5, r5, r6, lsl#16
+
+    doublemont  r5, r11, r12, r3, r2, r10
+
+    uadd16      r4, r4, r5
+    uadd16      r5, r5, r5
+    usub16      r5, r4, r5
+
+    strh        r4, [r9]
+    asr         r4, r4, #16
+    strh        r4, [r9, #2]
+
+    strh        r5, [r9, #4]
+    asr         r5, r5, #16
+    strh        r5, [r9, #6]
+
+    add         r1, r1, #4
+loop4end:
     pop         {r4-r12, pc}
