@@ -259,4 +259,93 @@ innerloop2end:
 
     b           outloop2start
 outloop2end:
+
+    movw        r1, #0
+outloop3start:
+    cmp         r1, #256
+    bge         outloop3end
+    ldr         r8, =zeta8
+
+    lsr         r4, r1, #3
+    ldrsh       r5, [r8, r4]
+    add         r8, r8, #32
+
+    lsl         r4, r4, #1
+    ldrsh       r6, [r8, r4]
+    add         r4, r4, #2
+    ldrsh       r7, [r8, r4]
+
+    mov         r4, #0
+innerloop3start:
+    cmp         r4, #4
+    bge         innerloop3end
+
+    add         r8, r1, r4
+    add         r8, r0, r8, lsl#1
+    vmov        s0, r4
+    ldrh        r9, [r8]
+    ldrh        r10, [r8, #2]
+    pkhbt       r9, r9, r10, lsl#16
+
+    ldrh        r10, [r8, #8]
+    ldrh        r11, [r8, #10]
+    pkhbt       r10, r10, r11, lsl#16
+
+    ldrh        r11, [r8, #16]
+    ldrh        r12, [r8, #18]
+    pkhbt       r11, r11, r12, lsl#16
+
+    ldrh        r12, [r8, #24]
+    ldrh        r8, [r8, #26]
+    pkhbt       r12, r12, r8, lsl#16
+
+    doublemont  r11, r8, r4, r3, r2, r5
+    doublemont  r12, r8, r4, r3, r2, r5
+
+    uadd16      r9, r9, r11
+    uadd16      r11, r11, r11
+    usub16      r11, r9, r11
+
+    uadd16      r10, r10, r12
+    uadd16      r12, r12, r12
+    usub16      r12, r10, r12
+
+    doublemont  r10, r8, r4, r3, r2, r6
+    doublemont  r12, r8, r4, r3, r2, r7
+
+    uadd16      r9, r9, r10
+    uadd16      r10, r10, r10
+    usub16      r10, r9, r10
+
+    uadd16      r11, r11, r12
+    uadd16      r12, r12, r12
+    usub16      r12, r11, r12
+
+    vmov        r4, s0
+    add         r8, r1, r4
+    add         r8, r0, r8, lsl#1
+
+    strh        r9, [r8]
+    asr         r9, r9, #16
+    strh        r9, [r8, #2]
+
+    strh        r10, [r8, #8]
+    asr         r10, r10, #16
+    strh        r10, [r8, #10]
+
+    strh        r11, [r8, #16]
+    asr         r11, r11, #16
+    strh        r11, [r8, #18]
+
+    strh        r12, [r8, #24]
+    asr         r12, r12, #16
+    strh        r12, [r8, #26]
+
+    add         r4, r4, #2
+    b           innerloop3start
+innerloop3end:
+    add         r1, r1, #16
+
+    b           outloop3start
+outloop3end:
     pop         {r4-r12, pc}
