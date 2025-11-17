@@ -384,24 +384,19 @@ void invntt(int16_t r[256])
   const int16_t f = 1441; // mont^2/128
 
   k = 127;
-  int layer = 1;
   for (len = 2; len <= 128; len <<= 1)
   {
-
     for (start = 0; start < 256; start = j + len)
     {
-
+      zeta = zetas[k--];
       for (j = start; j < start + len; j++)
       {
-        zeta = inv_zetas[layer][j - start];
-        int16_t u = r[j];
-        int16_t v = r[j + len];
-        v = fqmul(zeta, v);
-        r[j] = u + v;
-        r[j + len] = u - v;
+        t = r[j];
+        r[j] = barrett_reduce(t + r[j + len]);
+        r[j + len] = r[j + len] - t;
+        r[j + len] = fqmul(zeta, r[j + len]);
       }
     }
-    ++layer;
   }
 
   for (j = 0; j < 256; j++)
