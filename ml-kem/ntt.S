@@ -383,5 +383,6 @@ loop4start:
     strh        r5, [r9, #6]
 
     add         r1, r1, #4
+    b           loop4start
 loop4end:
     pop         {r4-r12, pc}
