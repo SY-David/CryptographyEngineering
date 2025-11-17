@@ -368,7 +368,7 @@ static const int16_t zetas_inv_layer7[128] = {
     -1493, 108, 398, 1590, 681, 1215, -516, -422,
     171, 1185, 853, 246, -573, -817, -1223, 1103};
 
-static const int16_t *const zetas_inv_layers[8] = {
+static const int16_t *const inv_zetas[8] = {
     zetas_inv_layer0,
     zetas_inv_layer1,
     zetas_inv_layer2,
@@ -379,33 +379,31 @@ static const int16_t *const zetas_inv_layers[8] = {
     zetas_inv_layer7};
 void invntt(int16_t r[256])
 {
-  unsigned int layer, start, j, m;
-  int16_t u, v, zeta;
-  const int16_t f = 1441; // 和 Kyber 原實作一樣：R^2 / 128 (mod q)
+  unsigned int start, len, j, k;
+  int16_t t, zeta;
+  const int16_t f = 1441; // mont^2/128
 
-  /* Cooley–Tukey style inverse: len = 1,2,...,128, m = 2*len */
-  for (layer = 1, m = 2; m <= 256; layer++, m <<= 1)
+  k = 127;
+  int layer = 1;
+  for (len = 2; len <= 128; len <<= 1)
   {
-    unsigned int half = m >> 1;
-    const int16_t *omegas = zetas_inv_layers[layer]; // 本層的 ω^{-1} table
 
-    for (start = 0; start < 256; start += m)
+    for (start = 0; start < 256; start = j + len)
     {
-      for (j = 0; j < half; j++)
+
+      for (j = start; j < start + len; j++)
       {
-        zeta = omegas[j]; // 已經是 MONT·ω^{-j·stride} (中心化過)
-
-        u = r[start + j];
-        v = r[start + j + half];
+        zeta = inv_zetas[layer][(j - start) % len];
+        int16_t u = r[j];
+        int16_t v = r[j + len];
         v = fqmul(zeta, v);
-
-        r[start + j] = u + v;
-        r[start + j + half] = u - v;
+        r[j] = u + v;
+        r[j + len] = u - v;
       }
     }
+    ++layer;
   }
 
-  /* 乘上 1/256（含 Montgomery 因子），和 Kyber 原始 invntt_tomont 一樣 */
   for (j = 0; j < 256; j++)
     r[j] = fqmul(r[j], f);
 }
