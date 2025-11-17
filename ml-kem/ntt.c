@@ -397,11 +397,10 @@ void invntt(int16_t r[256])
 
         u = r[start + j];
         v = r[start + j + half];
+        v = fqmul(zeta, v);
 
-        /* 和原本 GS 版的 pattern 對齊：
-           上路做加法＋Barrett，下路做減法再乘 twiddle */
-        r[start + j] = barrett((int16_t)(u + v));
-        r[start + j + half] = fqmul(zeta, (int16_t)(u - v));
+        r[start + j] = u + v;
+        r[start + j + half] = u - v;
       }
     }
   }
