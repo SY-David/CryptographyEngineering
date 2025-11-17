@@ -28,6 +28,7 @@ def generate_ct_inverse_omegas():
 
         for k in range(m // 2):
             w = pow(omega_inv, k * stride, KYBER_Q)
+
             w = (w * MONT) % KYBER_Q
             w = center_mod_q(w)
             cur.append(w)
