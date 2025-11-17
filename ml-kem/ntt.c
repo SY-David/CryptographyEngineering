@@ -384,7 +384,7 @@ void invntt(int16_t r[256])
   const int16_t f = 1441; // 和 Kyber 原實作一樣：R^2 / 128 (mod q)
 
   /* Cooley–Tukey style inverse: len = 1,2,...,128, m = 2*len */
-  for (layer = 0, m = 2; m <= 256; layer++, m <<= 1)
+  for (layer = 1, m = 2; m <= 256; layer++, m <<= 1)
   {
     unsigned int half = m >> 1;
     const int16_t *omegas = zetas_inv_layers[layer]; // 本層的 ω^{-1} table
