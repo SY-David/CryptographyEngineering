@@ -341,7 +341,7 @@ void invntt(int16_t r[256])
         v = fqmul(zeta, v);
         r[j] = u + v;
         r[j + len] = u - v;
-        pos = (pos + 2) / len;
+        pos = (pos + 2) % len;
       }
     }
     ++layer;
