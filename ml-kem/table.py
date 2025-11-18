@@ -14,7 +14,7 @@ def center_mod_q(x, q=KYBER_Q):
     return x
 
 
-def generate_ct_inverse_omegas():
+def generate_ct_inverse_omegas_linear_full():
     omega = KYBER_ROOT_OF_UNITY
 
     omega_inv = pow(omega, KYBER_Q - 2, KYBER_Q)
@@ -22,16 +22,16 @@ def generate_ct_inverse_omegas():
     layers = []
     n = 256
 
-    for layer in range(int(log2(n))):
-        m = 1 << (layer + 1)
-        stride = n // m
+    for layer in range(int(log2(n)) + 1):
+
+        num_zetas = 1 << layer
+        stride = n // num_zetas
+
         cur = []
 
-        start_index = m // 2
+        for k in range(num_zetas):
 
-        for k in range(m // 2):
-
-            power = (start_index + k) * stride
+            power = k * stride
 
             w = pow(omega_inv, power, KYBER_Q)
 
@@ -44,10 +44,14 @@ def generate_ct_inverse_omegas():
     return layers
 
 
-layers = generate_ct_inverse_omegas()
+layers = generate_ct_inverse_omegas_linear_full()
 
+
+print("static const int16_t inv_zetas[9][256] = {")
 
 for i, L in enumerate(layers):
-    print(f"// Layer {i}, Count {len(L)}")
+    print(f"  // Layer {i}: {len(L)} elements (Stride {256 // (1<<i)})")
 
-    print("{" + ", ".join(map(str, L)) + "},")
+    print("  {" + ", ".join(map(str, L)) + "},")
+
+print("};")
