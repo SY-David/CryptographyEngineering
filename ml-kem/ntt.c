@@ -354,7 +354,7 @@ void invntt(int16_t r[256])
 
       for (j = start; j < start + len; j++)
       {
-        zeta = inv_zetas[layer][(j - start) * 2 + 1];
+        zeta = -inv_zetas[layer][(j - start) * 2 + 1];
         int16_t u = r[j];
         int16_t v = r[j + len];
         v = fqmul(zeta, v);
