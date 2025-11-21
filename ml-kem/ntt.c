@@ -343,8 +343,8 @@ void invntt(int16_t r[256])
   }
   for (int i = 0; i < 256; i += 2)
   {
-    r[i] = fqmul(r[i], inv_zetas[7][i]);
-    r[i + 1] = fqmul(r[i + 1], inv_zetas[7][i]);
+    r[i] = fqmul(r[i], inv_zetas[7][i / 2]);
+    r[i + 1] = fqmul(r[i + 1], inv_zetas[7][i / 2]);
   }
 
   for (j = 0; j < 256; j++)
