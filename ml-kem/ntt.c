@@ -321,27 +321,22 @@ static const int16_t inv_zetas[8][128] = {
 };
 void invntt(int16_t r[256])
 {
-  unsigned int start, len, j, k;
+  unsigned int len, start, j, k;
   int16_t t, zeta;
   const int16_t f = 1441; // mont^2/128
-
-  k = 127;
+  k = 1;
   int layer = 1;
   for (len = 2; len <= 128; len <<= 1)
   {
-    int pos = 1;
     for (start = 0; start < 256; start = j + len)
     {
 
       for (j = start; j < start + len; j++)
       {
-        zeta = inv_zetas[layer][pos];
-        int16_t u = r[j];
-        int16_t v = r[j + len];
-        v = fqmul(zeta, v);
-        r[j] = u + v;
-        r[j + len] = u - v;
-        pos = (pos + 2) % len;
+        zeta = inv_zetas[layer][j - start];
+        t = fqmul(zeta, r[j + len]);
+        r[j + len] = r[j] - t;
+        r[j] = r[j] + t;
       }
     }
     ++layer;
