@@ -37,7 +37,6 @@ def generate_ct_inverse_omegas_linear_128():
         for k in range(num_zetas):
 
             power = k * stride
-            print(power)
 
             w = pow(omega_inv, power, KYBER_Q)
 
@@ -62,4 +61,42 @@ for i, L in enumerate(layers):
 
     print("  {" + ", ".join(map(str, L)) + "},")
 
+print("};")
+
+
+def generate_reordered_twist_table():
+
+    omega = KYBER_ROOT_OF_UNITY
+    omega_inv = pow(omega, KYBER_Q - 2, KYBER_Q)
+
+    scale = (R * R) % KYBER_Q
+
+    linear_table = []
+    curr = scale
+    for i in range(128):
+        linear_table.append(curr)
+        curr = (curr * omega_inv) % KYBER_Q
+
+    reordered_table = []
+
+    for j in range(16):
+        for k in range(8):
+
+            idx = j + k * 16
+
+            val = linear_table[idx]
+
+            val = center_mod_q(val)
+            reordered_table.append(val)
+
+    return reordered_table
+
+
+twist = generate_reordered_twist_table()
+
+print("static const int16_t twist_table[128] = {")
+for i in range(0, 128, 8):
+    chunk = twist[i : i + 8]
+
+    print("  " + ", ".join(f"{x:>5}" for x in chunk) + ",")
 print("};")
