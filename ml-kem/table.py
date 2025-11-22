@@ -69,8 +69,8 @@ def generate_linear_twist_table():
     omega = KYBER_ROOT_OF_UNITY
     omega_inv = pow(omega, KYBER_Q - 2, KYBER_Q)  # 1175
 
-    # Scaling: 乘 R^2 (為了 Montgomery 運算)
-    scale = (R * R) % KYBER_Q
+    # Scaling: 乘  (為了 Montgomery 運算)
+    scale = R % KYBER_Q
 
     twist_table = []
 
@@ -78,10 +78,6 @@ def generate_linear_twist_table():
     curr = scale
     for i in range(128):
 
-        # 存入數值 (Linear Order)
-        # Twist[0] = Scale * w^-0
-        # Twist[1] = Scale * w^-1
-        # ...
         val = center_mod_q(curr)
         twist_table.append(val)
 
