@@ -456,7 +456,7 @@ void invntt(int16_t r[256])
   int16_t t, zeta;
   const int16_t f = 1441; // mont^2/128
   k = 1;
-  int layer = 0;
+  int layer = 1;
   for (len = 2; len <= 128; len <<= 1)
   {
     for (start = 0; start < 256; start = j + len)
