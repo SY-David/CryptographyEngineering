@@ -64,35 +64,34 @@ for i, L in enumerate(layers):
 print("};")
 
 
-def generate_reordered_twist_table():
-
+def generate_linear_twist_table():
+    # 1. 參數設定
     omega = KYBER_ROOT_OF_UNITY
-    omega_inv = pow(omega, KYBER_Q - 2, KYBER_Q)
+    omega_inv = pow(omega, KYBER_Q - 2, KYBER_Q)  # 1175
 
+    # Scaling: 乘 R^2 (為了 Montgomery 運算)
     scale = (R * R) % KYBER_Q
 
-    linear_table = []
+    twist_table = []
+
+    # 2. 生成 128 個因子，對應 Pair 0 到 Pair 127
     curr = scale
     for i in range(128):
-        linear_table.append(curr)
+
+        # 存入數值 (Linear Order)
+        # Twist[0] = Scale * w^-0
+        # Twist[1] = Scale * w^-1
+        # ...
+        val = center_mod_q(curr)
+        twist_table.append(val)
+
+        # 下一個
         curr = (curr * omega_inv) % KYBER_Q
 
-    reordered_table = []
-
-    for j in range(16):
-        for k in range(8):
-
-            idx = j + k * 16
-
-            val = linear_table[idx]
-
-            val = center_mod_q(val)
-            reordered_table.append(val)
-
-    return reordered_table
+    return twist_table
 
 
-twist = generate_reordered_twist_table()
+twist = generate_linear_twist_table()
 
 print("static const int16_t twist_table[128] = {")
 for i in range(0, 128, 8):
