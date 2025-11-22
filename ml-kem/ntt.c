@@ -472,7 +472,7 @@ void invntt(int16_t r[256])
     }
     ++layer;
   }
-  for (int i = 0; i < 256; ++i)
+  for (int i = 0; i < 256; i += 2)
   {
     r[i] = fqmul(r[i], twist_table[i / 2]);
     r[i + 1] = fqmul(r[i + 1], twist_table[i / 2]);
