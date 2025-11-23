@@ -225,7 +225,8 @@ void poly_ntt(poly *r)
  **************************************************/
 void poly_invntt_tomont(poly *r)
 {
-  poly *test;
+  poly test_poly;          // 1. 宣告實體
+  poly *test = &test_poly; // 2. 讓指標指向它
   for (int i = 0; i < KYBER_N; ++i)
   {
     test->coeffs[i] = r->coeffs[i];
