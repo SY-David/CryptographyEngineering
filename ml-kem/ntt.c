@@ -627,7 +627,7 @@ void invntt_test(int16_t r[256])
   }
   for (int i = 0; i < 256; ++i)
   {
-    r[i] = fqmul(r[i], zetas[62]);
+    r[i] = fqmul(r[i], zetas[61]);
   }
 
   for (j = 0; j < 256; j++)
