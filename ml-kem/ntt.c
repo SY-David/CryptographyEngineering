@@ -625,6 +625,10 @@ void invntt_test(int16_t r[256])
     }
     ++layer;
   }
+  for (int i = 0; i < 256; ++i)
+  {
+    r[i] = fqmul(r[i], -twist_table[63]);
+  }
 
   for (j = 0; j < 256; j++)
     r[j] = fqmul(r[j], f);
