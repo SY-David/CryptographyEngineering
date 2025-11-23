@@ -452,6 +452,31 @@ static const int16_t twist_table[128] = {
 };
 void invntt(int16_t r[256])
 {
+  unsigned int start, len, j, k;
+  int16_t t, zeta;
+  const int16_t f = 1441; // mont^2/128
+
+  k = 127;
+  for (len = 2; len <= 128; len <<= 1)
+  {
+    for (start = 0; start < 256; start = j + len)
+    {
+      zeta = zetas[k--];
+      for (j = start; j < start + len; j++)
+      {
+        t = r[j];
+        r[j] = barrett_reduce(t + r[j + len]);
+        r[j + len] = r[j + len] - t;
+        r[j + len] = fqmul(zeta, r[j + len]);
+      }
+    }
+  }
+
+  for (j = 0; j < 256; j++)
+    r[j] = fqmul(r[j], f);
+}
+void invntt_test(int16_t r[256])
+{
   unsigned int len, start, j, k;
   int16_t t, zeta;
   const int16_t f = 1441; // mont^2/128

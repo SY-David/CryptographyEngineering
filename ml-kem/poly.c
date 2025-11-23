@@ -225,7 +225,20 @@ void poly_ntt(poly *r)
  **************************************************/
 void poly_invntt_tomont(poly *r)
 {
+  poly *test;
+  for (int i = 0; i < KYBER_N; ++i)
+  {
+    test->coeffs[i] = r->coeffs[i];
+  }
   invntt(r->coeffs);
+  invntt_test(test->coeffs);
+  for (int i = 0; i < KYBER_N; ++i)
+  {
+    if (r->coeffs[i] != test->coeffs[i])
+    {
+      hal_send_str("%d, %d, %d\n", i, r->coeffs[i], test->coeffs[i]);
+    }
+  }
 }
 
 /*************************************************
