@@ -455,36 +455,26 @@ void invntt(int16_t r[256])
   unsigned int len, start, j, k;
   int16_t t, zeta;
   const int16_t f = 1441; // mont^2/128
-
   k = 1;
-  // 修正 1: 從 Layer 0 (1個元素) 開始
-  int layer = 0;
-
-  // 修正 2: Top-Down 迴圈 (len 從 128 縮小到 2)
-  for (len = 128; len >= 2; len >>= 1)
+  int layer = 1;
+  for (len = 2; len <= 128; len <<= 1)
   {
-
-    int zeta_idx = 0;
-
     for (start = 0; start < 256; start = j + len)
     {
-      zeta = inv_zetas[layer][zeta_idx++];
 
       for (j = start; j < start + len; j++)
       {
-        // Cooley-Tukey Butterfly (Repo style: mul then add/sub)
+        zeta = inv_zetas[layer][j - start];
         t = fqmul(zeta, r[j + len]);
         r[j + len] = r[j] - t;
         r[j] = r[j] + t;
       }
     }
-    layer++; // 往下層移動 (Zeta 變多)
+    ++layer;
   }
-
-  for (int i = 0; i < 256; i += 2)
+  for (int i = 0; i < 256; ++i)
   {
-    r[i] = fqmul(r[i], twist_table[i / 2]);
-    r[i + 1] = fqmul(r[i + 1], twist_table[i / 2]);
+    r[i] = fqmul(r[i], inv_zetas[7][1]);
   }
 
   for (j = 0; j < 256; j++)
