@@ -237,7 +237,9 @@ void poly_invntt_tomont(poly *r)
   {
     if (r->coeffs[i] != test->coeffs[i])
     {
-      hal_send_str("%d, %d, %d\n", i, r->coeffs[i], test->coeffs[i]);
+      char cycles_str[100];
+      sprintf(cycles_str, "%d, %d, %d\n", i, r->coeffs[i], test->coeffs[i]);
+      hal_send_str(cycles_str);
     }
   }
 }
