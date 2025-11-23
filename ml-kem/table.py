@@ -74,7 +74,7 @@ def generate_linear_twist_table():
     twist_table = []
 
     curr = scale
-    for i in range(128):
+    for i in range(256):
 
         val = center_mod_q(curr)
         twist_table.append(val)
@@ -87,7 +87,7 @@ def generate_linear_twist_table():
 twist = generate_linear_twist_table()
 
 print("static const int16_t twist_table[128] = {")
-for i in range(0, 128, 8):
+for i in range(0, 256, 8):
     chunk = twist[i : i + 8]
 
     print("  " + ", ".join(f"{x:>5}" for x in chunk) + ",")
