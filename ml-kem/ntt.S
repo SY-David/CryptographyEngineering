@@ -57,7 +57,7 @@ zeta2:
 
     pkhtb       \a, \tmp, \tmp2, asr#16
 .endm
-
+.p2align 2
 .global basemul_s
 .type basemul_s, %function
 basemul_s:
@@ -87,7 +87,7 @@ basemul_s:
     strh        r4, [r0, #2]
 
     pop         {r4-r7, pc}
-
+.p2align 2
 .global ntt_s
 .type ntt_s, %function
 ntt_s:
@@ -95,14 +95,14 @@ ntt_s:
 
     // r0 = r[256]
     // r1 = counter
-    movw        r1, #0
+    movs        r1, #0
     movw        r2, #3327
     movw        r3, #3329
     ldr         r8, =zetas
     ldrsh       r9, [r8, #2]    // zeta128 = zetas[1]
     ldrsh       r10, [r8, #4]   // zeta64_top    = zetas[2]
     ldrsh       r12, [r8, #6]   // zeta64_bottom = zetas[3]
-
+.p2align 2
 loop1start:
     cmp         r1, #64
     bge         loop1end
@@ -171,7 +171,8 @@ loop1start:
     b           loop1start
 loop1end:
 
-    movw        r1, #0
+    movs        r1, #0
+.p2align 2
 outloop2start:
     cmp         r1, #256
     bge         outloop2end
@@ -186,14 +187,14 @@ outloop2start:
     add         r4, r4, #2
     ldrsh       r7, [r8, r4]
 
-    mov         r4, #0
+    movs        r14, #0 @ 用 r14 當 inner-loop counter
 innerloop2start:
-    cmp         r4, #16
+    cmp         r14, #16
     bge         innerloop2end
 
-    add         r8, r1, r4
+    add         r8, r1, r14
     add         r8, r0, r8, lsl#1
-    vmov        s0, r4
+
     ldrh        r9, [r8]
     ldrh        r10, [r8, #2]
     pkhbt       r9, r9, r10, lsl#16
@@ -210,95 +211,7 @@ innerloop2start:
     ldrh        r8, [r8, #98]
     pkhbt       r12, r12, r8, lsl#16
 
-    doublemont  r11, r8, r4, r3, r2, r5
-    doublemont  r12, r8, r4, r3, r2, r5
-
-    uadd16      r9, r9, r11
-    uadd16      r11, r11, r11
-    usub16      r11, r9, r11
-
-    uadd16      r10, r10, r12
-    uadd16      r12, r12, r12
-    usub16      r12, r10, r12
-
-    doublemont  r10, r8, r4, r3, r2, r6
-    doublemont  r12, r8, r4, r3, r2, r7
-
-    uadd16      r9, r9, r10 // r4 = top + t64_top
-    uadd16      r10, r10, r10 // r5 = 2 * t64_top
-    usub16      r10, r9, r10 // r5 = top - t64_top
-
-    uadd16      r11, r11, r12 // r6 = bot + t64_bottom
-    uadd16      r12, r12, r12 // r7 = 2 * t64_bottom
-    usub16      r12, r11, r12
-
-    vmov        r4, s0
-    add         r8, r1, r4
-    add         r8, r0, r8, lsl#1
-
-    strh        r9, [r8]
-    asr         r9, r9, #16
-    strh        r9, [r8, #2]
-
-    strh        r10, [r8, #32]
-    asr         r10, r10, #16
-    strh        r10, [r8, #34]
-
-    strh        r11, [r8, #64]
-    asr         r11, r11, #16
-    strh        r11, [r8, #66]
-
-    strh        r12, [r8, #96]
-    asr         r12, r12, #16
-    strh        r12, [r8, #98]
-
-    add         r4, r4, #2
-    b           innerloop2start
-innerloop2end:
-    add         r1, r1, #64
-
-    b           outloop2start
-outloop2end:
-
-    movw        r1, #0
-outloop3start:
-    cmp         r1, #256
-    bge         outloop3end
-    ldr         r8, =zeta8
-
-    lsr         r4, r1, #3
-    ldrsh       r5, [r8, r4]
-    add         r8, r8, #32
-
-    lsl         r4, r4, #1
-    ldrsh       r6, [r8, r4]
-    add         r4, r4, #2
-    ldrsh       r7, [r8, r4]
-
-    mov         r4, #0
-innerloop3start:
-    cmp         r4, #4
-    bge         innerloop3end
-
-    add         r8, r1, r4
-    add         r8, r0, r8, lsl#1
-    vmov        s0, r4
-    ldrh        r9, [r8]
-    ldrh        r10, [r8, #2]
-    pkhbt       r9, r9, r10, lsl#16
-
-    ldrh        r10, [r8, #8]
-    ldrh        r11, [r8, #10]
-    pkhbt       r10, r10, r11, lsl#16
-
-    ldrh        r11, [r8, #16]
-    ldrh        r12, [r8, #18]
-    pkhbt       r11, r11, r12, lsl#16
-
-    ldrh        r12, [r8, #24]
-    ldrh        r8, [r8, #26]
-    pkhbt       r12, r12, r8, lsl#16
-
+    @ r4 現在只是 doublemont 的 tmp2，完全可以被覆寫
     doublemont  r11, r8, r4, r3, r2, r5
     doublemont  r12, r8, r4, r3, r2, r5
 
@@ -321,8 +234,98 @@ innerloop3start:
     uadd16      r12, r12, r12
     usub16      r12, r11, r12
 
-    vmov        r4, s0
-    add         r8, r1, r4
+    add         r8, r1, r14
+    add         r8, r0, r8, lsl#1
+
+    strh        r9, [r8]
+    asr         r9, r9, #16
+    strh        r9, [r8, #2]
+
+    strh        r10, [r8, #32]
+    asr         r10, r10, #16
+    strh        r10, [r8, #34]
+
+    strh        r11, [r8, #64]
+    asr         r11, r11, #16
+    strh        r11, [r8, #66]
+
+    strh        r12, [r8, #96]
+    asr         r12, r12, #16
+    strh        r12, [r8, #98]
+
+    add         r14, r14, #2
+    b           innerloop2start
+innerloop2end:
+    add         r1, #64
+    b           outloop2start
+outloop2end:
+
+    movs        r1, #0 @ 小常數用 movs 即可
+.p2align 2
+outloop3start:
+    cmp         r1, #256
+    bge         outloop3end
+    ldr         r8, =zeta8
+
+    lsr         r4, r1, #3
+    ldrsh       r5, [r8, r4]
+    add         r8, r8, #32
+
+    lsl         r4, r4, #1
+    ldrsh       r6, [r8, r4]
+    add         r4, r4, #2
+    ldrsh       r7, [r8, r4]
+
+    movs        r14, #0 @ inner-loop counter 改用 r14
+innerloop3start:
+    cmp         r14, #4
+    bge         innerloop3end
+
+    add         r8, r1, r14
+    add         r8, r0, r8, lsl#1
+
+    @ 不再 vmov s0,r4，r4 只給 doublemont 當 scratch
+    ldrh        r9, [r8]
+    ldrh        r10, [r8, #2]
+    pkhbt       r9, r9, r10, lsl#16
+
+    ldrh        r10, [r8, #8]
+    ldrh        r11, [r8, #10]
+    pkhbt       r10, r10, r11, lsl#16
+
+    ldrh        r11, [r8, #16]
+    ldrh        r12, [r8, #18]
+    pkhbt       r11, r11, r12, lsl#16
+
+    ldrh        r12, [r8, #24]
+    ldrh        r8, [r8, #26]
+    pkhbt       r12, r12, r8, lsl#16
+
+    @ r4 現在完全是 doublemont 的 tmp2，外面不再用它
+    doublemont  r11, r8, r4, r3, r2, r5
+    doublemont  r12, r8, r4, r3, r2, r5
+
+    uadd16      r9, r9, r11
+    uadd16      r11, r11, r11
+    usub16      r11, r9, r11
+
+    uadd16      r10, r10, r12
+    uadd16      r12, r12, r12
+    usub16      r12, r10, r12
+
+    doublemont  r10, r8, r4, r3, r2, r6
+    doublemont  r12, r8, r4, r3, r2, r7
+
+    uadd16      r9, r9, r10
+    uadd16      r10, r10, r10
+    usub16      r10, r9, r10
+
+    uadd16      r11, r11, r12
+    uadd16      r12, r12, r12
+    usub16      r12, r11, r12
+
+    @ 不再 vmov r4,s0，直接用 r14 算位址
+    add         r8, r1, r14
     add         r8, r0, r8, lsl#1
 
     strh        r9, [r8]
@@ -341,38 +344,38 @@ innerloop3start:
     asr         r12, r12, #16
     strh        r12, [r8, #26]
 
-    add         r4, r4, #2
+    add         r14, r14, #2
     b           innerloop3start
 innerloop3end:
     add         r1, r1, #16
 
     b           outloop3start
 outloop3end:
-
-    movw        r1, #0
+    movs        r1, #0 @ 小常數用 movs，16-bit 指令
     ldr         r8, =zeta2
+.p2align 2
 loop4start:
     cmp         r1, #256
     bge         loop4end
 
-    lsr         r9, r1, #1
-    ldrsh       r10, [r8, r9]
+    lsr         r9, r1, #1          @ r9 = r1/2
+    ldrsh       r10, [r8, r9]       @ zeta2[r1/4] (因為 2 bytes per entry)
 
-    add         r9, r0, r1, lsl#1
+    add         r9, r0, r1, lsl#1 @ r9 = &a[r1]
 
     ldrh        r4, [r9]
     ldrh        r5, [r9, #2]
-    pkhbt       r4, r4, r5, lsl#16
+    pkhbt       r4, r4, r5, lsl#16 @ r4 = (a1 << 16) | a0
 
     ldrh        r5, [r9, #4]
     ldrh        r6, [r9, #6]
-    pkhbt       r5, r5, r6, lsl#16
+    pkhbt       r5, r5, r6, lsl#16 @ r5 = (a3 << 16) | a2
 
     doublemont  r5, r11, r12, r3, r2, r10
 
-    uadd16      r4, r4, r5
-    uadd16      r5, r5, r5
-    usub16      r5, r4, r5
+    uadd16      r4, r4, r5          @ r4 = a + t
+    uadd16      r5, r5, r5          @ r5 = 2t
+    usub16      r5, r4, r5          @ r5 = a - t
 
     strh        r4, [r9]
     asr         r4, r4, #16
@@ -382,7 +385,7 @@ loop4start:
     asr         r5, r5, #16
     strh        r5, [r9, #6]
 
-    add         r1, r1, #4
+    adds        r1, #4 @ r1 += 4，用 16-bit adds
     b           loop4start
 loop4end:
     pop         {r4-r12, pc}
