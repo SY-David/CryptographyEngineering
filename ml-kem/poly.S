@@ -96,27 +96,31 @@ loop_comp:
 .global poly_decompress_s
 .type poly_decompress_s, %function
 poly_decompress_s:
-    push            {r4-r7, lr}
-    movs            r2, #128
-    ldr             r3, =3329
-    movs            r4, #8
-loop_decomp:
-    ldrb            r6, [r1], #1
-    and             r7, r6, #0x0F
-    mul             r7, r7, r3
-    add             r7, r7, r4
-    lsr             r7, r7, #4
-    strh            r7, [r0], #2
+    push            {r4, r6, r7, lr} @ 只存有用到的 callee-saved
+    movs            r2, #128   @ 128 bytes -> 256 coeffs
+    ldr             r3, =3329  @ q
+    movs            r4, #8     @ rounding constant
 
-    lsrs            r6, r6, #4
-    mul             r6, r6, r3
-    add             r6, r6, r4
-    lsr             r6, r6, #4
-    strh            r6, [r0], #2
+.p2align 2
+loop_decomp:
+    ldrb            r6, [r1], #1 @ load compressed byte
+
+    @ 低 nibble
+    ands            r7, r6, #0x0F @ r7 = t0 = b & 0x0F
+    mla             r7, r7, r3, r4 @ r7 = t0 * q + 8
+    lsrs            r7, r7, #4 @ r7 = (t0*q + 8) >> 4
+    strh            r7, [r0], #2 @ store first coeff
+
+    @ 高 nibble
+    lsrs            r6, r6, #4 @ r6 = t1 = b >> 4
+    mla             r6, r6, r3, r4 @ r6 = t1 * q + 8
+    lsrs            r6, r6, #4 @ r6 = (t1*q + 8) >> 4
+    strh            r6, [r0], #2 @ store second coeff
 
     subs            r2, r2, #1
     bne             loop_decomp
-    pop             {r4-r7, pc}
+
+    pop             {r4, r6, r7, pc}
 .size poly_decompress_s, .-poly_decompress_s
 
 .macro COMPRESS5_ITEM offset
