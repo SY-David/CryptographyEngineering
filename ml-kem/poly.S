@@ -26,22 +26,21 @@ poly_add_s:
 .global poly_sub_s
 .type poly_sub_s, %function
 poly_sub_s:
+    push            {r4, lr}
     movs            r12, #128
-
 .p2align 2
-
 1:
     ldr             r3, [r1], #4
-    ldr             r2, [r2], #4
+    ldr             r4, [r2], #4
 
-    ssub16          r3, r3, r2 @ 兩個 16-bit lane 平行相減
+    ssub16          r3, r3, r4
 
     str             r3, [r0], #4
 
     subs            r12, r12, #1
     bne             1b
 
-    bx              lr
+    pop             {r4, pc}
 .size poly_sub_s, .-poly_sub_s
 
 .macro COMPRESS_NIBBLE reg
