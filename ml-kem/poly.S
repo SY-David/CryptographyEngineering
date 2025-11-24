@@ -25,25 +25,21 @@ poly_add_s:
 .global poly_sub_s
 .type poly_sub_s, %function
 poly_sub_s:
-    push            {r4-r5, lr}
+    push            {r4, lr}
     movs            r12, #128
-loop2:
-    ldrh            r3, [r1], #2
-    ldrh            r4, [r1], #2
-    pkhbt           r3, r3, r4, lsl#16
 
-    ldrh            r4, [r2], #2
-    ldrh            r5, [r2], #2
-    pkhbt           r4, r4, r5, lsl#16
+1:
+    ldr             r3, [r1], #4 @ r3 = a[i] | a[i+1]
+    ldr             r4, [r2], #4 @ r4 = b[i] | b[i+1]
 
-    ssub16          r3, r3, r4
-    strh            r3, [r0], #2
-    lsr             r4, r3, #16
-    strh            r4, [r0], #2
+    ssub16          r3, r3, r4 @ lane-wise a - b（signed saturating）
+
+    str             r3, [r0], #4 @ 寫回兩個結果
 
     subs            r12, r12, #1
-    bne             loop2
-    pop             {r4-r5, pc}
+    bne             1b
+
+    pop             {r4, pc}
 .size poly_sub_s, .-poly_sub_s
 
 .macro COMPRESS_NIBBLE reg
