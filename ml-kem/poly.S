@@ -96,7 +96,7 @@ loop_comp:
 .global poly_decompress_s
 .type poly_decompress_s, %function
 poly_decompress_s:
-    push            {r4-r7, lr}
+    push            {r4, r6, r7, lr}
     movs            r2, #128
     ldr             r3, =3329
     movs            r4, #8
@@ -117,7 +117,7 @@ loop_decomp:
 
     subs            r2, r2, #1
     bne             loop_decomp
-    pop             {r4-r7, pc}
+    pop             {r4, r6, r7, pc}
 .size poly_decompress_s, .-poly_decompress_s
 
 .macro COMPRESS5_ITEM offset
@@ -196,10 +196,11 @@ loop_comp160:
 .global poly_decompress160_s
 .type poly_decompress160_s, %function
 poly_decompress160_s:
-    push            {r4-r11, lr}
+    push            {r4, r6-r11, lr}
     movs            r2, #32
     ldr             r3, =3329
     movs            r4, #16
+.p2align 2
 loop_decomp160:
     ldrb            r6, [r1], #1
     ldrb            r7, [r1], #1
@@ -269,5 +270,5 @@ loop_decomp160:
 
     subs            r2, r2, #1
     bne             loop_decomp160
-    pop             {r4-r11, pc}
+    pop             {r4, r6-r11, pc}
 .size poly_decompress160_s, .-poly_decompress160_s
