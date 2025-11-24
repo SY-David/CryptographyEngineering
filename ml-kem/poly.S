@@ -66,15 +66,15 @@ poly_compress_s:
 .palign2
 loop_comp:
     COMPRESS_NIBBLE r6
-    mov
+
     COMPRESS_NIBBLE r12
-    orr             r6, r12, r6, lsl#4
+    orr             r6, r6, r12, lsl#4
     strb            r6, [r0], #1
 
     COMPRESS_NIBBLE r6
-    mov             r12, r6
-    COMPRESS_NIBBLE r6
-    orr             r6, r12, r6, lsl#4
+
+    COMPRESS_NIBBLE r12
+    orr             r6, r6, r12, lsl#4
     strb            r6, [r0], #1
 
     COMPRESS_NIBBLE r6
