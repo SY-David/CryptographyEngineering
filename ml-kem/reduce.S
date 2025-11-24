@@ -13,8 +13,9 @@ montgomery:
 
 .global barrett
 barrett:
-    ldr     r1, =0x13B0F8
+    movw    r1, #0xB0F8
+    movt    r1, #0x0013
     smmulr  r2, r0, r1
-    ldr     r1, =3329
+    movw    r1, #3329
     mls     r0, r2, r1, r0
     bx      lr
