@@ -104,7 +104,8 @@ poly_decompress_s:
 loop_decomp:
     ldrb            r6, [r1], #1
     and             r7, r6, #0x0F
-    mla             r7, r7, r3, r4
+    mul             r7, r7, r3
+    add             r7, r7, r4
     lsr             r7, r7, #4
     strh            r7, [r0], #2
 
