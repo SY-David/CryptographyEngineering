@@ -5,22 +5,21 @@
 .global poly_add_s
 .type poly_add_s, %function
 poly_add_s:
+    push            {r4, lr}
     movs            r12, #128
-
-.p2align 2 @ 適度對齊 loop，讓 branch target 在 4-byte 邊界（小優化）
-
+.p2align 2
 1:
-    ldr             r3, [r1], #4 @ r3 = *(uint32_t*)a; a += 4
-    ldr             r2, [r2], #4 @ r2 = *(uint32_t*)b; b += 4
+    ldr             r3, [r1], #4
+    ldr             r4, [r2], #4
 
-    sadd16          r3, r3, r2 @ 兩個 16-bit lane 平行相加
+    sadd16          r3, r3, r4
 
-    str             r3, [r0], #4 @ 存回 r; r += 4
+    str             r3, [r0], #4
 
     subs            r12, r12, #1
     bne             1b
 
-    bx              lr
+    pop             {r4, pc}
 .size poly_add_s, .-poly_add_s
 
 .global poly_sub_s
@@ -29,6 +28,7 @@ poly_sub_s:
     push            {r4, lr}
     movs            r12, #128
 .p2align 2
+
 1:
     ldr             r3, [r1], #4
     ldr             r4, [r2], #4
