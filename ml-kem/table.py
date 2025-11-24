@@ -69,11 +69,9 @@ def generate_linear_twist_table():
     omega = KYBER_ROOT_OF_UNITY
     omega_inv = pow(omega, KYBER_Q - 2, KYBER_Q)
 
-    scale = R % KYBER_Q
-
     twist_table = []
 
-    curr = scale
+    curr = 1
     for i in range(256):
 
         val = center_mod_q(curr)
@@ -87,7 +85,7 @@ def generate_linear_twist_table():
 twist = generate_linear_twist_table()
 
 print("static const int16_t twist_table[128] = {")
-for i in range(0, 256, 8):
+for i in range(0, 128, 8):
     chunk = twist[i : i + 8]
 
     print("  " + ", ".join(f"{x:>5}" for x in chunk) + ",")
