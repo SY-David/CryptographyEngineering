@@ -5,28 +5,21 @@
 .global poly_add_s
 .type poly_add_s, %function
 poly_add_s:
-    push            {r4-r5, lr}
-    movs            r12, #128
-loop1:
-    ldrh            r3, [r1], #2 // r3 = a[i]
-    ldrh            r4, [r1], #2 // r4 = a[i+1]
-    // *** 修正 A ***
-    pkhbt           r3, r3, r4, lsl#16 // r3 = [ a[i+1] | a[i] ]
+    push            {r4, lr}  @ 只用到 r4 當 callee-saved 暫存
+    movs            r12, #128 @ 128 次迭代，每次處理兩個 int16
 
-    ldrh            r4, [r2], #2
-    ldrh            r5, [r2], #2
+1:
+    ldr             r3, [r1], #4 @ r3 = a[i] | a[i+1]，r1 += 4
+    ldr             r4, [r2], #4 @ r4 = b[i] | b[i+1]，r2 += 4
 
-    pkhbt           r4, r4, r5, lsl#16 // r4 = [ b[i+1] | b[i] ]
+    sadd16          r3, r3, r4 @ lane-wise a + b（signed saturating）
 
-    sadd16          r3, r3, r4
-
-    strh            r3, [r0], #2
-    lsr             r4, r3, #16
-    strh            r4, [r0], #2
+    str             r3, [r0], #4 @ 一次寫回兩個結果，r0 += 4
 
     subs            r12, r12, #1
-    bne             loop1
-    pop             {r4-r5, pc}
+    bne             1b
+
+    pop             {r4, pc}
 .size poly_add_s, .-poly_add_s
 
 .global poly_sub_s
@@ -225,7 +218,7 @@ loop_decomp160:
     strh            r11, [r0], #2
 
     lsr             r11, r6, #5
-    orr             r11, r11, r7, lsl #3
+    orr             r11, r11, r7, lsl#3
     and             r11, r11, #31
     mul             r11, r11, r3
     add             r11, r11, r4
@@ -240,7 +233,7 @@ loop_decomp160:
     strh            r11, [r0], #2
 
     lsr             r11, r7, #7
-    orr             r11, r11, r8, lsl #1
+    orr             r11, r11, r8, lsl#1
     and             r11, r11, #31
     mul             r11, r11, r3
     add             r11, r11, r4
@@ -248,7 +241,7 @@ loop_decomp160:
     strh            r11, [r0], #2
 
     lsr             r11, r8, #4
-    orr             r11, r11, r9, lsl #4
+    orr             r11, r11, r9, lsl#4
     and             r11, r11, #31
     mul             r11, r11, r3
     add             r11, r11, r4
@@ -263,7 +256,7 @@ loop_decomp160:
     strh            r11, [r0], #2
 
     lsr             r11, r9, #6
-    orr             r11, r11, r10, lsl #2
+    orr             r11, r11, r10, lsl#2
     and             r11, r11, #31
     mul             r11, r11, r3
     add             r11, r11, r4
