@@ -69,10 +69,12 @@ def generate_linear_twist_table():
     omega = KYBER_ROOT_OF_UNITY
     omega_inv = pow(omega, KYBER_Q - 2, KYBER_Q)
 
+    scale = R % KYBER_Q
+
     twist_table = []
 
-    curr = 1
-    for i in range(256):
+    curr = scale
+    for i in range(128):
 
         val = center_mod_q(curr)
         twist_table.append(val)
