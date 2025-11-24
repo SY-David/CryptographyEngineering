@@ -63,7 +63,7 @@ poly_compress_s:
     ldr             r3, =#3329
     ldr             r4, =#1664
     ldr             r5, =#80635
-.palign2
+.p2align 2
 loop_comp:
     COMPRESS_NIBBLE r6
 
