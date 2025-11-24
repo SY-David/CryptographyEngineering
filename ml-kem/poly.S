@@ -48,8 +48,9 @@ poly_sub_s:
     asr             r7, \reg, #15
     and             r7, r7, r3
     add             \reg, \reg, r7
-    add             \reg, \reg, #104
-    mul             r7, \reg, r5 @ r5 = C = 1290160
+    lsl             r7, \reg, #4
+    add             r7, r7, r4
+    mul             r7, r7, r5
     lsr             \reg, r7, #28
 
 .endm
@@ -62,10 +63,11 @@ poly_compress_s:
     ldr             r3, =#3329
     ldr             r4, =#1664
     ldr             r5, =#80635
+.palign2
 loop_comp:
     COMPRESS_NIBBLE r6
-    mov             r12, r6
-    COMPRESS_NIBBLE r6
+    mov
+    COMPRESS_NIBBLE r12
     orr             r6, r12, r6, lsl#4
     strb            r6, [r0], #1
 
