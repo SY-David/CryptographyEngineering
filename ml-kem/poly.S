@@ -120,77 +120,69 @@ loop_decomp:
     pop             {r4-r7, pc}
 .size poly_decompress_s, .-poly_decompress_s
 
-.macro COMPRESS5_ITEM offset
-    ldrsh           r6, [r1], #2
-    asr             r7, r6, #15
+.macro COMPRESS5 dest
+    ldrsh           \dest, [r1], #2
+    asr             r7, \dest, #15
     and             r7, r7, r3
-    add             r6, r6, r7
-    lsl             r6, r6, #5
-    add             r6, r6, r4
-    mul             r6, r6, r5
-    lsr             r6, r6, #27
-    and             r6, r6, #31
-    strb            r6, [sp, #\offset]
+    add             \dest, \dest, r7
+    lsl             \dest, \dest, #5
+    add             \dest, \dest, r4
+    mul             \dest, \dest, r5
+    lsr             \dest, \dest, #27
 .endm
 
 .global poly_compress160_s
 .type poly_compress160_s, %function
 poly_compress160_s:
     push            {r4-r11, lr}
-    sub             sp, sp, #8
     movs            r2, #32
     ldr             r3, =3329
     ldr             r4, =1664
     ldr             r5, =40318
+
+.p2align 2
 loop_comp160:
-    COMPRESS5_ITEM  0
-    COMPRESS5_ITEM  1
-    COMPRESS5_ITEM  2
-    COMPRESS5_ITEM  3
-    COMPRESS5_ITEM  4
-    COMPRESS5_ITEM  5
-    COMPRESS5_ITEM  6
-    COMPRESS5_ITEM  7
+    @ a0, a1
+    COMPRESS5       r8        @ a0
+    COMPRESS5       r9        @ a1
+    mov             r6, r8
+    orr             r6, r6, r9, lsl#5
+    strb            r6, [r0], #1 @ B0
 
-    ldrb            r6, [sp, #0]
-    ldrb            r7, [sp, #1]
-    lsls            r12, r7, #5
-    orr             r6, r6, r12
-    strb            r6, [r0], #1
+    @ a2, a3
+    COMPRESS5       r10       @ a2
+    COMPRESS5       r11       @ a3
+    mov             r6, r9    @ a1
+    lsrs            r6, r6, #3 @ a1 >> 3
+    orr             r6, r6, r10, lsl#2
+    orr             r6, r6, r11, lsl#7
+    strb            r6, [r0], #1 @ B1
 
-    lsrs            r6, r7, #3
-    ldrb            r8, [sp, #2]
-    lsls            r12, r8, #2
-    orr             r6, r6, r12
-    ldrb            r9, [sp, #3]
-    lsls            r12, r9, #7
-    orr             r6, r6, r12
-    strb            r6, [r0], #1
+    @ a4
+    COMPRESS5       r8        @ a4
+    mov             r6, r11   @ a3
+    lsrs            r6, r6, #1 @ a3 >> 1
+    orr             r6, r6, r8, lsl#4
+    strb            r6, [r0], #1 @ B2
 
-    lsrs            r6, r9, #1
-    ldrb            r10, [sp, #4]
-    lsls            r12, r10, #4
-    orr             r6, r6, r12
-    strb            r6, [r0], #1
+    @ a5, a6
+    COMPRESS5       r9        @ a5
+    COMPRESS5       r10       @ a6
+    mov             r6, r8    @ a4
+    lsrs            r6, r6, #4 @ a4 >> 4
+    orr             r6, r6, r9, lsl#1
+    orr             r6, r6, r10, lsl#6
+    strb            r6, [r0], #1 @ B3
 
-    lsrs            r6, r10, #4
-    ldrb            r11, [sp, #5]
-    lsls            r12, r11, #1
-    orr             r6, r6, r12
-    ldrb            r9, [sp, #6]
-    lsls            r12, r9, #6
-    orr             r6, r6, r12
-    strb            r6, [r0], #1
-
-    lsrs            r6, r9, #2
-    ldrb            r8, [sp, #7]
-    lsls            r12, r8, #3
-    orr             r6, r6, r12
-    strb            r6, [r0], #1
+    @ a7
+    COMPRESS5       r11       @ a7
+    mov             r6, r10   @ a6
+    lsrs            r6, r6, #2 @ a6 >> 2
+    orr             r6, r6, r11, lsl#3
+    strb            r6, [r0], #1 @ B4
 
     subs            r2, r2, #1
     bne             loop_comp160
-    add             sp, sp, #8
     pop             {r4-r11, pc}
 .size poly_compress160_s, .-poly_compress160_s
 
