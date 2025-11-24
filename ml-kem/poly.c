@@ -233,12 +233,12 @@ void poly_invntt_tomont(poly *r)
   }
   invntt(r->coeffs);
   invntt_test(test->coeffs);
-  for (int i = 0; i < KYBER_N; ++i)
+  for (int i = 0; i < 10; ++i)
   {
-    if (r->coeffs[i] == test->coeffs[i])
+    if (r->coeffs[i] != test->coeffs[i])
     {
       char cycles_str[100];
-      sprintf(cycles_str, "%d\n", i);
+      sprintf(cycles_str, "%d, %d, %d\n", i, r->coeffs[i], test->coeffs[i]);
       hal_send_str(cycles_str);
     }
   }
