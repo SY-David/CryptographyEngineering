@@ -61,7 +61,7 @@ poly_compress_s:
     movs            r2, #32
     ldr             r3, =#3329
 
-    ldr             r5, =#80635
+    ldr             r5, =#1290160
 .p2align 2
 loop_comp:
     COMPRESS_NIBBLE r6
