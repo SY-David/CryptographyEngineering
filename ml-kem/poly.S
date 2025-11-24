@@ -52,7 +52,7 @@ poly_sub_s:
     add             r7, r7, r4
     mul             r7, r7, r5
     lsr             \reg, r7, #28
-    uxth            \reg, \reg
+
 .endm
 
 .global poly_compress_s
