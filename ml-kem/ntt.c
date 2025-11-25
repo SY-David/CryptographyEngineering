@@ -538,8 +538,8 @@ void invntt_test(int16_t r[256])
     for (offset = 0; offset < 8; offset += 2)
     {
       int16_t zeta32_cur = inv_zetas[2][offset / 2];
-      int16_t zeta16_top = inv_zetas[3][offset];
-      int16_t zeta16_bottom = inv_zetas[3][offset + 1];
+      int16_t zeta16_top = inv_zetas[3][offset / 2];
+      int16_t zeta16_bottom = inv_zetas[3][offset / 2 + 4];
       unsigned int idx0 = block + offset; // 0
       unsigned int idx1 = idx0 + 1;       // 1
       unsigned int idx2 = idx0 + 8;       // 8
@@ -556,8 +556,8 @@ void invntt_test(int16_t r[256])
       int16_t t32_0 = fqmul(zeta32_cur, y0);
       int16_t t32_1 = fqmul(zeta32_cur, y1);
       r[idx0] = x0 + t32_0; // 0
-      r[idx2] = x1 + t32_1; // 8
-      r[idx1] = x0 - t32_0; // 1
+      r[idx1] = x1 + t32_1; // 1
+      r[idx2] = x0 - t32_0; // 8
       r[idx3] = x1 - t32_1; // 9
 
       int16_t x2 = r[idx4]; // 16
@@ -567,8 +567,8 @@ void invntt_test(int16_t r[256])
       int16_t t32_2 = fqmul(zeta32_cur, y2);
       int16_t t32_3 = fqmul(zeta32_cur, y3);
       r[idx4] = x2 + t32_2; // 16
-      r[idx6] = x3 + t32_3; // 24
-      r[idx5] = x2 - t32_2; // 17
+      r[idx5] = x3 + t32_3; // 17
+      r[idx6] = x2 - t32_2; // 24
       r[idx7] = x3 - t32_3; // 25
 
       int16_t u0 = r[idx0]; // 0
@@ -578,9 +578,9 @@ void invntt_test(int16_t r[256])
       t0 = fqmul(zeta16_top, v0);
       t1 = fqmul(zeta16_top, v1);
       r[idx0] = u0 + t0; // 0
-      r[idx2] = u0 - t0; // 16
+      r[idx4] = u0 - t0; // 16
       r[idx1] = u1 + t1; // 1
-      r[idx3] = u1 - t1; // 17
+      r[idx5] = u1 - t1; // 17
 
       int16_t u2 = r[idx2];
       int16_t u3 = r[idx3];
@@ -588,9 +588,9 @@ void invntt_test(int16_t r[256])
       int16_t v3 = r[idx7];
       t0 = fqmul(zeta16_bottom, v2);
       t1 = fqmul(zeta16_bottom, v3);
-      r[idx4] = u2 + t0;
+      r[idx2] = u2 + t0;
       r[idx6] = u2 - t0;
-      r[idx5] = u3 + t1;
+      r[idx3] = u3 + t1;
       r[idx7] = u3 - t1;
     }
   }
