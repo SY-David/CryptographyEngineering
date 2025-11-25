@@ -220,7 +220,7 @@ innerloop2end:
     b           outloop2start
 outloop2end:
 
-    movs        r1, #0 @ 小常數用 movs 即可
+    movs        r1, #0
 .p2align 2
 outloop3start:
     cmp         r1, #256
@@ -236,32 +236,22 @@ outloop3start:
     add         r4, r4, #2
     ldrsh       r7, [r8, r4]
 
-    movs        r14, #0 @ inner-loop counter 改用 r14
+    movs        r14, #0
+.p2align 2
 innerloop3start:
     cmp         r14, #4
     bge         innerloop3end
 
     add         r8, r1, r14
-    add         r8, r0, r8, lsl#1
+    add         r8, r0, r8, lsl#1 @ r8 4-byte aligned
 
-    @ 不再 vmov s0,r4，r4 只給 doublemont 當 scratch
-    ldrh        r9, [r8]
-    ldrh        r10, [r8, #2]
-    pkhbt       r9, r9, r10, lsl#16
+    @ ==== 4×32-bit load ====
+    ldr         r9, [r8]               @ a0|a1
+    ldr         r10, [r8, #8]          @ a4|a5
+    ldr         r11, [r8, #16]         @ a8|a9
+    ldr         r12, [r8, #24]         @ a12|a13
 
-    ldrh        r10, [r8, #8]
-    ldrh        r11, [r8, #10]
-    pkhbt       r10, r10, r11, lsl#16
-
-    ldrh        r11, [r8, #16]
-    ldrh        r12, [r8, #18]
-    pkhbt       r11, r11, r12, lsl#16
-
-    ldrh        r12, [r8, #24]
-    ldrh        r8, [r8, #26]
-    pkhbt       r12, r12, r8, lsl#16
-
-    @ r4 現在完全是 doublemont 的 tmp2，外面不再用它
+    @ r4 只當 doublemont scratch
     doublemont  r11, r8, r4, r3, r2, r5
     doublemont  r12, r8, r4, r3, r2, r5
 
@@ -284,68 +274,48 @@ innerloop3start:
     uadd16      r12, r12, r12
     usub16      r12, r11, r12
 
-    @ 不再 vmov r4,s0，直接用 r14 算位址
+    @ ==== 4×32-bit store ====
     add         r8, r1, r14
     add         r8, r0, r8, lsl#1
 
-    strh        r9, [r8]
-    asr         r9, r9, #16
-    strh        r9, [r8, #2]
-
-    strh        r10, [r8, #8]
-    asr         r10, r10, #16
-    strh        r10, [r8, #10]
-
-    strh        r11, [r8, #16]
-    asr         r11, r11, #16
-    strh        r11, [r8, #18]
-
-    strh        r12, [r8, #24]
-    asr         r12, r12, #16
-    strh        r12, [r8, #26]
+    str         r9, [r8]
+    str         r10, [r8, #8]
+    str         r11, [r8, #16]
+    str         r12, [r8, #24]
 
     add         r14, r14, #2
     b           innerloop3start
 innerloop3end:
     add         r1, r1, #16
-
     b           outloop3start
 outloop3end:
-    movs        r1, #0 @ 小常數用 movs，16-bit 指令
+    movs        r1, #0
     ldr         r8, =zeta2
 .p2align 2
 loop4start:
     cmp         r1, #256
     bge         loop4end
 
-    lsr         r9, r1, #1          @ r9 = r1/2
-    ldrsh       r10, [r8, r9]       @ zeta2[r1/4] (因為 2 bytes per entry)
+    lsr         r9, r1, #1
+    ldrsh       r10, [r8, r9]@ zeta2[r1/2]
 
-    add         r9, r0, r1, lsl#1 @ r9 = &a[r1]
+    add         r9, r0, r1, lsl#1 @ r9 = &a[r1]，4-byte 對齊
 
-    ldrh        r4, [r9]
-    ldrh        r5, [r9, #2]
-    pkhbt       r4, r4, r5, lsl#16 @ r4 = (a1 << 16) | a0
-
-    ldrh        r5, [r9, #4]
-    ldrh        r6, [r9, #6]
-    pkhbt       r5, r5, r6, lsl#16 @ r5 = (a3 << 16) | a2
+    @ ==== 2×32-bit load ====
+    ldr         r4, [r9]            @ a0|a1
+    ldr         r5, [r9, #4]        @ a2|a3
 
     doublemont  r5, r11, r12, r3, r2, r10
 
-    uadd16      r4, r4, r5          @ r4 = a + t
-    uadd16      r5, r5, r5          @ r5 = 2t
-    usub16      r5, r4, r5          @ r5 = a - t
+    uadd16      r4, r4, r5          @ a + t
+    uadd16      r5, r5, r5          @ 2t
+    usub16      r5, r4, r5          @ a - t
 
-    strh        r4, [r9]
-    asr         r4, r4, #16
-    strh        r4, [r9, #2]
+    @ ==== 2×32-bit store ====
+    str         r4, [r9]
+    str         r5, [r9, #4]
 
-    strh        r5, [r9, #4]
-    asr         r5, r5, #16
-    strh        r5, [r9, #6]
-
-    adds        r1, #4 @ r1 += 4，用 16-bit adds
+    adds        r1, #4 @ Thumb-16 adds, OK
     b           loop4start
 loop4end:
     pop         {r4-r12, pc}
