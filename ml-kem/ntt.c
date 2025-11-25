@@ -474,10 +474,7 @@ void invntt(int16_t r[256])
   for (j = 0; j < 256; j++)
     r[j] = fqmul(r[j], f);
 }*/
-void invntt(int16_t r[256])
-{
-  invntt_s(r);
-}
+
 void invntt_test(int16_t r[256])
 {
   unsigned int len, start, j, k;
@@ -485,7 +482,8 @@ void invntt_test(int16_t r[256])
   const int16_t f = 1441; // mont^2/128
   k = 1;
   int base;
-
+  invntt_s(r);
+  /*
   int16_t zeta64_bottom = inv_zetas[1][1];
   for (base = 0; base < 256; base += 8)
   {
@@ -522,6 +520,7 @@ void invntt_test(int16_t r[256])
     r[base + 3] = bot1 + t64_3;
     r[base + 7] = bot1 - t64_3;
   }
+  */
   int block, offset;
 
   for (block = 0; block < 256; block += 32)

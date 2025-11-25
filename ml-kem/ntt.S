@@ -368,410 +368,53 @@ loop4end:
 .type invntt_s, %function
 invntt_s:
     push        {r4-r12, lr}
-    mov         r4, r0              @ base pointer to polynomial
-    movw        r10, #758           @ zeta64_bottom for first stage
 
-    @ ------------ Stage 1: len = 4/8 ------------
-    movs        r12, #0
-inv_stage1_loop:
-    cmp         r12, #256
-    bge         inv_stage1_end
-
-    add         r11, r4, r12, lsl#1
-
-    ldrsh       r0, [r11]           @ a0
-    ldrsh       r1, [r11, #2]       @ a1
-    ldrsh       r2, [r11, #4]       @ b0
-    ldrsh       r3, [r11, #6]       @ b1
-    ldrsh       r5, [r11, #8]       @ a2
-    ldrsh       r6, [r11, #10]      @ a3
-    ldrsh       r7, [r11, #12]      @ b2
-    ldrsh       r8, [r11, #14]      @ b3
-
-    subs        r9, r0, r2          @ bot0
-    adds        r0, r0, r2          @ top0
-
-    subs        r2, r1, r3          @ bot1
-    adds        r1, r1, r3          @ top1
-
-    subs        r3, r5, r7          @ bot2
-    adds        r5, r5, r7          @ top2
-
-    subs        r7, r6, r8          @ bot3
-    adds        r6, r6, r8          @ top3
-
-    adds        r8, r0, r5          @ r[base]
-    subs        r0, r0, r5          @ r[base+4]
-    adds        r5, r1, r6          @ r[base+1]
-    subs        r1, r1, r6          @ r[base+5]
-
-    strh        r8, [r11]
-    strh        r5, [r11, #2]
-    strh        r0, [r11, #8]
-    strh        r1, [r11, #10]
-
-    mov         r0, r3
-    mov         r1, r10
-    bl          montgomery
-    mov         r3, r0 @ t64_2
-
-    mov         r0, r7
-    mov         r1, r10
-    bl          montgomery
-    mov         r7, r0 @ t64_3
-
-    adds        r0, r9, r3          @ r[base+2]
-    subs        r3, r9, r3          @ r[base+6]
-    adds        r1, r2, r7          @ r[base+3]
-    subs        r2, r2, r7          @ r[base+7]
-
-    strh        r0, [r11, #4]
-    strh        r1, [r11, #6]
-    strh        r3, [r11, #12]
-    strh        r2, [r11, #14]
-
-    adds        r12, r12, #8
-    b           inv_stage1_loop
-inv_stage1_end:
-
-    @ ------------ Stage 2: len = 8/16 (block = 32) ------------
-    movs        r1, #0 @ block index
-inv_stage2_block:
-    cmp         r1, #256
-    bge         inv_stage2_end
-
-    push        {r1, r14}@ save block index and maintain stack alignment
-    add         r11, r4, r1, lsl#1
-    ldr         r8, =inv_zeta_layer2
-    ldr         r9, =inv_zeta_layer3
-    add         r10, r9, #8         @ bottom zetas start at index 4
-    movs        r14, #4             @ 4 iterations (offset 0,2,4,6)
-    mov         r2, r11             @ current pointer within block
-inv_stage2_inner:
-    ldrsh       r5, [r8], #2        @ zeta32_cur
-    ldrsh       r6, [r9], #2        @ zeta16_top
-    ldrsh       r7, [r10], #2       @ zeta16_bottom
-
-    ldrsh       r0, [r2]            @ x0
-    ldrsh       r1, [r2, #2]        @ x1
-    ldrsh       r3, [r2, #16]       @ y0
-    ldrsh       r11, [r2, #18]      @ y1
-
-    mov         r0, r3
-    mov         r1, r5
-    bl          montgomery
-    mov         r3, r0 @ t32_0
-
-    mov         r0, r11
-    mov         r1, r5
-    bl          montgomery
-    mov         r11, r0 @ t32_1
-
-    ldrsh       r0, [r2]            @ reload x0
-    ldrsh       r1, [r2, #2]        @ reload x1
-    adds        r0, r0, r3
-    subs        r3, r0, r3, lsl#1 @ r3 = (x0 + t32_0) - 2*t32_0 = x0 - t32_0
-    adds        r1, r1, r11
-    subs        r11, r1, r11, lsl#1 @ r11 = x1 - t32_1
-
-    strh        r0, [r2]            @ idx0
-    strh        r1, [r2, #2]        @ idx1
-    strh        r3, [r2, #16]       @ idx2
-    strh        r11, [r2, #18]      @ idx3
-
-    ldrsh       r0, [r2, #32]       @ x2
-    ldrsh       r1, [r2, #34]       @ x3
-    ldrsh       r3, [r2, #48]       @ y2
-    ldrsh       r12, [r2, #50]      @ y3
-
-    mov         r0, r3
-    mov         r1, r5
-    bl          montgomery
-    mov         r3, r0 @ t32_2
-
-    mov         r0, r12
-    mov         r1, r5
-    bl          montgomery
-    mov         r12, r0 @ t32_3
-
-    ldrsh       r0, [r2, #32]       @ reload x2
-    ldrsh       r1, [r2, #34]       @ reload x3
-    adds        r0, r0, r3
-    subs        r3, r0, r3, lsl#1
-    adds        r1, r1, r12
-    subs        r12, r1, r12, lsl#1
-
-    strh        r0, [r2, #32]       @ idx4
-    strh        r1, [r2, #34]       @ idx5
-    strh        r3, [r2, #48]       @ idx6
-    strh        r12, [r2, #50]      @ idx7
-
-    @ zeta16_top
-    ldrsh       r0, [r2]            @ u0
-    ldrsh       r1, [r2, #2]        @ u1
-    ldrsh       r3, [r2, #32]       @ v0
-    ldrsh       r12, [r2, #34]      @ v1
-
-    mov         r0, r3
-    mov         r1, r6
-    bl          montgomery
-    mov         r3, r0 @ t0
-
-    mov         r0, r12
-    mov         r1, r6
-    bl          montgomery
-    mov         r12, r0 @ t1
-
-    ldrsh       r0, [r2]            @ reload u0
-    ldrsh       r1, [r2, #2]        @ reload u1
-    adds        r0, r0, r3
-    subs        r3, r0, r3, lsl#1
-    adds        r1, r1, r12
-    subs        r12, r1, r12, lsl#1
-
-    strh        r0, [r2]            @ idx0
-    strh        r1, [r2, #2]        @ idx1
-    strh        r3, [r2, #32]       @ idx4
-    strh        r12, [r2, #34]      @ idx5
-
-    @ zeta16_bottom
-    ldrsh       r0, [r2, #16]       @ u2
-    ldrsh       r1, [r2, #18]       @ u3
-    ldrsh       r3, [r2, #48]       @ v2
-    ldrsh       r12, [r2, #50]      @ v3
-
-    mov         r0, r3
-    mov         r1, r7
-    bl          montgomery
-    mov         r3, r0
-
-    mov         r0, r12
-    mov         r1, r7
-    bl          montgomery
-    mov         r12, r0
-
-    ldrsh       r0, [r2, #16]       @ reload u2
-    ldrsh       r1, [r2, #18]       @ reload u3
-    adds        r0, r0, r3
-    subs        r3, r0, r3, lsl#1
-    adds        r1, r1, r12
-    subs        r12, r1, r12, lsl#1
-
-    strh        r0, [r2, #16]       @ idx2
-    strh        r1, [r2, #18]       @ idx3
-    strh        r3, [r2, #48]       @ idx6
-    strh        r12, [r2, #50]      @ idx7
-
-    add         r2, r2, #4
-    subs        r14, r14, #1
-    bne         inv_stage2_inner
-
-    pop         {r14, r1}@ restore block index
-    adds        r1, r1, #32
-    b           inv_stage2_block
-inv_stage2_end:
-
-    @ ------------ Stage 3: len = 16/32 (block = 128) ------------
+    // r0 = r[256]
+    // r1 = counter
     movs        r1, #0
-inv_stage3_block:
+    movw        r2, #3327
+    movw        r3, #3329
+    movw        r8, #758
+
+.p2align 2
+invloop1start:
     cmp         r1, #256
-    bge         inv_stage3_end
+    bge         invloop1end
 
-    push        {r1, r14}@ save block index and keep alignment
-    add         r11, r4, r1, lsl#1
-    ldr         r8, =inv_zeta_layer4
-    ldr         r9, =inv_zeta_layer5
-    add         r10, r9, #32 @ bottom table starts at index 16
+    add         r11, r0, r1, lsl#1
 
-    movs        r14, #16
-    mov         r2, r11
-inv_stage3_inner:
-    ldrsh       r5, [r8], #2        @ zeta8_cur
-    ldrsh       r6, [r9], #2        @ zeta4_top
-    ldrsh       r7, [r10], #2       @ zeta4_bottom
+    ldr         r4, [r11]
+    ldr         r5, [r11, #4]
+    ldr         r6, [r11, #8]
+    ldr         r7, [r11, #12]
 
-    ldrsh       r0, [r2]            @ x0
-    ldrsh       r1, [r2, #2]        @ x1
-    ldrsh       r3, [r2, #64]       @ y0
-    ldrsh       r12, [r2, #66]      @ y1
+    uadd16      r4, r4, r5
+    uadd16      r5, r5, r5
+    usub16      r5, r4, r5
 
-    mov         r0, r3
-    mov         r1, r5
-    bl          montgomery
-    mov         r3, r0 @ t8_0
+    uadd16      r6, r6, r7
+    uadd16      r7, r7, r7
+    usub16      r7, r6, r7
 
-    mov         r0, r12
-    mov         r1, r5
-    bl          montgomery
-    mov         r12, r0 @ t8_1
+    doublemont  r7, r9, r11, r3, r2, r8
 
-    ldrsh       r0, [r2]            @ reload x0
-    ldrsh       r1, [r2, #2]        @ reload x1
-    adds        r0, r0, r3
-    subs        r3, r0, r3, lsl#1
-    adds        r1, r1, r12
-    subs        r12, r1, r12, lsl#1
+    uadd16      r4, r4, r6
+    uadd16      r6, r6, r6
+    usub16      r6, r4, r6
 
-    strh        r0, [r2]
-    strh        r1, [r2, #2]
-    strh        r3, [r2, #64]
-    strh        r12, [r2, #66]
+    uadd16      r5, r5, r7
+    uadd16      r7, r7, r7
+    usub16      r7, r5, r7
 
-    ldrsh       r0, [r2, #128]      @ x2
-    ldrsh       r1, [r2, #130]      @ x3
-    ldrsh       r3, [r2, #192]      @ y2
-    ldrsh       r12, [r2, #194]     @ y3
+    add         r11, r0, r1, lsl#1
 
-    mov         r0, r3
-    mov         r1, r5
-    bl          montgomery
-    mov         r3, r0 @ t8_2
+    str         r4, [r11]
+    str         r5, [r11, #4]
+    str         r6, [r11, #8]
+    str         r7, [r11, #12]
 
-    mov         r0, r12
-    mov         r1, r5
-    bl          montgomery
-    mov         r12, r0 @ t8_3
-
-    ldrsh       r0, [r2, #128]      @ reload x2
-    ldrsh       r1, [r2, #130]      @ reload x3
-    adds        r0, r0, r3
-    subs        r3, r0, r3, lsl#1
-    adds        r1, r1, r12
-    subs        r12, r1, r12, lsl#1
-
-    strh        r0, [r2, #128]
-    strh        r1, [r2, #130]
-    strh        r3, [r2, #192]
-    strh        r12, [r2, #194]
-
-    @ zeta4_top
-    ldrsh       r0, [r2]            @ u0
-    ldrsh       r1, [r2, #2]        @ u1
-    ldrsh       r3, [r2, #128]      @ v0
-    ldrsh       r12, [r2, #130]     @ v1
-
-    mov         r0, r3
-    mov         r1, r6
-    bl          montgomery
-    mov         r3, r0
-
-    mov         r0, r12
-    mov         r1, r6
-    bl          montgomery
-    mov         r12, r0
-
-    ldrsh       r0, [r2]
-    ldrsh       r1, [r2, #2]
-    adds        r0, r0, r3
-    subs        r3, r0, r3, lsl#1
-    adds        r1, r1, r12
-    subs        r12, r1, r12, lsl#1
-
-    strh        r0, [r2]
-    strh        r1, [r2, #2]
-    strh        r3, [r2, #128]
-    strh        r12, [r2, #130]
-
-    @ zeta4_bottom
-    ldrsh       r0, [r2, #64]       @ u2
-    ldrsh       r1, [r2, #66]       @ u3
-    ldrsh       r3, [r2, #192]      @ v2
-    ldrsh       r12, [r2, #194]     @ v3
-
-    mov         r0, r3
-    mov         r1, r7
-    bl          montgomery
-    mov         r3, r0
-
-    mov         r0, r12
-    mov         r1, r7
-    bl          montgomery
-    mov         r12, r0
-
-    ldrsh       r0, [r2, #64]
-    ldrsh       r1, [r2, #66]
-    adds        r0, r0, r3
-    subs        r3, r0, r3, lsl#1
-    adds        r1, r1, r12
-    subs        r12, r1, r12, lsl#1
-
-    strh        r0, [r2, #64]
-    strh        r1, [r2, #66]
-    strh        r3, [r2, #192]
-    strh        r12, [r2, #194]
-
-    add         r2, r2, #4
-    subs        r14, r14, #1
-    bne         inv_stage3_inner
-
-    pop         {r14, r1}@ restore block index
-    adds        r1, r1, #128
-    b           inv_stage3_block
-inv_stage3_end:
-
-    @ ------------ Final Stage: len = 2 with twist ------------
-    ldr         r8, =inv_zeta_layer6
-    ldr         r9, =twist_table
-    add         r10, r9, #128       @ twist pointer for upper half
-    mov         r2, r4              @ ptr to lower half
-    add         r3, r4, #256        @ ptr to upper half (index +128)
-    movs        r12, #64            @ 64 iterations (j = 0..126 step 2)
-inv_stage4_loop:
-    ldrsh       r5, [r8], #2 @ zeta
-
-    ldrsh       r0, [r2]            @ p0
-    ldrsh       r1, [r2, #2]        @ p1
-    ldrsh       r6, [r3]            @ q0
-    ldrsh       r7, [r3, #2]        @ q1
-
-    mov         r0, r6
-    mov         r1, r5
-    bl          montgomery
-    mov         r6, r0 @ t0
-
-    mov         r0, r7
-    mov         r1, r5
-    bl          montgomery
-    mov         r7, r0 @ t1
-
-    ldrsh       r11, [r9], #2       @ twist lower
-    ldrsh       r14, [r10], #2      @ twist upper
-
-    ldrsh       r0, [r2]            @ reload p0
-    ldrsh       r1, [r2, #2]        @ reload p1
-
-    mov         r3, r1              @ preserve p1
-    adds        r5, r0, r6          @ sum0 = p0 + t0
-    subs        r6, r0, r6          @ diff0 = p0 - t0
-    adds        r0, r1, r7          @ sum1
-    subs        r1, r3, r7          @ diff1
-    mov         r7, r0              @ save sum1
-    push        {r0, r1}            @ save (unused) sum1 copy and diff1, keep stack aligned
-
-    mov         r0, r5 @ idx0
-    mov         r1, r11
-    bl          montgomery
-    strh        r0, [r2]
-
-    mov         r0, r6 @ idx2
-    mov         r1, r14
-    bl          montgomery
-    strh        r0, [r3]
-
-    mov         r0, r7 @ idx1
-    mov         r1, r11
-    bl          montgomery
-    strh        r0, [r2, #2]
-
-    pop         {r0, r1}            @ diff1 restored in r1
-    mov         r0, r1              @ diff1 -> r0
-    mov         r1, r14
-    bl          montgomery
-    strh        r0, [r3, #2]@ idx3
-
-    add         r2, r2, #4
-    add         r3, r3, #4
-    subs        r12, r12, #1
-    bne         inv_stage4_loop
+    add         r1, r1, #8
+    b           invloop1start
+invloop1end:
 
     pop         {r4-r12, pc}
