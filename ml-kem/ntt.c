@@ -480,8 +480,7 @@ void invntt_test(int16_t r[256])
   const int16_t f = 1441; // mont^2/128
   k = 1;
   int base;
-  int16_t zeta128 = inv_zetas[0][0];
-  int16_t zeta64_top = inv_zetas[1][0];
+
   int16_t zeta64_bottom = inv_zetas[1][1];
   for (base = 0; base < 256; base += 8)
   {
@@ -500,21 +499,15 @@ void invntt_test(int16_t r[256])
     int16_t b2 = r[base + 6];
     int16_t b3 = r[base + 7];
 
-    int16_t t128_2 = fqmul(zeta128, b2);
-    int16_t t128_3 = fqmul(zeta128, b3);
+    int16_t top2 = a2 + b2; // 4
+    int16_t top3 = a3 + b3; // 5
+    int16_t bot2 = a2 - b2; // 6
+    int16_t bot3 = a3 - b3; // 7
 
-    int16_t top2 = a2 + t128_2; // 4
-    int16_t top3 = a3 + t128_3; // 5
-    int16_t bot2 = a2 - t128_2; // 6
-    int16_t bot3 = a3 - t128_3; // 7
-
-    int16_t t64_0 = fqmul(zeta64_top, top2);
-    int16_t t64_1 = fqmul(zeta64_top, top3);
-
-    r[base] = top0 + t64_0;
-    r[base + 4] = top0 - t64_0;
-    r[base + 1] = top1 + t64_1;
-    r[base + 5] = top1 - t64_1;
+    r[base] = top0 + top2;
+    r[base + 4] = top0 - top2;
+    r[base + 1] = top1 + top3;
+    r[base + 5] = top1 - top3;
 
     int16_t t64_2 = fqmul(zeta64_bottom, bot2);
     int16_t t64_3 = fqmul(zeta64_bottom, bot3);
