@@ -490,13 +490,10 @@ void invntt_test(int16_t r[256])
     int16_t b0 = r[base + 2];
     int16_t b1 = r[base + 3];
 
-    int16_t t128_0 = fqmul(zeta128, b0);
-    int16_t t128_1 = fqmul(zeta128, b1);
-
-    int16_t top0 = a0 + t128_0; // 0
-    int16_t top1 = a1 + t128_1; // 1
-    int16_t bot0 = a0 - t128_0; // 2
-    int16_t bot1 = a1 - t128_1; // 3
+    int16_t top0 = a0 + b0; // 0
+    int16_t top1 = a1 + b1; // 1
+    int16_t bot0 = a0 - b0; // 2
+    int16_t bot1 = a1 - b1; // 3
 
     int16_t a2 = r[base + 4];
     int16_t a3 = r[base + 5];
