@@ -672,10 +672,10 @@ void invntt_test(int16_t r[256])
     int16_t t0 = fqmul(zeta, q0);
     int16_t t1 = fqmul(zeta, q1);
 
-    r[idx0] = fqmul(twist_table[idx0 / 2], p0 + t0);
-    r[idx2] = fqmul(twist_table[idx2 / 2], p0 - t0);
-    r[idx1] = fqmul(twist_table[idx1 / 2], p1 + t1);
-    r[idx3] = fqmul(twist_table[idx3 / 2], p1 - t1);
+    r[idx0] = p0 + t0;
+    r[idx2] = p0 - t0;
+    r[idx1] = p1 + t1;
+    r[idx3] = p1 - t1;
   }
 
   /*
@@ -697,6 +697,15 @@ void invntt_test(int16_t r[256])
     }
     ++layer;
   }*/
+
+  for (int i = 0; i < 256; i += 2)
+  {
+    r[i] = fqmul(r[i], twist_table[i / 2]);
+    r[i + 1] = fqmul(r[i + 1], twist_table[i / 2]);
+  }
+
+  for (j = 0; j < 256; j++)
+    r[j] = fqmul(r[j], f);
 }
 
 /*************************************************
