@@ -486,7 +486,7 @@ void invntt_test(int16_t r[256])
   int16_t zeta128 = inv_zetas[0][0];
   int16_t zeta64_top = inv_zetas[1][0];
   int16_t zeta64_bottom = inv_zetas[1][1];
-  for (base = 0; base < 64; base += 8)
+  for (base = 0; base < 256; base += 8)
   {
     int16_t a0 = r[base];
     int16_t a1 = r[base + 1];
