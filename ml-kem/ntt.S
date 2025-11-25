@@ -489,7 +489,7 @@ invoutloop3start:
 .p2align 2
 invinnerloop3start:
     cmp         r14, #32
-    bge         invinnerloop2end
+    bge         invinnerloop3end
 
     ldr         r4, =inv_zeta_layer4
     ldrsh       r5, [r4, r14]
