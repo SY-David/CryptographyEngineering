@@ -542,5 +542,40 @@ invinnerloop3end:
     add         r1, r1, #128
     b           invoutloop3start
 invoutloop3end:
+    movs        r1, #0
+    ldr         r8, =inv_zeta_layer6
+    ldr         r14, =twist_table
+.p2align 2
+invloop4start:
+    cmp         r1, #128
+    bge         loop4end
+
+    ldrsh       r10, [r8, r9]@ zeta2[r1/2]
+
+    add         r9, r0, r1, lsl#1 @ r9 = &a[r1]，4-byte 對齊
+
+    @ ==== 2×32-bit load ====
+    ldr         r4, [r9]@ a0|a1
+    ldr         r5, [r9, #256]@ a2|a3
+
+    doublemont  r5, r11, r12, r3, r2, r10
+
+    uadd16      r4, r4, r5          @ a + t
+    uadd16      r5, r5, r5          @ 2t
+    usub16      r5, r4, r5          @ a - t
+
+    @ ==== 2×32-bit store ====
+    ldr         r10, [r14, r1]
+    add         r12, r1, #256
+
+    doublemont  r4, r11, r12, r3, r2, r10
+    ldr         r10, [r14, r12]
+    doublemont  r5, r11, r12, r3, r2, r10
+    str         r4, [r9]
+    str         r5, [r9, #4]
+
+    adds        r1, #2 @ Thumb-16 adds, OK
+    b           invloop4start
+invloop4end:
 
     pop         {r4-r12, pc}

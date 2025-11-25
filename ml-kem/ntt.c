@@ -477,11 +477,7 @@ void invntt(int16_t r[256])
 
 void invntt_test(int16_t r[256])
 {
-  unsigned int len, start, j, k;
-  int16_t t, t1, zeta;
-  const int16_t f = 1441; // mont^2/128
-  k = 1;
-  int base;
+
   invntt_s(r);
   /*
   int16_t zeta64_bottom = inv_zetas[1][1];
@@ -520,9 +516,9 @@ void invntt_test(int16_t r[256])
     r[base + 3] = bot1 + t64_3;
     r[base + 7] = bot1 - t64_3;
   }
-  */
+
   int block, offset;
-  /*
+
   for (block = 0; block < 256; block += 32)
   {
     int16_t t0, t1;
@@ -651,7 +647,7 @@ void invntt_test(int16_t r[256])
   }
     */
   /* Final len=2 layer */
-
+  /*
   for (j = 0; j < 128; j += 2)
   {
     int16_t zeta = inv_zetas[6][j / 2];
@@ -674,6 +670,7 @@ void invntt_test(int16_t r[256])
     r[idx1] = fqmul(twist_table[idx1 / 2], p1 + t1);
     r[idx3] = fqmul(twist_table[idx3 / 2], p1 - t1);
   }
+    */
 
   /*
   int layer = 6;
