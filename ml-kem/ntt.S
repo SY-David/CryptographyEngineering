@@ -493,7 +493,7 @@ invinnerloop3start:
 
     ldr         r4, =inv_zeta_layer4
     ldrsh       r5, [r4, r14]
-    add         r8, r4, #8 // inv_zeta_layer5
+    add         r8, r4, #32 // inv_zeta_layer5
     add         r4, r14, #32
     ldrsh       r6, [r8, r14]
     ldrsh       r7, [r8, r4]
