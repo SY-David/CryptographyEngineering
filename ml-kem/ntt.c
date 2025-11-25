@@ -531,10 +531,10 @@ void invntt_test(int16_t r[256])
     r[base + 7] = bot1 - t64_3;
   }
   int block, offset;
-  int16_t t0, t1;
+
   for (block = 0; block < 256; block += 32)
   {
-
+    int16_t t0, t1;
     for (offset = 0; offset < 8; offset += 2)
     {
       int16_t zeta32_cur = inv_zetas[2][offset / 2];
