@@ -488,7 +488,7 @@ void invntt_test(int16_t r[256])
     {
       for (j = start; j < start + len; j += 2)
       {
-        zeta = inv_zetas[layer][j - start];
+        zeta = inv_zetas[layer][(j - start) / 2];
         t = fqmul(zeta, r[j + len]);
         t1 = fqmul(zeta, r[j + 1 + len]);
         r[j + len] = r[j] - t;
