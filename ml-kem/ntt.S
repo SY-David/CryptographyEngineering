@@ -99,9 +99,10 @@ ntt_s:
     movw        r2, #3327
     movw        r3, #3329
     ldr         r8, =zetas
-    ldrsh       r9, [r8, #2]    // zeta128 = zetas[1]
-    ldrsh       r10, [r8, #4]   // zeta64_top    = zetas[2]
-    ldrsh       r12, [r8, #6]   // zeta64_bottom = zetas[3]
+    ldrsh       r9, [r8, #2]     // zeta128 = zetas[1]
+    ldrsh       r10, [r8, #4]    // zeta64_top    = zetas[2]
+    ldrsh       r12, [r8, #6]    // zeta64_bottom = zetas[3]
+
 .p2align 2
 loop1start:
     cmp         r1, #64
@@ -109,21 +110,11 @@ loop1start:
 
     add         r11, r0, r1, lsl#1
 
-    ldrh        r4, [r11]
-    ldrh        r5, [r11, #2]
-    pkhbt       r4, r4, r5, lsl#16
-
-    ldrh        r5, [r11, #128]
-    ldrh        r6, [r11, #130]
-    pkhbt       r5, r5, r6, lsl#16
-
-    ldrh        r6, [r11, #256]
-    ldrh        r7, [r11, #258]
-    pkhbt       r6, r6, r7, lsl#16
-
-    ldrh        r7, [r11, #384]
-    ldrh        r8, [r11, #386]
-    pkhbt       r7, r7, r8, lsl#16
+    @ 4× SWAR load：一次讀兩個 int16
+    ldr         r4, [r11]          @ a0|a1
+    ldr         r5, [r11, #128]    @ a64|a65
+    ldr         r6, [r11, #256]    @ a128|a129
+    ldr         r7, [r11, #384]    @ a192|a193
 
     doublemont  r6, r8, r11, r3, r2, r9
     doublemont  r7, r8, r11, r3, r2, r9
@@ -139,33 +130,21 @@ loop1start:
     doublemont  r5, r8, r11, r3, r2, r10
     doublemont  r7, r8, r11, r3, r2, r12
 
-    uadd16      r4, r4, r5      // r4 = top + t64_top
-    uadd16      r5, r5, r5      // r5 = 2 * t64_top
-    usub16      r5, r4, r5      // r5 = top - t64_top
+    uadd16      r4, r4, r5      @ top + t64_top
+    uadd16      r5, r5, r5      @ 2 * t64_top
+    usub16      r5, r4, r5      @ top - t64_top
 
-    uadd16      r6, r6, r7      // r6 = bot + t64_bottom
-    uadd16      r7, r7, r7      // r7 = 2 * t64_bottom
-    usub16      r7, r6, r7      // r7 = bot - t64_bottom
+    uadd16      r6, r6, r7      @ bot + t64_bottom
+    uadd16      r7, r7, r7      @ 2 * t64_bottom
+    usub16      r7, r6, r7      @ bot - t64_bottom
+
+    @ 直接 32-bit store 回去
     add         r11, r0, r1, lsl#1
 
-    strh        r4, [r11]
-    asr         r4, r4, #16
-    strh        r4, [r11, #2]
-
-    strh        r5, [r11, #128]
-
-    asr         r5, r5, #16
-    strh        r5, [r11, #130]
-
-    strh        r6, [r11, #256]
-
-    asr         r6, r6, #16
-    strh        r6, [r11, #258]
-
-    strh        r7, [r11, #384]
-
-    asr         r7, r7, #16
-    strh        r7, [r11, #386]
+    str         r4, [r11]
+    str         r5, [r11, #128]
+    str         r6, [r11, #256]
+    str         r7, [r11, #384]
 
     add         r1, r1, #2
     b           loop1start
@@ -187,31 +166,22 @@ outloop2start:
     add         r4, r4, #2
     ldrsh       r7, [r8, r4]
 
-    movs        r14, #0 @ 用 r14 當 inner-loop counter
+    movs        r14, #0 @ inner-loop index
+.p2align 2
 innerloop2start:
     cmp         r14, #16
     bge         innerloop2end
 
     add         r8, r1, r14
-    add         r8, r0, r8, lsl#1
+    add         r8, r0, r8, lsl#1 @ r8 = base pointer for this butterfly
 
-    ldrh        r9, [r8]
-    ldrh        r10, [r8, #2]
-    pkhbt       r9, r9, r10, lsl#16
+    @ ==== 4×32-bit load，取代 ldrh+ldrh+pkhbt ====
+    ldr         r9, [r8]             @ a0|a1
+    ldr         r10, [r8, #32]       @ a16|a17
+    ldr         r11, [r8, #64]       @ a32|a33
+    ldr         r12, [r8, #96]       @ a48|a49
 
-    ldrh        r10, [r8, #32]
-    ldrh        r11, [r8, #34]
-    pkhbt       r10, r10, r11, lsl#16
-
-    ldrh        r11, [r8, #64]
-    ldrh        r12, [r8, #66]
-    pkhbt       r11, r11, r12, lsl#16
-
-    ldrh        r12, [r8, #96]
-    ldrh        r8, [r8, #98]
-    pkhbt       r12, r12, r8, lsl#16
-
-    @ r4 現在只是 doublemont 的 tmp2，完全可以被覆寫
+    @ doublemont 用 r8, r4 做暫存沒問題，因為 pointer 已用完
     doublemont  r11, r8, r4, r3, r2, r5
     doublemont  r12, r8, r4, r3, r2, r5
 
@@ -234,29 +204,19 @@ innerloop2start:
     uadd16      r12, r12, r12
     usub16      r12, r11, r12
 
+    @ ==== 4×32-bit store，取代 strh+asr+strh ====
     add         r8, r1, r14
     add         r8, r0, r8, lsl#1
 
-    strh        r9, [r8]
-    asr         r9, r9, #16
-    strh        r9, [r8, #2]
-
-    strh        r10, [r8, #32]
-    asr         r10, r10, #16
-    strh        r10, [r8, #34]
-
-    strh        r11, [r8, #64]
-    asr         r11, r11, #16
-    strh        r11, [r8, #66]
-
-    strh        r12, [r8, #96]
-    asr         r12, r12, #16
-    strh        r12, [r8, #98]
+    str         r9, [r8]
+    str         r10, [r8, #32]
+    str         r11, [r8, #64]
+    str         r12, [r8, #96]
 
     add         r14, r14, #2
     b           innerloop2start
 innerloop2end:
-    add         r1, #64
+    add         r1, r1, #64 @ 注意這裡要寫完整 add r1,r1,#64
     b           outloop2start
 outloop2end:
 
