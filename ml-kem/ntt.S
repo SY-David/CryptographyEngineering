@@ -377,7 +377,7 @@ inv_stage1_loop:
     cmp         r12, #256
     bge         inv_stage1_end
 
-    add         r11, r4, r12, lsl #1
+    add         r11, r4, r12, lsl#1
 
     ldrsh       r0, [r11]           @ a0
     ldrsh       r1, [r11, #2]       @ a1
@@ -413,12 +413,12 @@ inv_stage1_loop:
     mov         r0, r3
     mov         r1, r10
     bl          montgomery
-    mov         r3, r0              @ t64_2
+    mov         r3, r0 @ t64_2
 
     mov         r0, r7
     mov         r1, r10
     bl          montgomery
-    mov         r7, r0              @ t64_3
+    mov         r7, r0 @ t64_3
 
     adds        r0, r9, r3          @ r[base+2]
     subs        r3, r9, r3          @ r[base+6]
@@ -435,13 +435,13 @@ inv_stage1_loop:
 inv_stage1_end:
 
     @ ------------ Stage 2: len = 8/16 (block = 32) ------------
-    movs        r1, #0              @ block index
+    movs        r1, #0 @ block index
 inv_stage2_block:
     cmp         r1, #256
     bge         inv_stage2_end
 
-    push        {r1, r14}           @ save block index and maintain stack alignment
-    add         r11, r4, r1, lsl #1
+    push        {r1, r14}@ save block index and maintain stack alignment
+    add         r11, r4, r1, lsl#1
     ldr         r8, =inv_zeta_layer2
     ldr         r9, =inv_zeta_layer3
     add         r10, r9, #8         @ bottom zetas start at index 4
@@ -460,19 +460,19 @@ inv_stage2_inner:
     mov         r0, r3
     mov         r1, r5
     bl          montgomery
-    mov         r3, r0              @ t32_0
+    mov         r3, r0 @ t32_0
 
     mov         r0, r11
     mov         r1, r5
     bl          montgomery
-    mov         r11, r0             @ t32_1
+    mov         r11, r0 @ t32_1
 
     ldrsh       r0, [r2]            @ reload x0
     ldrsh       r1, [r2, #2]        @ reload x1
     adds        r0, r0, r3
-    subs        r3, r0, r3, lsl #1  @ r3 = (x0 + t32_0) - 2*t32_0 = x0 - t32_0
+    subs        r3, r0, r3, lsl#1 @ r3 = (x0 + t32_0) - 2*t32_0 = x0 - t32_0
     adds        r1, r1, r11
-    subs        r11, r1, r11, lsl #1 @ r11 = x1 - t32_1
+    subs        r11, r1, r11, lsl#1 @ r11 = x1 - t32_1
 
     strh        r0, [r2]            @ idx0
     strh        r1, [r2, #2]        @ idx1
@@ -487,58 +487,58 @@ inv_stage2_inner:
     mov         r0, r3
     mov         r1, r5
     bl          montgomery
-    mov         r3, r0              @ t32_2
+    mov         r3, r0 @ t32_2
 
     mov         r0, r12
     mov         r1, r5
     bl          montgomery
-    mov         r12, r0             @ t32_3
+    mov         r12, r0 @ t32_3
 
     ldrsh       r0, [r2, #32]       @ reload x2
     ldrsh       r1, [r2, #34]       @ reload x3
     adds        r0, r0, r3
-    subs        r3, r0, r3, lsl #1
+    subs        r3, r0, r3, lsl#1
     adds        r1, r1, r12
-    subs        r12, r1, r12, lsl #1
+    subs        r12, r1, r12, lsl#1
 
     strh        r0, [r2, #32]       @ idx4
     strh        r1, [r2, #34]       @ idx5
     strh        r3, [r2, #48]       @ idx6
-    strh        r12,[r2, #50]       @ idx7
+    strh        r12, [r2, #50]      @ idx7
 
     @ zeta16_top
     ldrsh       r0, [r2]            @ u0
     ldrsh       r1, [r2, #2]        @ u1
     ldrsh       r3, [r2, #32]       @ v0
-    ldrsh       r12,[r2, #34]       @ v1
+    ldrsh       r12, [r2, #34]      @ v1
 
     mov         r0, r3
     mov         r1, r6
     bl          montgomery
-    mov         r3, r0              @ t0
+    mov         r3, r0 @ t0
 
     mov         r0, r12
     mov         r1, r6
     bl          montgomery
-    mov         r12, r0             @ t1
+    mov         r12, r0 @ t1
 
     ldrsh       r0, [r2]            @ reload u0
     ldrsh       r1, [r2, #2]        @ reload u1
     adds        r0, r0, r3
-    subs        r3, r0, r3, lsl #1
+    subs        r3, r0, r3, lsl#1
     adds        r1, r1, r12
-    subs        r12, r1, r12, lsl #1
+    subs        r12, r1, r12, lsl#1
 
     strh        r0, [r2]            @ idx0
     strh        r1, [r2, #2]        @ idx1
     strh        r3, [r2, #32]       @ idx4
-    strh        r12,[r2, #34]       @ idx5
+    strh        r12, [r2, #34]      @ idx5
 
     @ zeta16_bottom
     ldrsh       r0, [r2, #16]       @ u2
     ldrsh       r1, [r2, #18]       @ u3
     ldrsh       r3, [r2, #48]       @ v2
-    ldrsh       r12,[r2, #50]       @ v3
+    ldrsh       r12, [r2, #50]      @ v3
 
     mov         r0, r3
     mov         r1, r7
@@ -553,20 +553,20 @@ inv_stage2_inner:
     ldrsh       r0, [r2, #16]       @ reload u2
     ldrsh       r1, [r2, #18]       @ reload u3
     adds        r0, r0, r3
-    subs        r3, r0, r3, lsl #1
+    subs        r3, r0, r3, lsl#1
     adds        r1, r1, r12
-    subs        r12, r1, r12, lsl #1
+    subs        r12, r1, r12, lsl#1
 
     strh        r0, [r2, #16]       @ idx2
     strh        r1, [r2, #18]       @ idx3
     strh        r3, [r2, #48]       @ idx6
-    strh        r12,[r2, #50]       @ idx7
+    strh        r12, [r2, #50]      @ idx7
 
     add         r2, r2, #4
     subs        r14, r14, #1
     bne         inv_stage2_inner
 
-    pop         {r14, r1}           @ restore block index
+    pop         {r14, r1}@ restore block index
     adds        r1, r1, #32
     b           inv_stage2_block
 inv_stage2_end:
@@ -577,11 +577,11 @@ inv_stage3_block:
     cmp         r1, #256
     bge         inv_stage3_end
 
-    push        {r1, r14}           @ save block index and keep alignment
-    add         r11, r4, r1, lsl #1
+    push        {r1, r14}@ save block index and keep alignment
+    add         r11, r4, r1, lsl#1
     ldr         r8, =inv_zeta_layer4
     ldr         r9, =inv_zeta_layer5
-    add         r10, r9, #32        @ bottom table starts at index 16
+    add         r10, r9, #32 @ bottom table starts at index 16
 
     movs        r14, #16
     mov         r2, r11
@@ -593,62 +593,62 @@ inv_stage3_inner:
     ldrsh       r0, [r2]            @ x0
     ldrsh       r1, [r2, #2]        @ x1
     ldrsh       r3, [r2, #64]       @ y0
-    ldrsh       r12,[r2, #66]       @ y1
+    ldrsh       r12, [r2, #66]      @ y1
 
     mov         r0, r3
     mov         r1, r5
     bl          montgomery
-    mov         r3, r0              @ t8_0
+    mov         r3, r0 @ t8_0
 
     mov         r0, r12
     mov         r1, r5
     bl          montgomery
-    mov         r12, r0             @ t8_1
+    mov         r12, r0 @ t8_1
 
     ldrsh       r0, [r2]            @ reload x0
     ldrsh       r1, [r2, #2]        @ reload x1
     adds        r0, r0, r3
-    subs        r3, r0, r3, lsl #1
+    subs        r3, r0, r3, lsl#1
     adds        r1, r1, r12
-    subs        r12, r1, r12, lsl #1
+    subs        r12, r1, r12, lsl#1
 
     strh        r0, [r2]
     strh        r1, [r2, #2]
     strh        r3, [r2, #64]
-    strh        r12,[r2, #66]
+    strh        r12, [r2, #66]
 
     ldrsh       r0, [r2, #128]      @ x2
     ldrsh       r1, [r2, #130]      @ x3
     ldrsh       r3, [r2, #192]      @ y2
-    ldrsh       r12,[r2, #194]      @ y3
+    ldrsh       r12, [r2, #194]     @ y3
 
     mov         r0, r3
     mov         r1, r5
     bl          montgomery
-    mov         r3, r0              @ t8_2
+    mov         r3, r0 @ t8_2
 
     mov         r0, r12
     mov         r1, r5
     bl          montgomery
-    mov         r12, r0             @ t8_3
+    mov         r12, r0 @ t8_3
 
     ldrsh       r0, [r2, #128]      @ reload x2
     ldrsh       r1, [r2, #130]      @ reload x3
     adds        r0, r0, r3
-    subs        r3, r0, r3, lsl #1
+    subs        r3, r0, r3, lsl#1
     adds        r1, r1, r12
-    subs        r12, r1, r12, lsl #1
+    subs        r12, r1, r12, lsl#1
 
     strh        r0, [r2, #128]
     strh        r1, [r2, #130]
     strh        r3, [r2, #192]
-    strh        r12,[r2, #194]
+    strh        r12, [r2, #194]
 
     @ zeta4_top
     ldrsh       r0, [r2]            @ u0
     ldrsh       r1, [r2, #2]        @ u1
     ldrsh       r3, [r2, #128]      @ v0
-    ldrsh       r12,[r2, #130]      @ v1
+    ldrsh       r12, [r2, #130]     @ v1
 
     mov         r0, r3
     mov         r1, r6
@@ -663,20 +663,20 @@ inv_stage3_inner:
     ldrsh       r0, [r2]
     ldrsh       r1, [r2, #2]
     adds        r0, r0, r3
-    subs        r3, r0, r3, lsl #1
+    subs        r3, r0, r3, lsl#1
     adds        r1, r1, r12
-    subs        r12, r1, r12, lsl #1
+    subs        r12, r1, r12, lsl#1
 
     strh        r0, [r2]
     strh        r1, [r2, #2]
     strh        r3, [r2, #128]
-    strh        r12,[r2, #130]
+    strh        r12, [r2, #130]
 
     @ zeta4_bottom
     ldrsh       r0, [r2, #64]       @ u2
     ldrsh       r1, [r2, #66]       @ u3
     ldrsh       r3, [r2, #192]      @ v2
-    ldrsh       r12,[r2, #194]      @ v3
+    ldrsh       r12, [r2, #194]     @ v3
 
     mov         r0, r3
     mov         r1, r7
@@ -691,20 +691,20 @@ inv_stage3_inner:
     ldrsh       r0, [r2, #64]
     ldrsh       r1, [r2, #66]
     adds        r0, r0, r3
-    subs        r3, r0, r3, lsl #1
+    subs        r3, r0, r3, lsl#1
     adds        r1, r1, r12
-    subs        r12, r1, r12, lsl #1
+    subs        r12, r1, r12, lsl#1
 
     strh        r0, [r2, #64]
     strh        r1, [r2, #66]
     strh        r3, [r2, #192]
-    strh        r12,[r2, #194]
+    strh        r12, [r2, #194]
 
     add         r2, r2, #4
     subs        r14, r14, #1
     bne         inv_stage3_inner
 
-    pop         {r14, r1}           @ restore block index
+    pop         {r14, r1}@ restore block index
     adds        r1, r1, #128
     b           inv_stage3_block
 inv_stage3_end:
@@ -717,7 +717,7 @@ inv_stage3_end:
     add         r3, r4, #256        @ ptr to upper half (index +128)
     movs        r12, #64            @ 64 iterations (j = 0..126 step 2)
 inv_stage4_loop:
-    ldrsh       r5, [r8], #2        @ zeta
+    ldrsh       r5, [r8], #2 @ zeta
 
     ldrsh       r0, [r2]            @ p0
     ldrsh       r1, [r2, #2]        @ p1
@@ -727,12 +727,12 @@ inv_stage4_loop:
     mov         r0, r6
     mov         r1, r5
     bl          montgomery
-    mov         r6, r0              @ t0
+    mov         r6, r0 @ t0
 
     mov         r0, r7
     mov         r1, r5
     bl          montgomery
-    mov         r7, r0              @ t1
+    mov         r7, r0 @ t1
 
     ldrsh       r11, [r9], #2       @ twist lower
     ldrsh       r14, [r10], #2      @ twist upper
@@ -748,17 +748,17 @@ inv_stage4_loop:
     mov         r7, r0              @ save sum1
     push        {r0, r1}            @ save (unused) sum1 copy and diff1, keep stack aligned
 
-    mov         r0, r5              @ idx0
+    mov         r0, r5 @ idx0
     mov         r1, r11
     bl          montgomery
     strh        r0, [r2]
 
-    mov         r0, r6              @ idx2
+    mov         r0, r6 @ idx2
     mov         r1, r14
     bl          montgomery
     strh        r0, [r3]
 
-    mov         r0, r7              @ idx1
+    mov         r0, r7 @ idx1
     mov         r1, r11
     bl          montgomery
     strh        r0, [r2, #2]
@@ -767,7 +767,7 @@ inv_stage4_loop:
     mov         r0, r1              @ diff1 -> r0
     mov         r1, r14
     bl          montgomery
-    strh        r0, [r3, #2]        @ idx3
+    strh        r0, [r3, #2]@ idx3
 
     add         r2, r2, #4
     add         r3, r3, #4
@@ -775,4 +775,3 @@ inv_stage4_loop:
     bne         inv_stage4_loop
 
     pop         {r4-r12, pc}
-```
