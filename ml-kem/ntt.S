@@ -548,9 +548,9 @@ invoutloop3end:
 .p2align 2
 invloop4start:
     cmp         r1, #128
-    bge         loop4end
+    bge         invloop4end
 
-    ldrsh       r10, [r8, r9]@ zeta2[r1/2]
+    ldrsh       r10, [r8, r1]@ zeta2[r1/2]
 
     add         r9, r0, r1, lsl#1 @ r9 = &a[r1]，4-byte 對齊
 
@@ -565,14 +565,15 @@ invloop4start:
     usub16      r5, r4, r5          @ a - t
 
     @ ==== 2×32-bit store ====
-    ldr         r10, [r14, r1]
-    add         r12, r1, #256
+    ldrsh       r10, [r14, r1]
 
     doublemont  r4, r11, r12, r3, r2, r10
-    ldr         r10, [r14, r12]
+
+    add         r12, r1, #128
+    ldrsh       r10, [r14, r12]
     doublemont  r5, r11, r12, r3, r2, r10
     str         r4, [r9]
-    str         r5, [r9, #4]
+    str         r5, [r9, #256]
 
     adds        r1, #2 @ Thumb-16 adds, OK
     b           invloop4start
