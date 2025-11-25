@@ -601,7 +601,7 @@ void invntt_test(int16_t r[256])
     {
       int16_t zeta8_cur = inv_zetas[4][offset / 2];
       int16_t zeta4_top = inv_zetas[5][offset / 2];
-      int16_t zeta4_bottom = inv_zetas[5][offset / 2 + 4];
+      int16_t zeta4_bottom = inv_zetas[5][offset / 2 + 16];
       unsigned int idx0 = block + offset; // 0
       unsigned int idx1 = idx0 + 1;       // 1
       unsigned int idx2 = idx0 + 8;       // 8
