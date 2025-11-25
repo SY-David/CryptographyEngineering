@@ -522,7 +522,7 @@ void invntt_test(int16_t r[256])
   }
   */
   int block, offset;
-
+  /*
   for (block = 0; block < 256; block += 32)
   {
     int16_t t0, t1;
@@ -585,6 +585,7 @@ void invntt_test(int16_t r[256])
       r[idx7] = u3 - t1;
     }
   }
+    */
   for (block = 0; block < 256; block += 128)
   {
     int16_t t0, t1;
