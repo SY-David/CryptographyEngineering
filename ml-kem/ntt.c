@@ -673,9 +673,9 @@ void invntt_test(int16_t r[256])
     int16_t t1 = fqmul(zeta, q1);
 
     r[idx0] = fqmul(twist_table[idx0 / 2], p0 + t0);
-    r[idx2] = fqmul(twist_table[idx0 / 2], p0 - t0);
-    r[idx1] = fqmul(twist_table[idx0 / 2], p1 + t1);
-    r[idx3] = fqmul(twist_table[idx0 / 2], p1 - t1);
+    r[idx2] = fqmul(twist_table[idx2 / 2], p0 - t0);
+    r[idx1] = fqmul(twist_table[idx1 / 2], p1 + t1);
+    r[idx3] = fqmul(twist_table[idx3 / 2], p1 - t1);
   }
 
   /*
