@@ -225,16 +225,16 @@ void poly_ntt(poly *r)
  **************************************************/
 void poly_invntt_tomont(poly *r)
 {
-  /*
+
   poly test_poly;          // 1. 宣告實體
   poly *test = &test_poly; // 2. 讓指標指向它
   for (int i = 0; i < KYBER_N; ++i)
   {
     test->coeffs[i] = r->coeffs[i];
   }
-    */
+
   invntt(r->coeffs);
-  /*
+
   invntt_test(test->coeffs);
   for (int i = 0; i < 10; ++i)
   {
@@ -244,7 +244,7 @@ void poly_invntt_tomont(poly *r)
       sprintf(cycles_str, "%d, %d, %d\n", i, r->coeffs[i], test->coeffs[i]);
       hal_send_str(cycles_str);
     }
-  }*/
+  }
 }
 
 /*************************************************
