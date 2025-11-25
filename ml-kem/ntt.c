@@ -530,8 +530,72 @@ void invntt_test(int16_t r[256])
     r[base + 3] = bot1 + t64_3;
     r[base + 7] = bot1 - t64_3;
   }
-  int layer = 2;
-  for (len = 8; len <= 128; len <<= 1)
+  int block, offset;
+  int16_t t0, t1;
+  for (block = 0; block < 256; block += 32)
+  {
+
+    for (offset = 0; offset < 8; offset += 2)
+    {
+      int16_t zeta32_cur = inv_zetas[2][offset / 2];
+      int16_t zeta16_top = inv_zetas[3][offset];
+      int16_t zeta16_bottom = inv_zetas[3][offset + 1];
+      unsigned int idx0 = block + offset; // 0
+      unsigned int idx1 = idx0 + 1;       // 1
+      unsigned int idx2 = idx0 + 8;       // 8
+      unsigned int idx3 = idx1 + 8;       // 9
+      unsigned int idx4 = idx0 + 16;      // 16
+      unsigned int idx5 = idx1 + 16;      // 17
+      unsigned int idx6 = idx0 + 24;      // 24
+      unsigned int idx7 = idx1 + 24;      // 25
+
+      int16_t x0 = r[idx0]; // 0
+      int16_t x1 = r[idx1]; // 1
+      int16_t y0 = r[idx2]; // 8
+      int16_t y1 = r[idx3]; // 9
+      int16_t t32_0 = fqmul(zeta32_cur, y0);
+      int16_t t32_1 = fqmul(zeta32_cur, y1);
+      r[idx0] = x0 + t32_0; // 0
+      r[idx2] = x1 + t32_1; // 8
+      r[idx1] = x0 - t32_0; // 1
+      r[idx3] = x1 - t32_1; // 9
+
+      int16_t x2 = r[idx4]; // 16
+      int16_t x3 = r[idx5]; // 17
+      int16_t y2 = r[idx6]; // 24
+      int16_t y3 = r[idx7]; // 25
+      int16_t t32_2 = fqmul(zeta32_cur, y2);
+      int16_t t32_3 = fqmul(zeta32_cur, y3);
+      r[idx4] = x2 + t32_2; // 16
+      r[idx6] = x3 + t32_3; // 24
+      r[idx5] = x2 - t32_2; // 17
+      r[idx7] = x3 - t32_3; // 25
+
+      int16_t u0 = r[idx0]; // 0
+      int16_t u1 = r[idx1]; // 1
+      int16_t v0 = r[idx4]; // 16
+      int16_t v1 = r[idx5]; // 17
+      t0 = fqmul(zeta16_top, v0);
+      t1 = fqmul(zeta16_top, v1);
+      r[idx0] = u0 + t0; // 0
+      r[idx2] = u0 - t0; // 16
+      r[idx1] = u1 + t1; // 1
+      r[idx3] = u1 - t1; // 17
+
+      int16_t u2 = r[idx2];
+      int16_t u3 = r[idx3];
+      int16_t v2 = r[idx6];
+      int16_t v3 = r[idx7];
+      t0 = fqmul(zeta16_bottom, v2);
+      t1 = fqmul(zeta16_bottom, v3);
+      r[idx4] = u2 + t0;
+      r[idx6] = u2 - t0;
+      r[idx5] = u3 + t1;
+      r[idx7] = u3 - t1;
+    }
+  }
+  int layer = 4;
+  for (len = 32; len <= 128; len <<= 1)
   {
     for (start = 0; start < 256; start = j + len)
     {
