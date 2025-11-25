@@ -21,7 +21,7 @@ def generate_ct_inverse_omegas_linear_128():
 
     layers = []
 
-    num_layers = 8
+    num_layers = 7
 
     for layer in range(num_layers):
 
@@ -52,7 +52,7 @@ def generate_ct_inverse_omegas_linear_128():
 layers = generate_ct_inverse_omegas_linear_128()
 
 
-print("static const int16_t inv_zetas[8][128] = {")
+print("static const int16_t inv_zetas[7][64] = {")
 
 for i, L in enumerate(layers):
 
@@ -65,20 +65,21 @@ print("};")
 
 
 def generate_linear_twist_table():
-
     omega = KYBER_ROOT_OF_UNITY
     omega_inv = pow(omega, KYBER_Q - 2, KYBER_Q)
 
-    scale = R % KYBER_Q
+    # 不用 R/scale，直接用 1441
+    base = 1441 % KYBER_Q
 
     twist_table = []
 
-    curr = scale
+    # 從 omega_inv * 1441 開始
+    curr = (omega_inv * base) % KYBER_Q
     for i in range(128):
-
         val = center_mod_q(curr)
         twist_table.append(val)
 
+        # 下一個是再乘一次 omega_inv
         curr = (curr * omega_inv) % KYBER_Q
 
     return twist_table
@@ -89,6 +90,5 @@ twist = generate_linear_twist_table()
 print("static const int16_t twist_table[128] = {")
 for i in range(0, 128, 8):
     chunk = twist[i : i + 8]
-
     print("  " + ", ".join(f"{x:>5}" for x in chunk) + ",")
 print("};")
