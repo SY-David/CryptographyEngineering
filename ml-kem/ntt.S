@@ -479,5 +479,68 @@ invinnerloop2end:
     add         r1, r1, #32
     b           invoutloop2start
 invoutloop2end:
+.p2align 2
+    movs        r1, #0
+invoutloop3start:
+    cmp         r1, #256
+    bge         invoutloop3end
+
+    movs        r14, #0 @ inner-loop index
+.p2align 2
+invinnerloop3start:
+    cmp         r14, #32
+    bge         invinnerloop2end
+
+    ldr         r4, =inv_zeta_layer4
+    ldrsh       r5, [r4, r14]
+    add         r8, r4, #8 // inv_zeta_layer5
+    add         r4, r14, #32
+    ldrsh       r6, [r8, r14]
+    ldrsh       r7, [r8, r4]
+
+    add         r8, r1, r14
+    add         r8, r0, r8, lsl#1 @ r8 = base pointer for this butterfly
+
+    ldr         r9, [r8]             @ a0|a1
+    ldr         r10, [r8, #64]       @ a16|a17
+    ldr         r11, [r8, #128]      @ a32|a33
+    ldr         r12, [r8, #192]      @ a48|a49
+
+    doublemont  r10, r8, r4, r3, r2, r5
+    doublemont  r12, r8, r4, r3, r2, r5
+
+    uadd16      r9, r9, r10
+    uadd16      r10, r10, r10
+    usub16      r10, r9, r10
+
+    uadd16      r11, r11, r12
+    uadd16      r12, r12, r12
+    usub16      r12, r11, r12
+
+    doublemont  r11, r8, r4, r3, r2, r6
+    doublemont  r12, r8, r4, r3, r2, r7
+
+    uadd16      r9, r9, r11
+    uadd16      r11, r11, r11
+    usub16      r11, r9, r11
+
+    uadd16      r10, r10, r12
+    uadd16      r12, r12, r12
+    usub16      r12, r10, r12
+
+    add         r8, r1, r14
+    add         r8, r0, r8, lsl#1
+
+    str         r9, [r8]
+    str         r10, [r8, #64]
+    str         r11, [r8, #128]
+    str         r12, [r8, #192]
+
+    add         r14, r14, #2
+    b           invinnerloop3start
+invinnerloop3end:
+    add         r1, r1, #128
+    b           invoutloop3start
+invoutloop3end:
 
     pop         {r4-r12, pc}

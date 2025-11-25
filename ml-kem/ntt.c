@@ -586,6 +586,7 @@ void invntt_test(int16_t r[256])
     }
   }
     */
+  /*
   for (block = 0; block < 256; block += 128)
   {
     int16_t t0, t1;
@@ -648,6 +649,7 @@ void invntt_test(int16_t r[256])
       r[idx7] = u3 - t1;
     }
   }
+    */
   /* Final len=2 layer */
 
   for (j = 0; j < 128; j += 2)
