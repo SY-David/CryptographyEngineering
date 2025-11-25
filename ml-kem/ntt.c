@@ -515,14 +515,14 @@ void invntt_test(int16_t r[256])
     int16_t bot3 = a3 - t128_3; // 7
 
     int16_t t64_0 = fqmul(zeta64_top, top2);
-    int16_t t64_1 = fqmul(zeta64_top, top3);
+    int16_t t64_1 = fqmul(zeta64_bottom, top3);
 
     r[base] = top0 + t64_0;
     r[base + 4] = top0 - t64_0;
     r[base + 1] = top1 + t64_1;
     r[base + 5] = top1 - t64_1;
 
-    int16_t t64_2 = fqmul(zeta64_bottom, bot2);
+    int16_t t64_2 = fqmul(zeta64_top, bot2);
     int16_t t64_3 = fqmul(zeta64_bottom, bot3);
 
     r[base + 2] = bot0 + t64_2;
