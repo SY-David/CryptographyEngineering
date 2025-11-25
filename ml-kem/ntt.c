@@ -450,6 +450,7 @@ static const int16_t twist_table[128] = {
     -1223,
     1103,
 };
+/*
 void invntt(int16_t r[256])
 {
   unsigned int start, len, j, k;
@@ -474,7 +475,7 @@ void invntt(int16_t r[256])
 
   for (j = 0; j < 256; j++)
     r[j] = fqmul(r[j], f);
-}
+}*/
 void invntt_test(int16_t r[256])
 {
   unsigned int len, start, j, k;
