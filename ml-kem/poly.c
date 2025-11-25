@@ -226,7 +226,7 @@ void poly_ntt(poly *r)
 void poly_invntt_tomont(poly *r)
 {
 
-  invntt_test(r->coeffs);
+  invntt(r->coeffs);
 }
 
 /*************************************************

@@ -80,6 +80,7 @@ static int16_t fqmul(int16_t a, int16_t b)
  * Arguments:   - int16_t r[256]: pointer to input/output vector of elements of Zq
  **************************************************/
 extern void ntt_s(int16_t r[256]);
+extern void invntt_s(int16_t r[256]);
 void ntt(int16_t r[256])
 {
   /* Fuse the layers as 2+2+2+1 radix-4 style blocks to cut redundant loads. */
@@ -473,6 +474,10 @@ void invntt(int16_t r[256])
   for (j = 0; j < 256; j++)
     r[j] = fqmul(r[j], f);
 }*/
+void invntt(int16_t r[256])
+{
+  invntt_s(r);
+}
 void invntt_test(int16_t r[256])
 {
   unsigned int len, start, j, k;
