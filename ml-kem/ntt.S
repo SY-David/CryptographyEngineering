@@ -105,32 +105,45 @@ twist_table:
 .global basemul_s
 .type basemul_s, %function
 basemul_s:
-    push        {r4-r7, lr}
-    movw        r6, #3327
-    movw        r7, #3329
+    push        {r4-r11, lr}@ 我們會用到 r4-r11
 
-    ldrsh       r4, [r1, #2]
-    ldrsh       r5, [r2, #2]
-    montgomery  r4, r5, r5
-    montgomery  r4, r3, r5
+    movw        r6, #3327      @ QINV
+    movw        r7, #3329      @ Q
 
-    ldrsh       r5, [r1]
-    ldrsh       r3, [r2]
-    montgomery  r5, r3, r3
-    add         r4, r4, r5
+    ldr         r4, [r1]       @ r4 = a1(高16) | a0(低16)
+    ldr         r5, [r2]       @ r5 = b1(高16) | b0(低16)
+
+    sxth        r8, r4         @ r8 = a0
+    asr         r9, r4, #16    @ r9 = a1
+    sxth        r10, r5        @ r10 = b0
+    asr         r11, r5, #16   @ r11 = b1
+
+    @ ---- r0[0] = a1*b1*zeta + a0*b0 ----
+    mov         r4, r9         @ r4 = a1
+    mov         r5, r11        @ r5 = b1
+    montgomery  r4, r5, r5     @ r4 = a1*b1
+    montgomery  r4, r3, r5     @ r4 = (a1*b1)*zeta
+
+    mov         r5, r8         @ r5 = a0
+    mov         r12, r10       @ r12 = b0
+    montgomery  r5, r12, r12   @ r5 = a0*b0
+    add         r4, r4, r5     @ r4 = r0[0]
     strh        r4, [r0]
 
-    ldrsh       r4, [r1]
-    ldrsh       r5, [r2, #2]
-    montgomery  r4, r5, r5
+    @ ---- r0[1] = a0*b1 + a1*b0 ----
+    mov         r4, r8         @ r4 = a0
+    mov         r5, r11        @ r5 = b1
+    montgomery  r4, r5, r5     @ r4 = a0*b1
 
-    ldrsh       r5, [r1, #2]
-    ldrsh       r3, [r2]
-    montgomery  r5, r3, r3
-    add         r4, r4, r5
+    mov         r5, r9         @ r5 = a1
+    mov         r12, r10       @ r12 = b0
+    montgomery  r5, r12, r12   @ r5 = a1*b0
+
+    add         r4, r4, r5 @ r4 = r0[1]
     strh        r4, [r0, #2]
 
-    pop         {r4-r7, pc}
+    pop         {r4-r11, pc}
+
 .p2align 2
 .global ntt_s
 .type ntt_s, %function
