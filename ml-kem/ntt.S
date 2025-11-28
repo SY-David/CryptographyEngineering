@@ -105,44 +105,61 @@ twist_table:
 .global basemul_s
 .type basemul_s, %function
 basemul_s:
-    push        {r4-r11, lr}@ 我們會用到 r4-r11
+    push        {r4-r8, lr}@ 我們會用到 r4-r8，照 ABI 先存起來
 
     movw        r6, #3327      @ QINV
     movw        r7, #3329      @ Q
 
-    ldr         r4, [r1]       @ r4 = a1(高16) | a0(低16)
-    ldr         r5, [r2]       @ r5 = b1(高16) | b0(低16)
+    @ 先把 zeta 暫存到 r8，之後 r3 可以當 scratch
+    mov         r8, r3 @ r8 = zeta
 
-    sxth        r8, r4         @ r8 = a0
-    asr         r9, r4, #16    @ r9 = a1
-    sxth        r10, r5        @ r10 = b0
-    asr         r11, r5, #16   @ r11 = b1
+    @ ---- 4 個 ldrsh：a0, a1, b0, b1 ----
+    @ a 的兩個係數
+    ldrsh       r4, [r1]       @ r4 = a0
+    ldrsh       r5, [r1, #2]   @ r5 = a1
 
-    @ ---- r0[0] = a1*b1*zeta + a0*b0 ----
-    mov         r4, r9         @ r4 = a1
-    mov         r5, r11        @ r5 = b1
-    montgomery  r4, r5, r5     @ r4 = a1*b1
-    montgomery  r4, r3, r5     @ r4 = (a1*b1)*zeta
+    @ b 的兩個係數（重用 r1,r2 當值，不再當 pointer）
+    ldrsh       r1, [r2]       @ r1 = b0
+    ldrsh       r2, [r2, #2]   @ r2 = b1
 
-    mov         r5, r8         @ r5 = a0
-    mov         r12, r10       @ r12 = b0
-    montgomery  r5, r12, r12   @ r5 = a0*b0
-    add         r4, r4, r5     @ r4 = r0[0]
-    strh        r4, [r0]
+    @ 現在的 mapping：
+    @   r4 = a0
+    @   r5 = a1
+    @   r1 = b0
+    @   r2 = b1
+    @   r8 = zeta
+    @   r6 = QINV, r7 = q
+    @   r3, r12 為 scratch
 
-    @ ---- r0[1] = a0*b1 + a1*b0 ----
-    mov         r4, r8         @ r4 = a0
-    mov         r5, r11        @ r5 = b1
-    montgomery  r4, r5, r5     @ r4 = a0*b1
+    @ ---------- 計算 r[0] = a1*b1*zeta + a0*b0 ----------
 
-    mov         r5, r9         @ r5 = a1
-    mov         r12, r10       @ r12 = b0
-    montgomery  r5, r12, r12   @ r5 = a1*b0
+    @ x1 = a1 * b1 * zeta 存在 r3
+    mov         r3, r5         @ acc = a1
+    montgomery  r3, r2, r12    @ r3 = a1 * b1
+    montgomery  r3, r8, r12    @ r3 = a1 * b1 * zeta
 
-    add         r4, r4, r5 @ r4 = r0[1]
-    strh        r4, [r0, #2]
+    @ x0 = a0 * b0 存在 r12
+    @ 此時 zeta 已經用完，r8 可以當 tmp 用，不再需要保留
+    mov         r12, r4        @ acc = a0
+    montgomery  r12, r1, r8    @ r12 = a0 * b0, tmp = r8 (zeta 被覆蓋沒關係)
 
-    pop         {r4-r11, pc}
+    add         r3, r3, r12    @ r3 = x1 + x0 = r[0]
+    strh        r3, [r0]       @ r[0] 完成
+
+    @ ---------- 計算 r[1] = a0*b1 + a1*b0 ----------
+
+    @ t2 = a0 * b1 存在 r12
+    mov         r12, r4        @ acc = a0
+    montgomery  r12, r2, r8    @ r12 = a0 * b1
+
+    @ t3 = a1 * b0 存在 r3
+    mov         r3, r5         @ acc = a1
+    montgomery  r3, r1, r8     @ r3 = a1 * b0
+
+    add         r3, r3, r12    @ r3 = t2 + t3 = r[1]
+    strh        r3, [r0, #2]   @ r[1] 完成
+
+    pop         {r4-r8, pc}
 
 .p2align 2
 .global ntt_s
