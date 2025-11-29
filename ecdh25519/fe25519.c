@@ -596,14 +596,12 @@ void fe25519_square(fe25519 *r, const fe25519 *x)
 
   fe25519_pack(a, x);
 
-  int64_t h_ref[10], h_asm[10];
-  fe25519_square_core(a, h_ref);   // C 版
+  int64_t h_asm[10];
+
   fe25519_square_core_s(a, h_asm); // 彙編版
 
-  char outstr[128];
-
   unsigned char s[32];
-  contract_limbs(s, h_ref);
+  contract_limbs(s, h_asm);
 
   for (int i = 0; i < 32; ++i)
   {
