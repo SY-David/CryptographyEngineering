@@ -513,22 +513,37 @@ static inline void fe25519_square_core(const unsigned char *a,
   int64_t f8_19 = 19 * f8;
   int64_t f9_19 = 19 * f9;
 
+  int64_t f0_2 = 2 * f0;
   int64_t f1_2 = 2 * f1;
+  int64_t f2_2 = 2 * f2;
   int64_t f3_2 = 2 * f3;
+  int64_t f4_2 = 2 * f4;
   int64_t f5_2 = 2 * f5;
+  int64_t f6_2 = 2 * f6;
   int64_t f7_2 = 2 * f7;
+  int64_t f8_2 = 2 * f8;
   int64_t f9_2 = 2 * f9;
 
-  int64_t h0 = f0 * f0 + f5_2 * f5_19 + 2 * (f1_2 * f9_19 + f2 * f8_19 + f3_2 * f7_19 + f4 * f6_19);
-  int64_t h1 = 2 * (f0 * f1 + f2 * f9_19 + f3 * f8_19 + f4 * f7_19 + f5 * f6_19);
-  int64_t h2 = f1_2 * f1 + f6 * f6_19 + 2 * (f0 * f2 + f3_2 * f9_19 + f4 * f8_19 + f5_2 * f7_19);
-  int64_t h3 = 2 * (f0 * f3 + f1 * f2 + f4 * f9_19 + f5 * f8_19 + f6 * f7_19);
-  int64_t h4 = f2 * f2 + f7_2 * f7_19 + 2 * (f0 * f4 + f1_2 * f3 + f5_2 * f9_19 + f6 * f8_19);
-  int64_t h5 = 2 * (f0 * f5 + f1 * f4 + f2 * f3 + f6 * f9_19 + f7 * f8_19);
-  int64_t h6 = f3_2 * f3 + f8 * f8_19 + 2 * (f0 * f6 + f1_2 * f5 + f2 * f4 + f7_2 * f9_19);
-  int64_t h7 = 2 * (f0 * f7 + f1 * f6 + f2 * f5 + f3 * f4 + f8 * f9_19);
-  int64_t h8 = f4 * f4 + f9_2 * f9_19 + 2 * (f0 * f8 + f1_2 * f7 + f2 * f6 + f3_2 * f5);
-  int64_t h9 = 2 * (f0 * f9 + f1 * f8 + f2 * f7 + f3 * f6 + f4 * f5);
+  int64_t f1_38 = 38 * f1;
+  int64_t f2_38 = 38 * f2;
+  int64_t f3_38 = 38 * f3;
+  int64_t f4_38 = 38 * f4;
+  int64_t f5_38 = 38 * f5;
+  int64_t f6_38 = 38 * f6;
+  int64_t f7_38 = 38 * f7;
+  int64_t f8_38 = 38 * f8;
+  int64_t f9_38 = 38 * f9;
+
+  int64_t h0 = f0 * f0 + f1_38 * f9 + f2_38 * f8 + f3_38 * f7 + f4_19 * f6 + f5_2 * f5_19;
+  int64_t h1 = f0_2 * f1 + f2_38 * f9 + f3_38 * f8 + f4_19 * f7 + f5_2 * f6_19;
+  int64_t h2 = f0_2 * f2 + f1_2 * f1 + f3_38 * f9 + f4_38 * f8 + f5_38 * f7 + f6_19 * f6;
+  int64_t h3 = f0_2 * f3 + f1_2 * f2 + f4_38 * f9 + f5_38 * f8 + f6_19 * f7;
+  int64_t h4 = f0_2 * f4 + f1_38 * f3 + f2 * f2 + f5_38 * f9 + f6_38 * f8 + f7_19 * f7;
+  int64_t h5 = f0_2 * f5 + f1_2 * f4 + f2_2 * f3 + f6_38 * f9 + f7_38 * f8;
+  int64_t h6 = f0_2 * f6 + f1_38 * f5 + f2_2 * f4 + f3_38 * f3 + f7_38 * f9 + f8_19 * f8;
+  int64_t h7 = f0_2 * f7 + f1_2 * f6 + f2_2 * f5 + f3_2 * f4 + f8_38 * f9;
+  int64_t h8 = f0_2 * f8 + f1_38 * f7 + f2_38 * f6 + f3_38 * f5 + f4_19 * f4 + f9_19 * f9;
+  int64_t h9 = f0_2 * f9 + f1_2 * f8 + f2_2 * f7 + f3_2 * f6 + f4_2 * f5;
 
   int64_t carry0 = (h0 + ((int64_t)1 << 25)) >> 26;
   h1 += carry0;

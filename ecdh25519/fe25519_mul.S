@@ -92,25 +92,27 @@ fe25519_square_core_s:
     movs.w  r1, #0
     movs.w  r14, #0
 
-    vmov    r0, s6
-    vmov    r10, s19
-    umull   r1, r14, r0, r10
+    // 38*(f1*f9 + f2*f8 + f3*f7)
+    vmov    r0, s19
+    umlal   r1, r14, r3, r0
 
-    vmov    r10, s18
-    umlal   r1, r14, r4, r10
+    vmov    r0, s18
+    umlal   r1, r14, r4, r0
 
-    vmov    r10, s7
     vmov    r0, s17
-    umlal   r1, r14, r0, r10
-
-    vmov    r0, s16
-    umlal   r1, r14, r0, r6
+    umlal   r1, r14, r5, r0
 
     adds.w  r1, r1, r1
     adcs.w  r14, r14, r14
 
+    // + 19*f4*f6
+    vmov    r0, s16
+    umlal   r1, r14, r6, r0
+
+    // + f0^2
     umlal   r1, r14, r2, r2
 
+    // + 38*f5^2
     vmov    r0, s8
     vmov    r10, s15
     umlal   r1, r14, r0, r10
@@ -125,27 +127,29 @@ fe25519_square_core_s:
     movs.w  r1, #0
     movs.w  r14, #0
 
-    // + f0 * f1
+    // f0_2 * f1
     umull   r1, r14, r2, r3
+    adds.w  r1, r1, r1
+    adcs.w  r14, r14, r14
 
-    // + f2 * f9_19
+    // 38*(f2*f9 + f3*f8)
     vmov    r0, s19 // r0 = f9_19
     umlal   r1, r14, r4, r0
 
-    // + f3 * f8_19
     vmov    r10, s18
     umlal   r1, r14, r5, r10
 
-    // + f4 * f7_19
-    vmov    r0, s17
-    umlal   r1, r14, r0, r6
-
-    // + f5 * f6_19
-    vmov    r10, s16
-    umlal   r1, r14, r7, r10
-
     adds.w  r1, r1, r1
     adcs.w  r14, r14, r14
+
+    // + 19*f4*f7
+    vmov    r0, s17
+    umlal   r1, r14, r6, r0
+
+    // + 38*f5*f6
+    vmov    r10, s16
+    vmov    r0, s8
+    umlal   r1, r14, r0, r10
 
     vmov    s23, r1
     vmov    s24, r14
@@ -155,28 +159,31 @@ fe25519_square_core_s:
     movs.w  r1, #0
     movs.w  r14, #0
 
+    // f0_2 * f2
     umull   r1, r14, r2, r4
+    adds.w  r1, r1, r1
+    adcs.w  r14, r14, r14
 
-    vmov    r10, s19
-    vmov    r0, s7
-    umlal   r1, r14, r0, r10
+    // + f1_2 * f1
+    vmov    r0, s6
+    umlal   r1, r14, r3, r0
+
+    // 38*(f3*f9 + f4*f8 + f5*f7)
+    vmov    r0, s19
+    umlal   r1, r14, r5, r0
 
     vmov    r0, s18
-    umlal   r1, r14, r0, r6
+    umlal   r1, r14, r6, r0
 
-    vmov    r10, s8
     vmov    r0, s17
-    umlal   r1, r14, r0, r10
+    umlal   r1, r14, r7, r0
 
     adds.w  r1, r1, r1
     adcs.w  r14, r14, r14
 
-    vmov    r0, s6
-    umlal   r1, r14, r0, r3
-
+    // + 19*f6*f6
     vmov    r10, s16
     umlal   r1, r14, r12, r10
-    // store h0
 
     vmov    s25, r1
     vmov    s26, r14
@@ -186,21 +193,28 @@ fe25519_square_core_s:
     movs.w  r1, #0
     movs.w  r14, #0
 
+    // f0_2 * f3
     umull   r1, r14, r2, r5
+    adds.w  r1, r1, r1
+    adcs.w  r14, r14, r14
 
-    umlal   r1, r14, r3, r4
+    // + f1_2 * f2
+    vmov    r0, s6
+    umlal   r1, r14, r4, r0
 
+    // 38*(f4*f9 + f5*f8)
     vmov    r10, s19 // r10= f9_19
     umlal   r1, r14, r6, r10
 
     vmov    r0, s18
-    umlal   r1, r14, r0, r7
-
-    vmov    r10, s17
-    umlal   r1, r14, r12, r10
+    umlal   r1, r14, r7, r0
 
     adds.w  r1, r1, r1
     adcs.w  r14, r14, r14
+
+    // + 19*f6*f7
+    vmov    r10, s17
+    umlal   r1, r14, r12, r10
 
     vmov    s27, r1
     vmov    s28, r14
@@ -210,27 +224,32 @@ fe25519_square_core_s:
     movs.w  r1, #0
     movs.w  r14, #0
 
+    // f0_2 * f4
     umull   r1, r14, r2, r6
+    adds.w  r1, r1, r1
+    adcs.w  r14, r14, r14
 
+    // + 38*f1*f3
     vmov    r0, s6
-    umlal   r1, r14, r0, r5
+    vmov    r10, s13
+    umlal   r1, r14, r0, r10
 
+    // + f2*f2
+    umlal   r1, r14, r4, r4
+
+    // + 38*f5*f9
     vmov    r0, s8
     vmov    r10, s19
     umlal   r1, r14, r0, r10
 
+    // + 38*f6*f8
+    add     r10, r12, r12
     vmov    r0, s18
-    umlal   r1, r14, r0, r12
+    umlal   r1, r14, r10, r0
 
-    adds.w  r1, r1, r1
-    adcs.w  r14, r14, r14
-
-    umlal   r1, r14, r4, r4
-
+    // + 19*f7*f7
     vmov    r0, s17
-    vmov    r10, s9
-    umlal   r1, r14, r0, r10
-    // store h0
+    umlal   r1, r14, r8, r0
 
     vmov    s29, r1
     vmov    s30, r14
@@ -240,20 +259,28 @@ fe25519_square_core_s:
     movs.w  r1, #0
     movs.w  r14, #0
 
+    // f0_2 * f5
     umull   r1, r14, r2, r7
-
-    umlal   r1, r14, r3, r6
-
-    umlal   r1, r14, r4, r5
-
-    vmov    r0, s19
-    umlal   r1, r14, r0, r12
-
-    vmov    r10, s18
-    umlal   r1, r14, r8, r10
-
     adds.w  r1, r1, r1
     adcs.w  r14, r14, r14
+
+    // + f1_2 * f4
+    vmov    r0, s6
+    umlal   r1, r14, r6, r0
+
+    // + f2_2 * f3
+    add     r10, r4, r4
+    umlal   r1, r14, r10, r5
+
+    // + 38*f6*f9
+    add     r10, r12, r12
+    vmov    r0, s19
+    umlal   r1, r14, r10, r0
+
+    // + 38*f7*f8
+    vmov    r10, s9
+    vmov    r0, s18
+    umlal   r1, r14, r10, r0
 
     vmov    s31, r1
     vmov    s0, r14
@@ -262,26 +289,33 @@ fe25519_square_core_s:
     movs.w  r1, #0
     movs.w  r14, #0
 
+    // f0_2 * f6
     umull   r1, r14, r2, r12
-
-    vmov    r10, s6
-    umlal   r1, r14, r10, r7
-
-    umlal   r1, r14, r4, r6
-
-    vmov    r0, s19
-    vmov    r10, s9
-    umlal   r1, r14, r0, r10
-
     adds.w  r1, r1, r1
     adcs.w  r14, r14, r14
 
-    vmov    r0, s7
-    umlal   r1, r14, r0, r5
+    // + 38*f1*f5
+    vmov    r10, s6
+    vmov    r0, s15
+    umlal   r1, r14, r10, r0
 
+    // + f2_2 * f4
+    add     r10, r4, r4
+    umlal   r1, r14, r10, r6
+
+    // + 38*f3*f3
+    vmov    r0, s7
+    vmov    r10, s13
+    umlal   r1, r14, r10, r0
+
+    // + 38*f7*f9
+    vmov    r10, s9
+    vmov    r0, s19
+    umlal   r1, r14, r10, r0
+
+    // + 19*f8*f8
     vmov    r10, s18
     umlal   r1, r14, r9, r10
-    // store h0
 
     vmov    s1, r1
     vmov    s2, r14
@@ -291,19 +325,27 @@ fe25519_square_core_s:
     movs.w  r1, #0
     movs.w  r14, #0
 
+    // f0_2 * f7
     umull   r1, r14, r2, r8
-
-    umlal   r1, r14, r3, r12
-
-    umlal   r1, r14, r4, r7
-
-    umlal   r1, r14, r5, r6
-
-    vmov    r10, s19
-    umlal   r1, r14, r9, r10
-
     adds.w  r1, r1, r1
     adcs.w  r14, r14, r14
+
+    // + f1_2 * f6
+    vmov    r0, s6
+    umlal   r1, r14, r12, r0
+
+    // + f2_2 * f5
+    add     r10, r4, r4
+    umlal   r1, r14, r10, r7
+
+    // + f3_2 * f4
+    vmov    r10, s7
+    umlal   r1, r14, r10, r6
+
+    // + 38*f8*f9
+    add     r10, r9, r9
+    vmov    r0, s19
+    umlal   r1, r14, r10, r0
 
     vmov    s3, r1
     vmov    s4, r14
@@ -313,24 +355,33 @@ fe25519_square_core_s:
     movs.w  r1, #0
     movs.w  r14, #0
 
+    // f0_2 * f8
     umull   r1, r14, r2, r9
-
-    vmov    r0, s6
-    umlal   r1, r14, r0, r8
-
-    umlal   r1, r14, r4, r12
-
-    vmov    r10, s7
-    umlal   r1, r14, r7, r10
-
     adds.w  r1, r1, r1
     adcs.w  r14, r14, r14
 
-    umlal   r1, r14, r6, r6
-
-    vmov    r0, s10
-    vmov    r10, s19
+    // + 38*f1*f7
+    vmov    r0, s6
+    vmov    r10, s17
     umlal   r1, r14, r0, r10
+
+    // + 38*f2*f6
+    add     r10, r4, r4
+    vmov    r0, s16
+    umlal   r1, r14, r10, r0
+
+    // + 38*f3*f5
+    vmov    r10, s7
+    vmov    r0, s15
+    umlal   r1, r14, r10, r0
+
+    // + 19*f4*f4
+    vmov    r10, s14
+    umlal   r1, r14, r6, r10
+
+    // + 19*f9*f9
+    vmov    r0, s19
+    umlal   r1, r14, r11, r0
 
     vmov    s5, r1
     vmov    s6, r14
@@ -338,19 +389,26 @@ fe25519_square_core_s:
     movs.w  r1, #0
     movs.w  r14, #0
 
+    // f0_2 * f9
     umull   r1, r14, r2, r11
-
-    umlal   r1, r14, r3, r9
-
-    umlal   r1, r14, r4, r8
-
-    umlal   r1, r14, r5, r12
-
-    umlal   r1, r14, r6, r7
-    // store h0
-
     adds.w  r1, r1, r1
     adcs.w  r14, r14, r14
+
+    // + f1_2 * f8
+    vmov    r0, s6
+    umlal   r1, r14, r0, r9
+
+    // + f2_2 * f7
+    add     r10, r4, r4
+    umlal   r1, r14, r10, r8
+
+    // + f3_2 * f6
+    vmov    r0, s7
+    umlal   r1, r14, r0, r12
+
+    // + f4_2 * f5
+    add     r10, r6, r6
+    umlal   r1, r14, r10, r7
 
     vmov    s7, r1
     vmov    s8, r14
