@@ -8,646 +8,408 @@
 
 .global fe25519_square_core_s
 fe25519_square_core_s:
-    stmdb.w sp!, {r4-r11, lr}
-    sub     sp, sp, #4
-    vpush   {s16-s31}
-
-    ldr     r3, [r0]         // ax0
-    ldr     r4, [r0, #4]     // ax1
-    ldr     r5, [r0, #8]     // ax2
-    ldr     r6, [r0, #12]    // ax3
-    ldr     r7, [r0, #16]    // ax4
-    ldr     r8, [r0, #20]    // ax5
-    ldr     r9, [r0, #24]    // ax6
-    ldr     r10, [r0, #28]   // ax7
-    mov.w   r0, r1
-
-    ubfx.w  r2, r3, #0, #26
-
-    lsr.w   r12, r3, #26
-    orr.w   r3, r12, r4, lsl#6
-    ubfx.w  r3, r3, #0, #25
-
-    lsr.w   r12, r4, #19
-    orr.w   r4, r12, r5, lsl#13
-    ubfx.w  r4, r4, #0, #26
-
-    lsr.w   r12, r5, #13
-    orr.w   r5, r12, r6, lsl#19
-    ubfx.w  r5, r5, #0, #25
-
-    ubfx.w  r6, r6, #6, #26
-
-    lsr.w   r12, r7, #25
-    orr.w   r12, r12, r8, lsl#7
-    ubfx.w  r12, r12, #0, #26
-
-    lsr.w   r1, r8, #19
-    orr.w   r8, r1, r9, lsl#13
-    ubfx.w  r8, r8, #0, #25
-
-    lsr.w   r1, r9, #12
-    orr.w   r9, r1, r10, lsl#20
-    ubfx.w  r9, r9, #0, #26
-
-    ubfx.w  r11, r10, #6, #25
-
-    ubfx.w  r7, r7, #0, #25
-
-    //   r2=f0, r3=f1, r4=f2, r5=f3, r6=f4, r7=f5, r12=f6, r8=f7, r9=f8, r11=f9
-    movw    r14, #19
-    mul     r10, r3, r14
-    vmov    s11, r10
-    mul     r10, r4, r14
-    vmov    s12, r10
-    mul     r10, r5, r14
-    vmov    s13, r10
-    mul     r10, r6, r14
-    vmov    s14, r10
-    mul     r10, r7, r14
-    vmov    s15, r10
-    mul     r10, r12, r14
-    vmov    s16, r10
-    mul     r10, r8, r14
-    vmov    s17, r10
-    mul     r10, r9, r14
-    vmov    s18, r10
-    mul     r10, r11, r14
-    vmov    s19, r10
-
-    lsl.w   r10, r3, #1
-    vmov    s6, r10
-    lsl.w   r10, r5, #1
-    vmov    s7, r10
-    lsl.w   r10, r7, #1
-    vmov    s8, r10
-    lsl.w   r10, r8, #1
-    vmov    s9, r10
-    lsl.w   r10, r11, #1
-    vmov    s10, r10
-
-// ---------------------------------------
-    vmov    s20, r0
-
-    movs.w  r1, #0
-    movs.w  r14, #0
-
-    // 38*(f1*f9 + f2*f8 + f3*f7)
-    vmov    r0, s19
-    umlal   r1, r14, r3, r0
-
-    vmov    r0, s18
-    umlal   r1, r14, r4, r0
-
-    vmov    r0, s17
-    umlal   r1, r14, r5, r0
-
-    adds.w  r1, r1, r1
-    adcs.w  r14, r14, r14
-
-    // + 19*f4*f6
-    vmov    r0, s16
-    umlal   r1, r14, r6, r0
-
-    // + f0^2
-    umlal   r1, r14, r2, r2
-
-    // + 38*f5^2
-    vmov    r0, s8
-    vmov    r10, s15
-    umlal   r1, r14, r0, r10
-
-    // store h0
-
-    vmov    s21, r1
-    vmov    s22, r14
-// ---------------------------------------
-
-    // acc = 0
-    movs.w  r1, #0
-    movs.w  r14, #0
-
-    // f0_2 * f1
-    umull   r1, r14, r2, r3
-    adds.w  r1, r1, r1
-    adcs.w  r14, r14, r14
-
-    // 38*(f2*f9 + f3*f8)
-    vmov    r0, s19 // r0 = f9_19
-    umlal   r1, r14, r4, r0
-
-    vmov    r10, s18
-    umlal   r1, r14, r5, r10
-
-    adds.w  r1, r1, r1
-    adcs.w  r14, r14, r14
-
-    // + 19*f4*f7
-    vmov    r0, s17
-    umlal   r1, r14, r6, r0
-
-    // + 38*f5*f6
-    vmov    r10, s16
-    vmov    r0, s8
-    umlal   r1, r14, r0, r10
-
-    vmov    s23, r1
-    vmov    s24, r14
-
-// ---------------------------------------
-
-    movs.w  r1, #0
-    movs.w  r14, #0
-
-    // f0_2 * f2
-    umull   r1, r14, r2, r4
-    adds.w  r1, r1, r1
-    adcs.w  r14, r14, r14
-
-    // + f1_2 * f1
-    vmov    r0, s6
-    umlal   r1, r14, r3, r0
-
-    // 38*(f3*f9 + f4*f8 + f5*f7)
-    vmov    r0, s19
-    umlal   r1, r14, r5, r0
-
-    vmov    r0, s18
-    umlal   r1, r14, r6, r0
-
-    vmov    r0, s17
-    umlal   r1, r14, r7, r0
-
-    adds.w  r1, r1, r1
-    adcs.w  r14, r14, r14
-
-    // + 19*f6*f6
-    vmov    r10, s16
-    umlal   r1, r14, r12, r10
-
-    vmov    s25, r1
-    vmov    s26, r14
-// ---------------------------------------
-
-    // acc = 0
-    movs.w  r1, #0
-    movs.w  r14, #0
-
-    // f0_2 * f3
-    umull   r1, r14, r2, r5
-    adds.w  r1, r1, r1
-    adcs.w  r14, r14, r14
-
-    // + f1_2 * f2
-    vmov    r0, s6
-    umlal   r1, r14, r4, r0
-
-    // 38*(f4*f9 + f5*f8)
-    vmov    r10, s19 // r10= f9_19
-    umlal   r1, r14, r6, r10
-
-    vmov    r0, s18
-    umlal   r1, r14, r7, r0
-
-    adds.w  r1, r1, r1
-    adcs.w  r14, r14, r14
-
-    // + 19*f6*f7
-    vmov    r10, s17
-    umlal   r1, r14, r12, r10
-
-    vmov    s27, r1
-    vmov    s28, r14
-
-// ---------------------------------------
-
-    movs.w  r1, #0
-    movs.w  r14, #0
-
-    // f0_2 * f4
-    umull   r1, r14, r2, r6
-    adds.w  r1, r1, r1
-    adcs.w  r14, r14, r14
-
-    // + 38*f1*f3
-    vmov    r0, s6
-    vmov    r10, s13
-    umlal   r1, r14, r0, r10
-
-    // + f2*f2
-    umlal   r1, r14, r4, r4
-
-    // + 38*f5*f9
-    vmov    r0, s8
-    vmov    r10, s19
-    umlal   r1, r14, r0, r10
-
-    // + 38*f6*f8
-    add     r10, r12, r12
-    vmov    r0, s18
-    umlal   r1, r14, r10, r0
-
-    // + 19*f7*f7
-    vmov    r0, s17
-    umlal   r1, r14, r8, r0
-
-    vmov    s29, r1
-    vmov    s30, r14
-// ---------------------------------------
-
-    // acc = 0
-    movs.w  r1, #0
-    movs.w  r14, #0
-
-    // f0_2 * f5
-    umull   r1, r14, r2, r7
-    adds.w  r1, r1, r1
-    adcs.w  r14, r14, r14
-
-    // + f1_2 * f4
-    vmov    r0, s6
-    umlal   r1, r14, r6, r0
-
-    // + f2_2 * f3
-    add     r10, r4, r4
-    umlal   r1, r14, r10, r5
-
-    // + 38*f6*f9
-    add     r10, r12, r12
-    vmov    r0, s19
-    umlal   r1, r14, r10, r0
-
-    // + 38*f7*f8
-    vmov    r10, s9
-    vmov    r0, s18
-    umlal   r1, r14, r10, r0
-
-    vmov    s31, r1
-    vmov    s0, r14
-// ---------------------------------------
-
-    movs.w  r1, #0
-    movs.w  r14, #0
-
-    // f0_2 * f6
-    umull   r1, r14, r2, r12
-    adds.w  r1, r1, r1
-    adcs.w  r14, r14, r14
-
-    // + 38*f1*f5
-    vmov    r10, s6
-    vmov    r0, s15
-    umlal   r1, r14, r10, r0
-
-    // + f2_2 * f4
-    add     r10, r4, r4
-    umlal   r1, r14, r10, r6
-
-    // + 38*f3*f3
-    vmov    r0, s7
-    vmov    r10, s13
-    umlal   r1, r14, r10, r0
-
-    // + 38*f7*f9
-    vmov    r10, s9
-    vmov    r0, s19
-    umlal   r1, r14, r10, r0
-
-    // + 19*f8*f8
-    vmov    r10, s18
-    umlal   r1, r14, r9, r10
-
-    vmov    s1, r1
-    vmov    s2, r14
-// ---------------------------------------
-
-    // acc = 0
-    movs.w  r1, #0
-    movs.w  r14, #0
-
-    // f0_2 * f7
-    umull   r1, r14, r2, r8
-    adds.w  r1, r1, r1
-    adcs.w  r14, r14, r14
-
-    // + f1_2 * f6
-    vmov    r0, s6
-    umlal   r1, r14, r12, r0
-
-    // + f2_2 * f5
-    add     r10, r4, r4
-    umlal   r1, r14, r10, r7
-
-    // + f3_2 * f4
-    vmov    r10, s7
-    umlal   r1, r14, r10, r6
-
-    // + 38*f8*f9
-    add     r10, r9, r9
-    vmov    r0, s19
-    umlal   r1, r14, r10, r0
-
-    vmov    s3, r1
-    vmov    s4, r14
-// ---------------------------------------
-
-    // acc = 0
-    movs.w  r1, #0
-    movs.w  r14, #0
-
-    // f0_2 * f8
-    umull   r1, r14, r2, r9
-    adds.w  r1, r1, r1
-    adcs.w  r14, r14, r14
-
-    // + 38*f1*f7
-    vmov    r0, s6
-    vmov    r10, s17
-    umlal   r1, r14, r0, r10
-
-    // + 38*f2*f6
-    add     r10, r4, r4
-    vmov    r0, s16
-    umlal   r1, r14, r10, r0
-
-    // + 38*f3*f5
-    vmov    r10, s7
-    vmov    r0, s15
-    umlal   r1, r14, r10, r0
-
-    // + 19*f4*f4
-    vmov    r10, s14
-    umlal   r1, r14, r6, r10
-
-    // + 19*f9*f9
-    vmov    r0, s19
-    umlal   r1, r14, r11, r0
-
-    vmov    s5, r1
-    vmov    s6, r14
-// ---------------------------------------
-    movs.w  r1, #0
-    movs.w  r14, #0
-
-    // f0_2 * f9
-    umull   r1, r14, r2, r11
-    adds.w  r1, r1, r1
-    adcs.w  r14, r14, r14
-
-    // + f1_2 * f8
-    vmov    r0, s6
-    umlal   r1, r14, r0, r9
-
-    // + f2_2 * f7
-    add     r10, r4, r4
-    umlal   r1, r14, r10, r8
-
-    // + f3_2 * f6
-    vmov    r0, s7
-    umlal   r1, r14, r0, r12
-
-    // + f4_2 * f5
-    add     r10, r6, r6
-    umlal   r1, r14, r10, r7
-
-    vmov    s7, r1
-    vmov    s8, r14
-// ---------------------------------------
-    ldr     r2, =0x02000000
-    ldr     r3, =0x01000000
-    ldr     r7, =0x13
-    vmov    r12, s20
-
-    vmov    r1, s21
-    vmov    r14, s22
-
-    adds.w  r1, r1, r2
-    adcs.w  r14, r14, #0
-
-    mov.w   r0, r1
-    lsr.w   r0, r0, #26
-    orr.w   r0, r0, r14, lsl#6
-
-    subs.w  r1, r1, r0, lsl#26
-    sbc.w   r14, r14, r0, lsr#6
-
-    vmov    s21, r1
-    vmov    s22, r14
-// ---------------------------------------
-    vmov    r1, s23
-    vmov    r14, s24
-    adds.w  r1, r1, r0
-    adcs.w  r14, r14, #0
-
-    adds.w  r1, r1, r3
-    adcs.w  r14, r14, #0
-
-    mov.w   r0, r1
-    lsr.w   r0, r0, #25
-    orr.w   r0, r0, r14, lsl#7
-
-    subs.w  r1, r1, r0, lsl#25
-    sbc.w   r14, r14, r0, lsr#7
-
-    vmov    s23, r1
-    vmov    s24, r14
-// ---------------------------------------
-    vmov    r1, s25
-    vmov    r14, s26
-    adds.w  r1, r1, r0
-    adcs.w  r14, r14, #0
-
-    adds.w  r1, r1, r2
-    adcs.w  r14, r14, #0
-
-    mov.w   r0, r1
-    lsr.w   r0, r0, #26
-    orr.w   r0, r0, r14, lsl#6
-
-    subs.w  r1, r1, r0, lsl#26
-    sbc.w   r14, r14, r0, lsr#6
-
-    vmov    s25, r1
-    vmov    s26, r14
-
-// ---------------------------------------
-    vmov    r1, s27
-    vmov    r14, s28
-    adds.w  r1, r1, r0
-    adcs.w  r14, r14, #0
-
-    adds.w  r1, r1, r3
-    adcs.w  r14, r14, #0
-
-    mov.w   r0, r1
-    lsr.w   r0, r0, #25
-    orr.w   r0, r0, r14, lsl#7
-
-    subs.w  r1, r1, r0, lsl#25
-    sbc.w   r14, r14, r0, lsr#7
-
-    str     r1, [r12, #24]
-    str     r14, [r12, #28]
-// ---------------------------------------
-    vmov    r1, s29
-    vmov    r14, s30
-    adds.w  r1, r1, r0
-    adcs.w  r14, r14, #0
-
-    adds.w  r1, r1, r2
-    adcs.w  r14, r14, #0
-
-    mov.w   r0, r1
-    lsr.w   r0, r0, #26
-    orr.w   r0, r0, r14, lsl#6
-
-    subs.w  r1, r1, r0, lsl#26
-    sbc.w   r14, r14, r0, lsr#6
-
-    str     r1, [r12, #32]
-    str     r14, [r12, #36]
-// ---------------------------------------
-    vmov    r1, s31
-    vmov    r14, s0
-    adds.w  r1, r1, r0
-    adcs.w  r14, r14, #0
-
-    adds.w  r1, r1, r3
-    adcs.w  r14, r14, #0
-
-    mov.w   r0, r1
-    lsr.w   r0, r0, #25
-    orr.w   r0, r0, r14, lsl#7
-
-    subs.w  r1, r1, r0, lsl#25
-    sbc.w   r14, r14, r0, lsr#7
-
-    str     r1, [r12, #40]
-    str     r14, [r12, #44]
-// ---------------------------------------
-// ---------------------------------------
-    vmov    r1, s1
-    vmov    r14, s2
-    adds.w  r1, r1, r0
-    adcs.w  r14, r14, #0
-
-    adds.w  r1, r1, r2
-    adcs.w  r14, r14, #0
-
-    mov.w   r0, r1
-    lsr.w   r0, r0, #26
-    orr.w   r0, r0, r14, lsl#6
-
-    subs.w  r1, r1, r0, lsl#26
-    sbc.w   r14, r14, r0, lsr#6
-
-    str     r1, [r12, #48]
-    str     r14, [r12, #52]
-// ---------------------------------------
-    vmov    r1, s3
-    vmov    r14, s4
-    adds.w  r1, r1, r0
-    adcs.w  r14, r14, #0
-
-    adds.w  r1, r1, r3
-    adcs.w  r14, r14, #0
-
-    mov.w   r0, r1
-    lsr.w   r0, r0, #25
-    orr.w   r0, r0, r14, lsl#7
-
-    subs.w  r1, r1, r0, lsl#25
-    sbc.w   r14, r14, r0, lsr#7
-
-    str     r1, [r12, #56]
-    str     r14, [r12, #60]
-// ---------------------------------------
-    vmov    r1, s5
-    vmov    r14, s6
-    adds.w  r1, r1, r0
-    adcs.w  r14, r14, #0
-
-    adds.w  r1, r1, r2
-    adcs.w  r14, r14, #0
-
-    mov.w   r0, r1
-    lsr.w   r0, r0, #26
-    orr.w   r0, r0, r14, lsl#6
-
-    subs.w  r1, r1, r0, lsl#26
-    sbc.w   r14, r14, r0, lsr#6
-
-    str     r1, [r12, #64]
-    str     r14, [r12, #68]
-// ---------------------------------------
-    vmov    r1, s7
-    vmov    r14, s8
-
-    adds.w  r1, r1, r0
-    adcs.w  r14, r14, #0
-
-    adds.w  r1, r1, r3
-    adcs.w  r14, r14, #0
-
-    mov.w   r0, r1
-    lsrs    r0, r0, #25
-    orr.w   r0, r0, r14, lsl#7
-
-    subs.w  r1, r1, r0, lsl#25
-    sbc.w   r14, r14, r0, lsr#7
-
-    str     r1, [r12, #72]
-    str     r14, [r12, #76]
-// ---------------------------------------
-    vmov    r1, s21
-    vmov    r14, s22
-
-    mul     r10, r0, r7
-
-    adds.w  r1, r1, r10
-    adcs.w  r14, r14, #0
-
-    adds.w  r1, r1, r2
-    adcs.w  r14, r14, #0
-
-    mov.w   r0, r1
-    lsr.w   r0, r0, #26
-    orr.w   r0, r0, r14, lsl#6
-
-    subs.w  r1, r1, r0, lsl#26
-    sbc.w   r14, r14, r0, lsr#6
-
-    str     r1, [r12]
-    str     r14, [r12, #4]
-// ---------------------------------------
-    vmov    r1, s23
-    vmov    r14, s24
-
-    adds.w  r1, r1, r0
-    adcs.w  r14, r14, #0
-
-    adds.w  r1, r1, r3
-    adcs.w  r14, r14, #0
-
-    mov.w   r0, r1
-    lsrs    r0, r0, #25
-    orr.w   r0, r0, r14, lsl#7
-
-    subs.w  r1, r1, r0, lsl#25
-    sbc.w   r14, r14, r0, lsr#7
-
-    str     r1, [r12, #8]
-    str     r14, [r12, #12]
-// ---------------------------------------
-    vmov    r1, s25
-    vmov    r14, s26
-    adds.w  r1, r1, r0
-    adcs.w  r14, r14, #0
-    str     r1, [r12, #16]
-    str     r14, [r12, #20]
-
-    vpop    {s16-s31}
-    add     sp, sp, #4
-    ldmia.w sp!, {r4-r11, lr}
-
-    bx      lr
+    push    {r4, r5, r6, r7, r8, r9, r10, fp, lr}
+    ldr     r4, [r0]@ unaligned
+    ldr     r2, [r0, #4]          @ unaligned
+    ldr     r5, [r0, #24]         @ unaligned
+    ldr     r6, [r0, #12]         @ unaligned
+    lsrs    r3, r4, #26
+    orr     r3, r3, r2, lsl#6
+    bic     r7, r3, #-33554432
+    ldr     r3, [r0, #8]@ unaligned
+    lsrs    r2, r2, #19
+    bic     fp, r4, #-67108864
+    orr     r2, r2, r3, lsl#13
+    ldr     r4, [r0, #28]@ unaligned
+    mov     r10, r1
+    bic     r9, r2, #-67108864
+    ldr     r1, [r0, #20]         @ unaligned
+    ldr     r0, [r0, #16]         @ unaligned
+    lsrs    r2, r5, #12
+    lsrs    r3, r3, #13
+    sub     sp, sp, #108
+    orr     r2, r2, r4, lsl#20
+    orr     r3, r3, r6, lsl#19
+    lsr     lr, r6, #6
+    bic     ip, r2, #-67108864
+    bic     r3, r3, #-33554432
+    movs    r2, #19
+    lsrs    r6, r1, #19
+    str     r3, [sp, #4]
+    str     ip, [sp, #24]
+    orr     r6, r6, r5, lsl#13
+    smull   ip, r3, ip, r2
+    lsrs    r3, r0, #25
+    bic     r6, r6, #-33554432
+    orr     r3, r3, r1, lsl#7
+    ubfx    r4, r4, #6, #25
+    bic     r8, r3, #-67108864
+    str     r4, [sp, #40]
+    smull   r4, r3, r4, r2
+    smull   r1, r3, r6, r2
+    str     r6, [sp, #12]
+    mov     r6, r1
+    ldr     r1, [sp, #4]
+    str     r7, [sp, #8]
+    bic     r0, r0, #-33554432
+    adds    r5, r7, r7
+    str     r8, [sp, #16]
+    adds    r7, r1, r1
+    smull   r8, r3, r8, r2
+    adds    r3, r0, r0
+    str     r3, [sp, #36]
+    ldr     r3, [sp, #12]
+    str     r5, [sp, #32]
+    adds    r1, r3, r3
+    str     r1, [sp, #44]
+    smull   r3, r1, r9, ip
+    smlal   r3, r1, r4, r5
+    mov     r2, r0
+    smlal   r3, r1, r6, r7
+    ldr     r0, [sp, #36]
+    str     r7, [sp, #28]
+    smlal   r3, r1, lr, r8
+    adds    r5, r3, r3
+    smull   r3, r7, r2, r0
+    str     r5, [sp, #20]
+    lsl     r0, r3, #3
+    lsl     r5, r7, #3
+    adcs    r1, r1, r1
+    orr     r5, r5, r3, lsr#29
+    adds    r0, r0, r3
+    adc     r5, r7, r5
+    adds    r0, r0, r0
+    adcs    r5, r5, r5
+    adds    r0, r0, r3
+    adc     r7, r7, r5
+    ldr     r5, [sp, #20]
+    str     r6, [sp, #20]
+    smlal   r0, r7, fp, fp
+    adds    r0, r5, r0
+    adc     r1, r1, r7
+    ldr     r7, [sp, #8]
+    str     r0, [sp, #48]
+    smull   r5, r0, r9, r4
+    smlal   r5, r0, fp, r7
+    ldr     r7, [sp, #4]
+    smlal   r5, r0, r7, ip
+    smlal   r5, r0, lr, r6
+    smlal   r5, r0, r2, r8
+    adds    r5, r5, r5
+    adc     r6, r0, r0
+    str     r5, [sp, #64]
+    str     r6, [sp, #68]
+    ldr     r0, [sp, #16]
+    ldr     r3, [sp, #32]
+    ldr     r6, [sp, #36]
+    smull   r8, r7, r0, r8
+    ldr     r0, [sp, #8]
+    smlal   r8, r7, r0, r3
+    ldr     r0, [sp, #28]
+    ldr     r3, [sp, #20]
+    str     r2, [sp, #20]
+    smull   r0, r5, r4, r0
+    smlal   r0, r5, fp, r9
+    smlal   r0, r5, lr, ip
+    smlal   r0, r5, r3, r6
+    adds    r0, r0, r0
+    adcs    r5, r5, r5
+    adds    r8, r0, r8
+    adc     r0, r5, r7
+    str     r0, [sp, #56]
+    ldr     r0, [sp, #8]
+    ldr     r7, [sp, #4]
+    ldr     r6, [sp, #44]
+    str     r8, [sp, #52]
+    smull   r5, r0, r0, r9
+    smlal   r5, r0, fp, r7
+    smlal   r5, r0, lr, r4
+    smlal   r5, r0, r2, ip
+    ldr     r2, [sp, #16]
+    smlal   r5, r0, r2, r3
+    adds    r7, r5, r5
+    adc     r8, r0, r0
+    str     r7, [sp, #72]
+    ldr     r0, [sp, #4]
+    str     r8, [sp, #76]
+    smull   r5, r7, r3, r6
+    ldr     r3, [sp, #32]
+    ldr     r6, [sp, #36]
+    smull   r0, r8, r0, r3
+    smlal   r0, r8, lr, fp
+    smlal   r0, r8, r4, r6
+    smlal   r0, r8, r2, ip
+    smlal   r5, r7, r9, r9
+    adds    r0, r0, r0
+    adc     r8, r8, r8
+    adds    r0, r0, r5
+    ldr     r5, [sp, #8]
+    ldr     r2, [sp, #20]
+    str     r0, [sp, #32]
+    adc     r6, r8, r7
+    str     r6, [sp, #36]
+    smull   r5, r0, lr, r5
+    ldr     r6, [sp, #4]
+    ldr     r8, [sp, #16]
+    ldr     r7, [sp, #12]
+    smlal   r5, r0, fp, r2
+    smlal   r5, r0, r9, r6
+    smlal   r5, r0, r8, r4
+    smlal   r5, r0, r7, ip
+    adds    r7, r5, r5
+    adc     r5, r0, r0
+    str     r7, [sp, #80]
+    ldr     r7, [sp, #24]
+    str     r5, [sp, #84]
+    ldr     r5, [sp, #28]
+    smull   r0, r7, r7, ip
+    smlal   r0, r7, r6, r5
+    smull   r5, ip, r2, r3
+    ldr     r6, [sp, #44]
+    smlal   r5, ip, fp, r8
+    smlal   r5, ip, lr, r9
+    smlal   r5, ip, r4, r6
+    adds    r5, r5, r5
+    adc     ip, ip, ip
+    adds    r5, r5, r0
+    adc     ip, ip, r7
+    str     r5, [sp, #44]
+    str     ip, [sp, #60]
+    ldr     r6, [sp, #12]
+    ldr     ip, [sp, #24]
+    smull   r0, r5, r6, r3
+    smlal   r0, r5, fp, ip
+    ldr     ip, [sp, #8]
+    ldr     r3, [sp, #28]
+    smull   ip, r7, ip, r8
+    smlal   r0, r5, r9, r8
+    smlal   ip, r7, fp, r6
+    ldr     r6, [sp, #4]
+    smlal   r0, r5, r2, r3
+    smlal   ip, r7, r9, r2
+    ldr     r2, [sp, #24]
+    smlal   ip, r7, lr, r6
+    smlal   ip, r7, r2, r4
+    adds    r3, ip, ip
+    ldr     ip, [sp, #8]
+    str     r3, [sp, #88]
+    adcs    r7, r7, r7
+    ldr     r3, [sp, #40]
+    str     r7, [sp, #92]
+    smull   r2, r7, ip, r2
+    ldr     ip, [sp, #12]
+    smlal   r2, r7, fp, r3
+    smlal   r2, r7, r9, ip
+    smlal   r2, r7, r6, r8
+    ldr     r6, [sp, #20]
+    ldr     fp, [sp, #56]
+    ldr     r9, [sp, #72]
+    smlal   r2, r7, lr, r6
+    adds    r0, r0, r0
+    smull   r6, r4, r3, r4
+    adcs    r5, r5, r5
+    adds    r6, r6, r6
+    adc     ip, r4, r4
+    smlal   r6, ip, lr, lr
+    adds    r4, r0, r6
+    adc     r3, r5, ip
+    ldr     ip, [sp, #48]
+    ldr     r5, [sp, #64]
+    str     r3, [sp, #8]
+    adds    r6, r2, r2
+    adc     lr, r7, r7
+    adds    r7, ip, #33554432
+    adc     r0, r1, #0
+    lsrs    r2, r7, #26
+    ldr     r3, [sp, #68]
+    str     lr, [sp, #96]
+    orr     r2, r2, r0, lsl#6
+    adds    r2, r2, r5
+    and     r7, r7, #-67108864
+    adc     r8, r3, r0, asr#26
+    subs    lr, ip, r7
+    sbc     r7, r1, r0
+    adds    ip, r2, #16777216
+    adc     r0, r8, #0
+    ldr     r1, [sp, #52]
+    lsr     r3, ip, #25
+    orr     r3, r3, r0, lsl#7
+    adds    r3, r3, r1
+    and     ip, ip, #-33554432
+    adc     r1, fp, r0, asr#25
+    subs    ip, r2, ip
+    sbc     fp, r8, r0
+    adds    r2, r3, #33554432
+    adc     r0, r1, #0
+    lsr     r8, r2, #26
+    orr     r8, r8, r0, lsl#6
+    adds    r8, r8, r9
+    ldr     r9, [sp, #76]
+    str     r8, [sp, #12]
+    and     r2, r2, #-67108864
+    adc     r9, r9, r0, asr#26
+    subs    r3, r3, r2
+    sbc     r1, r1, r0
+    str     r3, [sp, #68]
+    adds    r3, r8, #16777216
+    adc     r8, r9, #0
+    ldr     r0, [sp, #32]
+    str     r1, [sp, #72]
+    lsrs    r2, r3, #25
+    orr     r2, r2, r8, lsl#7
+    adds    r2, r2, r0
+    ldr     r0, [sp, #36]
+    ldr     r1, [sp, #80]
+    str     r9, [sp, #16]
+    and     r3, r3, #-33554432
+    adc     r0, r0, r8, asr#25
+    str     r3, [sp, #76]
+    adds    r3, r2, #33554432
+    adc     r9, r0, #0
+    str     r2, [sp, #20]
+    lsrs    r2, r3, #26
+    orr     r2, r2, r9, lsl#6
+    adds    r1, r2, r1
+    str     r8, [sp, #4]
+    str     r0, [sp, #24]
+    ldr     r2, [sp, #84]
+    ldr     r5, [sp, #44]
+    str     r1, [sp, #28]
+    and     r3, r3, #-67108864
+    adc     r2, r2, r9, asr#26
+    str     r3, [sp, #80]
+    adds    r3, r1, #16777216
+    adc     r8, r2, #0
+    str     r2, [sp, #32]
+    lsrs    r2, r3, #25
+    orr     r2, r2, r8, lsl#7
+    adds    r0, r2, r5
+    ldr     r5, [sp, #60]
+    str     r0, [sp, #36]
+    and     r3, r3, #-33554432
+    adc     r5, r5, r8, asr#25
+    str     r3, [sp, #84]
+    adds    r3, r0, #33554432
+    adc     r1, r5, #0
+    str     r5, [sp, #40]
+    lsrs    r2, r3, #26
+    ldr     r5, [sp, #88]
+    orr     r2, r2, r1, lsl#6
+    adds    r5, r2, r5
+    ldr     r2, [sp, #92]
+    str     r5, [sp, #44]
+    and     r3, r3, #-67108864
+    adc     r2, r2, r1, asr#26
+    str     r3, [sp, #88]
+    adds    r3, r5, #16777216
+    str     r2, [sp, #48]
+    lsr     r0, r3, #25
+    adc     r2, r2, #0
+    orr     r0, r0, r2, lsl#7
+    adds    r4, r0, r4
+    ldr     r0, [sp, #8]
+    str     r4, [sp, #52]
+    adc     r5, r0, r2, asr#25
+    and     r3, r3, #-33554432
+    adds    r0, r4, #33554432
+    str     r3, [sp, #92]
+    lsr     r4, r0, #26
+    adc     r3, r5, #0
+    orr     r4, r4, r3, lsl#6
+    adds    r6, r4, r6
+    ldr     r4, [sp, #96]
+    str     r5, [sp, #56]
+    adc     r4, r4, r3, asr#26
+    mov     r5, r4
+    and     r4, r0, #-67108864
+    str     r4, [sp, #96]
+    adds    r4, r6, #16777216
+    str     r6, [sp, #60]
+    lsr     r0, r4, #25
+    adc     r6, r5, #0
+    str     r5, [sp, #64]
+    orr     r0, r0, r6, lsl#7
+    movs    r5, #19
+    smlal   lr, r7, r0, r5
+    adds    r5, lr, #33554432
+    and     r4, r4, #-33554432
+    str     r4, [sp, #100]
+    lsr     r0, r5, #26
+    adc     r4, r7, #0
+    orr     r0, r0, r4, lsl#6
+    adds    r0, r0, ip
+    str     r4, [sp, #8]
+    adc     fp, fp, r4, asr#26
+    and     r5, r5, #-67108864
+    adds    r4, r0, #16777216
+    adc     ip, fp, #0
+    subs    r5, lr, r5
+    ldr     lr, [sp, #8]
+    sbc     r7, r7, lr
+    strd    r5, r7, [r10]
+    ldr     r7, [sp, #68]
+    ldr     lr, [sp, #72]
+    and     r5, r4, #-33554432
+    lsrs    r4, r4, #25
+    subs    r0, r0, r5
+    orr     r4, r4, ip, lsl#7
+    sbc     fp, fp, ip
+    adds    r4, r4, r7
+    adc     ip, lr, ip, asr#25
+    str     r0, [r10, #8]
+    ldr     lr, [sp, #12]
+    ldr     r0, [sp, #76]
+    subs    lr, lr, r0
+    str     lr, [sp, #8]
+    ldr     r7, [sp, #4]
+    ldr     lr, [sp, #16]
+    ldr     r0, [sp, #24]
+    str     ip, [r10, #20]
+    sbc     lr, lr, r7
+    str     lr, [r10, #28]
+    ldr     r7, [sp, #20]
+    ldr     lr, [sp, #80]
+    subs    r5, r7, lr
+    ldr     r7, [sp, #28]
+    ldr     lr, [sp, #84]
+    sbc     r9, r0, r9
+    subs    r0, r7, lr
+    ldr     r7, [sp, #32]
+    ldr     lr, [sp, #88]
+    str     r0, [sp, #4]
+    ldr     r0, [sp, #36]
+    sbc     r8, r7, r8
+    ldr     r7, [sp, #40]
+    subs    r0, r0, lr
+    sbc     lr, r7, r1
+    ldr     r7, [sp, #92]
+    ldr     r1, [sp, #44]
+    subs    r1, r1, r7
+    ldr     r7, [sp, #48]
+    sbc     r2, r7, r2
+    str     r2, [r10, #60]
+    ldr     r7, [sp, #96]
+    ldr     r2, [sp, #52]
+    subs    r2, r2, r7
+    ldr     r7, [sp, #56]
+    sbc     r3, r7, r3
+    strd    fp, r4, [r10, #12]
+    ldr     r7, [sp, #100]
+    ldr     r4, [sp, #8]
+    str     r3, [sp, #12]
+    ldr     r3, [sp, #60]
+    str     r4, [r10, #24]
+    ldr     r4, [sp, #4]
+    subs    r3, r3, r7
+    ldr     r7, [sp, #64]
+    strd    r5, r9, [r10, #32]
+    strd    r4, r8, [r10, #40]
+    str     r2, [r10, #64]
+    ldr     r2, [sp, #12]
+    str     r1, [r10, #56]
+    sbc     r6, r7, r6
+    strd    r0, lr, [r10, #48]
+    strd    r2, r3, [r10, #68]
+    str     r6, [r10, #76]
+    add     sp, sp, #108
+    pop     {r4, r5, r6, r7, r8, r9, r10, fp, pc}
