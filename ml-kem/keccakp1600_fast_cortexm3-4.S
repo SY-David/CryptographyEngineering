@@ -354,7 +354,7 @@
  *  - par1-par5     registers containing the parity bits
  *  - dly1-dly5     rotation values to compute the (delayed) Rho step
  *****************************************************************************/
-.macro addparity par1, dly1, par2, dly2, par3, dly3, par4, dly4, par5, dly5
+.macro addparity par1, dly1, par2, dly2, par3, dly3 par4, dly4, par5, dly5
 .if \dly1 > 0
     eor    r3, \par1, r3, ror #32-\dly1
 .else
