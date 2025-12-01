@@ -5,11 +5,7 @@
 #include "smult.h"
 #include "hal.h"
 #include "fe25519.h" // 引入 fe25519 定義
-
-// ==========================================
-// [新增部分] 1. 簡單的亂數產生器 (Xorshift32)
-// 為了不依賴外部 randombytes.c，我們直接在這裡實作一個
-// ==========================================
+#define GROUP_GE_PACKEDBYTES 32
 static uint32_t rng_state = 123456789;
 
 static uint32_t xorshift32(void)
@@ -31,11 +27,6 @@ static void get_random_32bytes(unsigned char *out)
     memcpy(out + i * 4, &r, 4);
   }
 }
-
-// ==========================================
-// [新增部分] 2. 純 C 語言的 fe25519 實作 (Reference)
-// 加上 static 防止與專案其他檔案衝突
-// ==========================================
 
 static uint32_t times19(uint32_t a)
 {
