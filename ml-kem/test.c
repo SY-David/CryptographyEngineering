@@ -16,17 +16,14 @@
 #define N_ITERATIONS 1000
 
 // =========================================================
-//  [NEW ADDITION] PART 1: C Reference Implementations
-//  為了避免與專案中現有的函式名稱衝突，這裡全部加上 c_ 前綴
-//  並且宣告為 static 以便在此檔案內部使用
+//  PART 1: C Reference Implementations (Restored)
 // =========================================================
-
-// --- From reduce.c ---
 
 #ifndef QINV
 #define QINV -3327 // -q^-1 mod 2^16
 #endif
 
+// 使用 volatile 防止編譯器優化掉未使用的計算
 static int16_t c_montgomery_reduce(int32_t a)
 {
     int16_t t;
@@ -43,8 +40,6 @@ static int16_t c_barrett_reduce(int16_t a)
     t *= KYBER_Q;
     return a - t;
 }
-
-// --- From ntt.c ---
 
 static const int16_t c_zetas[128] = {
     -1044, -758, -359, -1517, 1493, 1422, 287, 202,
@@ -125,8 +120,6 @@ static void c_basemul(int16_t r[2], const int16_t a[2], const int16_t b[2], int1
     r[1] += c_fqmul(a[1], b[0]);
 }
 
-// --- From poly.c ---
-
 static void c_poly_add(poly *r, const poly *a, const poly *b)
 {
     unsigned int i;
@@ -142,19 +135,19 @@ static void c_poly_sub(poly *r, const poly *a, const poly *b)
 }
 
 // =========================================================
-//  [NEW ADDITION] PART 2: ASM Function Declarations
+//  PART 2: ASM Function Declarations
 // =========================================================
 
 extern void ntt_s(int16_t r[256]);
 extern void invntt_s(int16_t r[256]);
 extern void basemul_s(int16_t r[2], const int16_t a[2], const int16_t b[2], int16_t zeta);
-extern int16_t montgomery(int16_t a, int16_t b); // ASM version of fqmul
+extern int16_t montgomery(int16_t a, int16_t b);
 extern int16_t barrett(int16_t a);
 extern void poly_add_s(poly *r, const poly *a, const poly *b);
 extern void poly_sub_s(poly *r, const poly *a, const poly *b);
 
 // =========================================================
-//  [NEW ADDITION] PART 3: Benchmarking Functions
+//  PART 3: Benchmarking & Testing
 // =========================================================
 
 static void print_cycles(const char *label, uint64_t cycles)
@@ -172,15 +165,29 @@ static void print_cycles(const char *label, uint64_t cycles)
 static void run_lowlevel_benchmark(void)
 {
     poly a, b, r;
-    int16_t x = 1234, y = 5678, z = 1;
+    // 使用 volatile 變數來強制編譯器每次都必須讀取/寫入記憶體
+    volatile int16_t x, y, z = 0, zeta;
+    int16_t rand_scalars[4];
+    // 用於防止 Poly 函數被優化的 dummy 變數
+    volatile int16_t dummy_sink;
+
     uint64_t t0, t1;
     int i;
 
-    // Initialize dummy data
+    // [New] 使用隨機數據初始化，避免固定 pattern
+    randombytes((uint8_t *)&a, sizeof(poly));
+    randombytes((uint8_t *)&b, sizeof(poly));
+    randombytes((uint8_t *)rand_scalars, sizeof(rand_scalars));
+
+    x = rand_scalars[0];
+    y = rand_scalars[1];
+    zeta = rand_scalars[2];
+
+    // 稍微修剪一下隨機數，確保在合理範圍內 (雖然計算上沒差，但比較符合真實輸入)
     for (i = 0; i < KYBER_N; i++)
     {
-        a.coeffs[i] = (i * 123) % KYBER_Q;
-        b.coeffs[i] = (i * 456) % KYBER_Q;
+        a.coeffs[i] &= 0xFFF; // Keep 12 bits
+        b.coeffs[i] &= 0xFFF;
     }
 
     hal_send_str("\n=== Low-Level Benchmarks (Avg of 1000 runs) ===\n");
@@ -190,72 +197,108 @@ static void run_lowlevel_benchmark(void)
     // --- NTT ---
     t0 = hal_get_time();
     for (i = 0; i < N_ITERATIONS; i++)
+    {
         c_ntt(a.coeffs);
+        // Data dependency: 修改輸入以防止優化，或強制讀取輸出
+        a.coeffs[0] ^= 1;
+    }
     t1 = hal_get_time();
     print_cycles("NTT (C)", (t1 - t0) / N_ITERATIONS);
 
     t0 = hal_get_time();
     for (i = 0; i < N_ITERATIONS; i++)
+    {
         ntt_s(a.coeffs);
+        a.coeffs[0] ^= 1;
+    }
     t1 = hal_get_time();
     print_cycles("NTT (ASM)", (t1 - t0) / N_ITERATIONS);
 
     // --- InvNTT ---
     t0 = hal_get_time();
     for (i = 0; i < N_ITERATIONS; i++)
+    {
         c_invntt(a.coeffs);
+        a.coeffs[0] ^= 1;
+    }
     t1 = hal_get_time();
     print_cycles("InvNTT (C)", (t1 - t0) / N_ITERATIONS);
 
     t0 = hal_get_time();
     for (i = 0; i < N_ITERATIONS; i++)
+    {
         invntt_s(a.coeffs);
+        a.coeffs[0] ^= 1;
+    }
     t1 = hal_get_time();
     print_cycles("InvNTT (ASM)", (t1 - t0) / N_ITERATIONS);
 
     // --- Poly Add ---
     t0 = hal_get_time();
     for (i = 0; i < N_ITERATIONS; i++)
+    {
         c_poly_add(&r, &a, &b);
+        // Force write to volatile to ensure c_poly_add executes
+        dummy_sink = r.coeffs[0];
+    }
     t1 = hal_get_time();
     print_cycles("Poly Add (C)", (t1 - t0) / N_ITERATIONS);
 
     t0 = hal_get_time();
     for (i = 0; i < N_ITERATIONS; i++)
+    {
         poly_add_s(&r, &a, &b);
+        dummy_sink = r.coeffs[0];
+    }
     t1 = hal_get_time();
     print_cycles("Poly Add (ASM)", (t1 - t0) / N_ITERATIONS);
 
     // --- Poly Sub ---
     t0 = hal_get_time();
     for (i = 0; i < N_ITERATIONS; i++)
+    {
         c_poly_sub(&r, &a, &b);
+        dummy_sink = r.coeffs[0];
+    }
     t1 = hal_get_time();
     print_cycles("Poly Sub (C)", (t1 - t0) / N_ITERATIONS);
 
     t0 = hal_get_time();
     for (i = 0; i < N_ITERATIONS; i++)
+    {
         poly_sub_s(&r, &a, &b);
+        dummy_sink = r.coeffs[0];
+    }
     t1 = hal_get_time();
     print_cycles("Poly Sub (ASM)", (t1 - t0) / N_ITERATIONS);
 
     // --- Basemul ---
-    // basemul is very fast, run 10x more iterations per loop
-    int16_t r_base[2], a_base[2] = {123, 456}, b_base[2] = {789, 101}, zeta = 222;
+    // Increase iterations for small functions
+    int16_t r_base[2], a_base[2], b_base[2];
+    // Fill base arrays with random data
+    randombytes((uint8_t *)a_base, sizeof(a_base));
+    randombytes((uint8_t *)b_base, sizeof(b_base));
 
     t0 = hal_get_time();
     for (i = 0; i < N_ITERATIONS * 10; i++)
+    {
         c_basemul(r_base, a_base, b_base, zeta);
+        dummy_sink = r_base[0]; // Anti-optimization
+    }
     t1 = hal_get_time();
     print_cycles("Basemul (C)", (t1 - t0) / (N_ITERATIONS * 10));
 
     t0 = hal_get_time();
     for (i = 0; i < N_ITERATIONS * 10; i++)
+    {
         basemul_s(r_base, a_base, b_base, zeta);
+        dummy_sink = r_base[0];
+    }
     t1 = hal_get_time();
     print_cycles("Basemul (ASM)", (t1 - t0) / (N_ITERATIONS * 10));
 
-    // --- Reduce ---
+    // --- Reduce (Montgomery) ---
+    // Note: Use volatile variables (x, y, z) to prevent constant folding
     t0 = hal_get_time();
     for (i = 0; i < N_ITERATIONS * 10; i++)
         z = c_fqmul(x, y);
@@ -268,6 +311,7 @@ static void run_lowlevel_benchmark(void)
     t1 = hal_get_time();
     print_cycles("Montgomery (ASM)", (t1 - t0) / (N_ITERATIONS * 10));
 
+    // --- Reduce (Barrett) ---
     t0 = hal_get_time();
     for (i = 0; i < N_ITERATIONS * 10; i++)
         z = c_barrett_reduce(x);
@@ -279,10 +323,13 @@ static void run_lowlevel_benchmark(void)
         z = barrett(x);
     t1 = hal_get_time();
     print_cycles("Barrett (ASM)", (t1 - t0) / (N_ITERATIONS * 10));
+
+    (void)z;
+    (void)dummy_sink; // Silence unused variable warnings
 }
 
 // =========================================================
-//  [ORIGINAL CODE PRESERVED BELOW]
+//  PART 4: Existing Tests & Main
 // =========================================================
 
 static int test_keygen_vector(void)
@@ -293,14 +340,11 @@ static int test_keygen_vector(void)
 
     hal_send_str("\n=== Test 1: Keypair Generation ===\n");
 
-    // Generate keypair with test vector coins
     if (pqcrystals_kyber768_ref_keypair_derand(pk, sk, tv_keypair_coins) != 0)
     {
         hal_send_str("Keypair generation failed!\n");
         return -1;
     }
-
-    // Compare public key
     for (i = 0; i < pqcrystals_kyber768_ref_PUBLICKEYBYTES; i++)
     {
         if (pk[i] != tv_expected_pk[i])
@@ -309,8 +353,6 @@ static int test_keygen_vector(void)
             return -1;
         }
     }
-
-    // Compare secret key
     for (i = 0; i < pqcrystals_kyber768_ref_SECRETKEYBYTES; i++)
     {
         if (sk[i] != tv_expected_sk[i])
@@ -319,7 +361,6 @@ static int test_keygen_vector(void)
             return -1;
         }
     }
-
     hal_send_str("✓ Keypair generation test vector PASSED\n");
     return 0;
 }
@@ -332,14 +373,11 @@ static int test_encaps_vector(void)
 
     hal_send_str("\n=== Test 2: Encapsulation ===\n");
 
-    // Perform encapsulation with test vector public key and coins
     if (pqcrystals_kyber768_ref_enc_derand(ct, ss, tv_encaps_pk, tv_encaps_coins) != 0)
     {
         hal_send_str("Encapsulation failed!\n");
         return -1;
     }
-
-    // Compare ciphertext
     for (i = 0; i < pqcrystals_kyber768_ref_CIPHERTEXTBYTES; i++)
     {
         if (ct[i] != tv_expected_ct[i])
@@ -348,8 +386,6 @@ static int test_encaps_vector(void)
             return -1;
         }
     }
-
-    // Compare shared secret
     for (i = 0; i < pqcrystals_kyber768_ref_BYTES; i++)
     {
         if (ss[i] != tv_expected_ss_encaps[i])
@@ -358,7 +394,6 @@ static int test_encaps_vector(void)
             return -1;
         }
     }
-
     hal_send_str("✓ Encapsulation test vector PASSED\n");
     return 0;
 }
@@ -370,14 +405,11 @@ static int test_decaps_vector(void)
 
     hal_send_str("\n=== Test 3: Decapsulation ===\n");
 
-    // Perform decapsulation with test vector secret key and ciphertext
     if (pqcrystals_kyber768_ref_dec(ss, tv_decaps_ct, tv_decaps_sk) != 0)
     {
         hal_send_str("Decapsulation failed!\n");
         return -1;
     }
-
-    // Compare shared secret
     for (i = 0; i < pqcrystals_kyber768_ref_BYTES; i++)
     {
         if (ss[i] != tv_expected_ss_decaps[i])
@@ -386,7 +418,6 @@ static int test_decaps_vector(void)
             return -1;
         }
     }
-
     hal_send_str("✓ Decapsulation test vector PASSED\n");
     return 0;
 }
@@ -402,38 +433,18 @@ static int run_test(void)
     uint8_t coins_enc[pqcrystals_kyber768_ref_ENCCOINBYTES];
     int i;
 
-    // Generate deterministic randomness for testing
     for (i = 0; i < pqcrystals_kyber768_ref_KEYPAIRCOINBYTES; i++)
-    {
         coins_keypair[i] = i;
-    }
     for (i = 0; i < pqcrystals_kyber768_ref_ENCCOINBYTES; i++)
-    {
         coins_enc[i] = i + 64;
-    }
 
-    // Generate keypair
     if (pqcrystals_kyber768_ref_keypair_derand(pk, sk, coins_keypair) != 0)
-    {
-        hal_send_str("Keypair generation failed!\n");
         return -1;
-    }
-
-    // Encapsulation
     if (pqcrystals_kyber768_ref_enc_derand(ct, ss1, pk, coins_enc) != 0)
-    {
-        hal_send_str("Encapsulation failed!\n");
         return -1;
-    }
-
-    // Decapsulation
     if (pqcrystals_kyber768_ref_dec(ss2, ct, sk) != 0)
-    {
-        hal_send_str("Decapsulation failed!\n");
         return -1;
-    }
 
-    // Compare shared secrets
     for (i = 0; i < pqcrystals_kyber768_ref_BYTES; i++)
     {
         if (ss1[i] != ss2[i])
@@ -457,9 +468,8 @@ static void run_speed(void)
     uint64_t cycles;
     char cycles_str[100];
 
-    hal_send_str("\n=== Benchmarks ===\n");
+    hal_send_str("\n=== High-Level Benchmarks (Kyber768) ===\n");
 
-    // poly_ntt benchmark
     cycles = hal_get_time();
     poly_ntt(&a);
     cycles = hal_get_time() - cycles;
@@ -472,7 +482,6 @@ static void run_speed(void)
 #endif
     hal_send_str(cycles_str);
 
-    // Keypair generation benchmark
     cycles = hal_get_time();
     pqcrystals_kyber768_ref_keypair(pk, sk);
     cycles = hal_get_time() - cycles;
@@ -485,7 +494,6 @@ static void run_speed(void)
 #endif
     hal_send_str(cycles_str);
 
-    // Encapsulation benchmark
     cycles = hal_get_time();
     pqcrystals_kyber768_ref_enc(ct, ss, pk);
     cycles = hal_get_time() - cycles;
@@ -498,7 +506,6 @@ static void run_speed(void)
 #endif
     hal_send_str(cycles_str);
 
-    // Decapsulation benchmark
     cycles = hal_get_time();
     pqcrystals_kyber768_ref_dec(ss, ct, sk);
     cycles = hal_get_time() - cycles;
