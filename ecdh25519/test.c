@@ -5,171 +5,6 @@
 #include "smult.h"
 #include "hal.h"
 
-static uint32_t rng_state = 123456789;
-
-static uint32_t xorshift32(void)
-{
-  uint32_t x = rng_state;
-  x ^= x << 13;
-  x ^= x >> 17;
-  x ^= x << 5;
-  rng_state = x;
-  return x;
-}
-
-// 產生 32 bytes 的隨機數據
-static void get_random_32bytes(unsigned char *out)
-{
-  for (int i = 0; i < 8; i++)
-  {
-    uint32_t r = xorshift32();
-    memcpy(out + i * 4, &r, 4);
-  }
-}
-
-static void reduce_mul_c(fe25519 *r)
-{
-  uint32_t t;
-  int i, rep;
-  for (rep = 0; rep < 3; rep++)
-  {
-    t = r->v[31] >> 7;
-    r->v[31] &= 127;
-    t = times19(t);
-    r->v[0] += t;
-    for (i = 0; i < 31; i++)
-    {
-      t = r->v[i] >> 8;
-      r->v[i + 1] += t;
-      r->v[i] &= 255;
-    }
-  }
-}
-
-// 這是 "基準版" 的 C 語言乘法
-static void fe25519_mul_c(fe25519 *r, const fe25519 *x, const fe25519 *y)
-{
-  int i, j;
-  uint32_t t[63];
-  for (i = 0; i < 63; i++)
-    t[i] = 0;
-
-  for (i = 0; i < 32; i++)
-    for (j = 0; j < 32; j++)
-      t[i + j] += x->v[i] * y->v[j];
-
-  for (i = 32; i < 63; i++)
-    r->v[i - 32] = t[i - 32] + times38(t[i]);
-  r->v[31] = t[31];
-
-  reduce_mul_c(r);
-}
-
-// 這是 "基準版" 的 C 語言平方
-static void fe25519_square_c(fe25519 *r, const fe25519 *x)
-{
-  fe25519_mul_c(r, x, x);
-}
-
-// ==========================================
-// [新增部分] 3. 效能測試函式
-// ==========================================
-void run_comparison_benchmark(void)
-{
-  fe25519 a, b, r;
-  unsigned char rand_bytes1[32];
-  unsigned char rand_bytes2[32];
-
-  uint64_t cycles;
-  char cycles_str[64];
-  int i;
-  int iterations = 1000;
-
-  // 使用隨機輸入，防止編譯器優化掉運算
-  get_random_32bytes(rand_bytes1);
-  get_random_32bytes(rand_bytes2);
-  fe25519_unpack(&a, rand_bytes1);
-  fe25519_unpack(&b, rand_bytes2);
-
-  // 使用 volatile 指標
-  volatile fe25519 *v_a = &a;
-  volatile fe25519 *v_b = &b;
-  volatile fe25519 *v_r = &r;
-
-  hal_send_str("\n=== New Benchmark: C vs ASM Core Operations (1000 iter) ===\n");
-
-  // --- 1. Mul: C Implementation ---
-  cycles = hal_get_time();
-  for (i = 0; i < iterations; i++)
-  {
-    fe25519_mul_c((fe25519 *)v_r, (fe25519 *)v_a, (fe25519 *)v_b);
-  }
-  cycles = hal_get_time() - cycles;
-
-  hal_send_str("fe25519_mul (Pure C):   ");
-#ifdef MPS2_AN386
-  sprintf(cycles_str, "N/A (QEMU)\n");
-#else
-  sprintf(cycles_str, "%llu cycles\n", cycles);
-#endif
-  hal_send_str(cycles_str);
-
-  // --- 2. Mul: ASM Implementation ---
-  // 這裡呼叫的是專案原本的 fe25519_mul，它會去呼叫您的 .S 檔案
-  cycles = hal_get_time();
-  for (i = 0; i < iterations; i++)
-  {
-    fe25519_mul((fe25519 *)v_r, (fe25519 *)v_a, (fe25519 *)v_b);
-  }
-  cycles = hal_get_time() - cycles;
-
-  hal_send_str("fe25519_mul (Assembly): ");
-#ifdef MPS2_AN386
-  sprintf(cycles_str, "N/A (QEMU)\n");
-#else
-  sprintf(cycles_str, "%llu cycles\n", cycles);
-#endif
-  hal_send_str(cycles_str);
-
-  // --- 3. Square: C Implementation ---
-  cycles = hal_get_time();
-  for (i = 0; i < iterations; i++)
-  {
-    fe25519_square_c((fe25519 *)v_r, (fe25519 *)v_a);
-  }
-  cycles = hal_get_time() - cycles;
-
-  hal_send_str("fe25519_sqr (Pure C):   ");
-#ifdef MPS2_AN386
-  sprintf(cycles_str, "N/A (QEMU)\n");
-#else
-  sprintf(cycles_str, "%llu cycles\n", cycles);
-#endif
-  hal_send_str(cycles_str);
-
-  // --- 4. Square: ASM Implementation ---
-  cycles = hal_get_time();
-  for (i = 0; i < iterations; i++)
-  {
-    fe25519_square((fe25519 *)v_r, (fe25519 *)v_a);
-  }
-  cycles = hal_get_time() - cycles;
-
-  hal_send_str("fe25519_sqr (Assembly): ");
-#ifdef MPS2_AN386
-  sprintf(cycles_str, "N/A (QEMU)\n");
-#else
-  sprintf(cycles_str, "%llu cycles\n", cycles);
-#endif
-  hal_send_str(cycles_str);
-
-  hal_send_str("===========================================================\n");
-}
-
-// ==========================================
-// 以下是原本的測試程式碼 (保持不變)
-// ==========================================
-
 unsigned char sk0[32] = {0xb1, 0x7a, 0xa0, 0x76, 0x93, 0xd7, 0x8d, 0x70, 0xfb, 0x44, 0x3a, 0x5b, 0xf1, 0xc6, 0x90, 0xe2,
                          0xc3, 0x79, 0x39, 0x6f, 0x56, 0xac, 0xc5, 0x5f, 0xb5, 0xfc, 0x1c, 0xc5, 0x58, 0xa2, 0xd9, 0x85};
 
@@ -236,7 +71,7 @@ static void run_speed(void)
   uint64_t cycles;
   char cycles_str[64];
 
-  hal_send_str("\n=== Benchmarks (High Level) ===\n");
+  hal_send_str("\n=== Benchmarks ===\n");
 
   cycles = hal_get_time();
   crypto_scalarmult_base(pk, sk0);
@@ -296,16 +131,10 @@ int main(void)
 {
   hal_setup(CLOCK_BENCHMARK);
 
-  // 1. 執行新加入的 C vs ASM 對比測試
-  run_comparison_benchmark();
-
-  // 2. 執行原有的測試向量檢查
+  // First test: verify ECDH25519 test vector
   int test_result = run_tests();
 
-  // 3. 執行原有的高層速度測試
   run_speed();
-
-  // 4. 執行原有的 Stack 測試
   run_stack();
 
   if (test_result != 0)
