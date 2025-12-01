@@ -4,8 +4,8 @@
 #include "group.h"
 #include "smult.h"
 #include "hal.h"
-#include "fe25519.h" // 引入 fe25519 定義
-#define GROUP_GE_PACKEDBYTES 32
+#include "fe25519.h"
+
 static uint32_t rng_state = 123456789;
 
 static uint32_t xorshift32(void)
@@ -26,16 +26,6 @@ static void get_random_32bytes(unsigned char *out)
     uint32_t r = xorshift32();
     memcpy(out + i * 4, &r, 4);
   }
-}
-
-static uint32_t times19(uint32_t a)
-{
-  return (a << 4) + (a << 1) + a;
-}
-
-static uint32_t times38(uint32_t a)
-{
-  return (a << 5) + (a << 2) + (a << 1);
 }
 
 static void reduce_mul_c(fe25519 *r)
@@ -85,7 +75,7 @@ static void fe25519_square_c(fe25519 *r, const fe25519 *x)
 // ==========================================
 // [新增部分] 3. 效能測試函式
 // ==========================================
-static void run_comparison_benchmark(void)
+void run_comparison_benchmark(void)
 {
   fe25519 a, b, r;
   unsigned char rand_bytes1[32];
