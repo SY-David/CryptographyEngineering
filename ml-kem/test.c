@@ -8,8 +8,8 @@
 #include "poly.h"
 #include "polyvec.h"
 #include "params.h"
-#include <ntt.h>
-#include <reduce.h>
+#include "ntt.h"
+#include "reduce.h"
 
 #include "testvectors.inc"
 
