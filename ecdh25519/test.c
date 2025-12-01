@@ -6,9 +6,9 @@
 #include "hal.h"
 #include "fe25519.h"
 
-static uint32_t rng_state = 123456789;
+uint32_t rng_state = 123456789;
 
-static uint32_t xorshift32(void)
+uint32_t xorshift32(void)
 {
   uint32_t x = rng_state;
   x ^= x << 13;
@@ -19,7 +19,7 @@ static uint32_t xorshift32(void)
 }
 
 // 產生 32 bytes 的隨機數據
-static void get_random_32bytes(unsigned char *out)
+void get_random_32bytes(unsigned char *out)
 {
   for (int i = 0; i < 8; i++)
   {
@@ -28,7 +28,7 @@ static void get_random_32bytes(unsigned char *out)
   }
 }
 
-static void reduce_mul_c(fe25519 *r)
+void reduce_mul_c(fe25519 *r)
 {
   uint32_t t;
   int i, rep;
@@ -48,7 +48,7 @@ static void reduce_mul_c(fe25519 *r)
 }
 
 // 這是 "基準版" 的 C 語言乘法
-static void fe25519_mul_c(fe25519 *r, const fe25519 *x, const fe25519 *y)
+void fe25519_mul_c(fe25519 *r, const fe25519 *x, const fe25519 *y)
 {
   int i, j;
   uint32_t t[63];
@@ -67,7 +67,7 @@ static void fe25519_mul_c(fe25519 *r, const fe25519 *x, const fe25519 *y)
 }
 
 // 這是 "基準版" 的 C 語言平方
-static void fe25519_square_c(fe25519 *r, const fe25519 *x)
+void fe25519_square_c(fe25519 *r, const fe25519 *x)
 {
   fe25519_mul_c(r, x, x);
 }
@@ -186,7 +186,7 @@ unsigned char cmppk1[32] = {0x82, 0xe3, 0x9b, 0x97, 0xd6, 0x73, 0xb7, 0x72, 0xdf
 unsigned char cmpss[32] = {0xfe, 0xb3, 0xdd, 0x58, 0x73, 0x4b, 0x42, 0xc8, 0x86, 0x0d, 0x2b, 0xb7, 0x08, 0xc0, 0xae, 0x14,
                            0x7a, 0x21, 0xdf, 0x42, 0xf8, 0xc9, 0xaf, 0x4e, 0x3c, 0xc4, 0xbe, 0x8c, 0x56, 0xfc, 0x88, 0x3d};
 
-static int run_tests(void)
+int run_tests(void)
 {
   int i;
   unsigned char pk0[GROUP_GE_PACKEDBYTES];
@@ -231,7 +231,7 @@ static int run_tests(void)
   return 0;
 }
 
-static void run_speed(void)
+void run_speed(void)
 {
   unsigned char pk[32], ss[32];
   uint64_t cycles;
@@ -266,7 +266,7 @@ static void run_speed(void)
   hal_send_str("Benchmarks completed!\n");
 }
 
-static void run_stack(void)
+void run_stack(void)
 {
   unsigned char pk[32], ss[32];
   size_t stack_usage;
