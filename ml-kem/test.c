@@ -24,15 +24,14 @@
 #endif
 
 // 使用 volatile 防止編譯器優化掉未使用的計算
-static int16_t c_montgomery_reduce(int32_t a)
+__attribute__((noinline)) static int16_t c_montgomery_reduce(int32_t a)
 {
     int16_t t;
     t = (int16_t)a * QINV;
     t = (a - (int32_t)t * KYBER_Q) >> 16;
     return t;
 }
-
-static int16_t c_barrett_reduce(int16_t a)
+__attribute__((noinline)) static int16_t c_barrett_reduce(int16_t a)
 {
     int16_t t;
     const int16_t v = ((1 << 26) + KYBER_Q / 2) / KYBER_Q;
@@ -58,13 +57,11 @@ static const int16_t c_zetas[128] = {
     -1215, -136, 1218, -1335, -874, 220, -1187, -1659,
     -1185, -1530, -1278, 794, -1510, -854, -870, 478,
     -108, -308, 996, 991, 958, -1460, 1522, 1628};
-
-static int16_t c_fqmul(int16_t a, int16_t b)
+__attribute__((noinline)) static int16_t c_fqmul(int16_t a, int16_t b)
 {
     return c_montgomery_reduce((int32_t)a * b);
 }
-
-static void c_ntt(int16_t r[256])
+__attribute__((noinline)) static void c_ntt(int16_t r[256])
 {
     unsigned int len, start, j, k;
     int16_t t, zeta;
@@ -84,8 +81,7 @@ static void c_ntt(int16_t r[256])
         }
     }
 }
-
-static void c_invntt(int16_t r[256])
+__attribute__((noinline)) static void c_invntt(int16_t r[256])
 {
     unsigned int start, len, j, k;
     int16_t t, zeta;
@@ -110,8 +106,7 @@ static void c_invntt(int16_t r[256])
     for (j = 0; j < 256; j++)
         r[j] = c_fqmul(r[j], f);
 }
-
-static void c_basemul(int16_t r[2], const int16_t a[2], const int16_t b[2], int16_t zeta)
+__attribute__((noinline)) static void c_basemul(int16_t r[2], const int16_t a[2], const int16_t b[2], int16_t zeta)
 {
     r[0] = c_fqmul(a[1], b[1]);
     r[0] = c_fqmul(r[0], zeta);
@@ -119,19 +114,57 @@ static void c_basemul(int16_t r[2], const int16_t a[2], const int16_t b[2], int1
     r[1] = c_fqmul(a[0], b[1]);
     r[1] += c_fqmul(a[1], b[0]);
 }
-
-static void c_poly_add(poly *r, const poly *a, const poly *b)
+__attribute__((noinline)) static void c_poly_add(poly *r, const poly *a, const poly *b)
 {
     unsigned int i;
     for (i = 0; i < KYBER_N; i++)
         r->coeffs[i] = a->coeffs[i] + b->coeffs[i];
 }
-
-static void c_poly_sub(poly *r, const poly *a, const poly *b)
+__attribute__((noinline)) static void c_poly_sub(poly *r, const poly *a, const poly *b)
 {
     unsigned int i;
     for (i = 0; i < KYBER_N; i++)
         r->coeffs[i] = a->coeffs[i] - b->coeffs[i];
+}
+
+// [NEW] C Reference for Poly Compress (128 bytes - Kyber768 default)
+__attribute__((noinline)) static void c_poly_compress(uint8_t r[128], const poly *a)
+{
+    unsigned int i, j;
+    int16_t u;
+    uint32_t d0;
+    uint8_t t[8];
+
+    for (i = 0; i < KYBER_N / 8; i++)
+    {
+        for (j = 0; j < 8; j++)
+        {
+            u = a->coeffs[8 * i + j];
+            u += (u >> 15) & KYBER_Q;
+            d0 = u << 4;
+            d0 += 1665;
+            d0 *= 80635;
+            d0 >>= 28;
+            t[j] = d0 & 0xf;
+        }
+        r[0] = t[0] | (t[1] << 4);
+        r[1] = t[2] | (t[3] << 4);
+        r[2] = t[4] | (t[5] << 4);
+        r[3] = t[6] | (t[7] << 4);
+        r += 4;
+    }
+}
+
+// [NEW] C Reference for Poly Decompress (128 bytes - Kyber768 default)
+__attribute__((noinline)) static void c_poly_decompress(poly *r, const uint8_t a[128])
+{
+    unsigned int i;
+    for (i = 0; i < KYBER_N / 2; i++)
+    {
+        r->coeffs[2 * i + 0] = (((uint16_t)(a[0] & 15) * KYBER_Q) + 8) >> 4;
+        r->coeffs[2 * i + 1] = (((uint16_t)(a[0] >> 4) * KYBER_Q) + 8) >> 4;
+        a += 1;
+    }
 }
 
 // =========================================================
@@ -145,6 +178,9 @@ extern int16_t montgomery(int16_t a, int16_t b);
 extern int16_t barrett(int16_t a);
 extern void poly_add_s(poly *r, const poly *a, const poly *b);
 extern void poly_sub_s(poly *r, const poly *a, const poly *b);
+// [NEW] ASM Declarations for Compress/Decompress
+extern void poly_compress_s(uint8_t *r, poly *a);
+extern void poly_decompress_s(poly *r, const uint8_t *a);
 
 // =========================================================
 //  PART 3: Benchmarking & Testing
@@ -165,11 +201,16 @@ static void print_cycles(const char *label, uint64_t cycles)
 static void run_lowlevel_benchmark(void)
 {
     poly a, b, r;
+    // Buffer for compression tests (128 bytes for Kyber768)
+    uint8_t buf[128];
+
     // 使用 volatile 變數來強制編譯器每次都必須讀取/寫入記憶體
     volatile int16_t x, y, z = 0, zeta;
     int16_t rand_scalars[4];
+
     // 用於防止 Poly 函數被優化的 dummy 變數
     volatile int16_t dummy_sink;
+    volatile uint8_t dummy_sink_u8;
 
     uint64_t t0, t1;
     int i;
@@ -178,15 +219,16 @@ static void run_lowlevel_benchmark(void)
     randombytes((uint8_t *)&a, sizeof(poly));
     randombytes((uint8_t *)&b, sizeof(poly));
     randombytes((uint8_t *)rand_scalars, sizeof(rand_scalars));
+    randombytes(buf, sizeof(buf)); // Random compressed data
 
     x = rand_scalars[0];
     y = rand_scalars[1];
     zeta = rand_scalars[2];
 
-    // 稍微修剪一下隨機數，確保在合理範圍內 (雖然計算上沒差，但比較符合真實輸入)
+    // 稍微修剪一下隨機數，確保在合理範圍內
     for (i = 0; i < KYBER_N; i++)
     {
-        a.coeffs[i] &= 0xFFF; // Keep 12 bits
+        a.coeffs[i] &= 0xFFF;
         b.coeffs[i] &= 0xFFF;
     }
 
@@ -199,7 +241,6 @@ static void run_lowlevel_benchmark(void)
     for (i = 0; i < N_ITERATIONS; i++)
     {
         c_ntt(a.coeffs);
-        // Data dependency: 修改輸入以防止優化，或強制讀取輸出
         a.coeffs[0] ^= 1;
     }
     t1 = hal_get_time();
@@ -238,7 +279,6 @@ static void run_lowlevel_benchmark(void)
     for (i = 0; i < N_ITERATIONS; i++)
     {
         c_poly_add(&r, &a, &b);
-        // Force write to volatile to ensure c_poly_add executes
         dummy_sink = r.coeffs[0];
     }
     t1 = hal_get_time();
@@ -272,10 +312,46 @@ static void run_lowlevel_benchmark(void)
     t1 = hal_get_time();
     print_cycles("Poly Sub (ASM)", (t1 - t0) / N_ITERATIONS);
 
+    // --- [NEW] Poly Compress ---
+    t0 = hal_get_time();
+    for (i = 0; i < N_ITERATIONS; i++)
+    {
+        c_poly_compress(buf, &a);
+        dummy_sink_u8 = buf[0];
+    }
+    t1 = hal_get_time();
+    print_cycles("Poly Compress (C)", (t1 - t0) / N_ITERATIONS);
+
+    t0 = hal_get_time();
+    for (i = 0; i < N_ITERATIONS; i++)
+    {
+        poly_compress_s(buf, &a);
+        dummy_sink_u8 = buf[0];
+    }
+    t1 = hal_get_time();
+    print_cycles("Poly Compress (ASM)", (t1 - t0) / N_ITERATIONS);
+
+    // --- [NEW] Poly Decompress ---
+    t0 = hal_get_time();
+    for (i = 0; i < N_ITERATIONS; i++)
+    {
+        c_poly_decompress(&r, buf);
+        dummy_sink = r.coeffs[0];
+    }
+    t1 = hal_get_time();
+    print_cycles("Poly Decompress (C)", (t1 - t0) / N_ITERATIONS);
+
+    t0 = hal_get_time();
+    for (i = 0; i < N_ITERATIONS; i++)
+    {
+        poly_decompress_s(&r, buf);
+        dummy_sink = r.coeffs[0];
+    }
+    t1 = hal_get_time();
+    print_cycles("Poly Decompress (ASM)", (t1 - t0) / N_ITERATIONS);
+
     // --- Basemul ---
-    // Increase iterations for small functions
     int16_t r_base[2], a_base[2], b_base[2];
-    // Fill base arrays with random data
     randombytes((uint8_t *)a_base, sizeof(a_base));
     randombytes((uint8_t *)b_base, sizeof(b_base));
 
@@ -283,7 +359,7 @@ static void run_lowlevel_benchmark(void)
     for (i = 0; i < N_ITERATIONS * 10; i++)
     {
         c_basemul(r_base, a_base, b_base, zeta);
-        dummy_sink = r_base[0]; // Anti-optimization
+        dummy_sink = r_base[0];
     }
     t1 = hal_get_time();
     print_cycles("Basemul (C)", (t1 - t0) / (N_ITERATIONS * 10));
@@ -298,7 +374,6 @@ static void run_lowlevel_benchmark(void)
     print_cycles("Basemul (ASM)", (t1 - t0) / (N_ITERATIONS * 10));
 
     // --- Reduce (Montgomery) ---
-    // Note: Use volatile variables (x, y, z) to prevent constant folding
     t0 = hal_get_time();
     for (i = 0; i < N_ITERATIONS * 10; i++)
         z = c_fqmul(x, y);
@@ -325,7 +400,8 @@ static void run_lowlevel_benchmark(void)
     print_cycles("Barrett (ASM)", (t1 - t0) / (N_ITERATIONS * 10));
 
     (void)z;
-    (void)dummy_sink; // Silence unused variable warnings
+    (void)dummy_sink;
+    (void)dummy_sink_u8;
 }
 
 // =========================================================
@@ -532,7 +608,6 @@ static void run_stack(void)
 
     hal_send_str("\n=== Stack Usage Measurements ===\n");
 
-    // Measure stack usage for keypair generation
     hal_send_str("Measuring keypair generation stack usage...\n");
     hal_spraystack();
     pqcrystals_kyber768_ref_keypair(pk, sk);
@@ -540,7 +615,6 @@ static void run_stack(void)
     sprintf(outstr, "stack usage for keypair generation: %zu bytes", stack_usage);
     hal_send_str(outstr);
 
-    // Measure stack usage for encapsulation
     hal_send_str("Measuring encapsulation stack usage...\n");
     hal_spraystack();
     pqcrystals_kyber768_ref_enc(ct, ss, pk);
@@ -548,7 +622,6 @@ static void run_stack(void)
     sprintf(outstr, "stack usage for encapsulation: %zu bytes", stack_usage);
     hal_send_str(outstr);
 
-    // Measure stack usage for decapsulation
     hal_send_str("Measuring decapsulation stack usage...\n");
     hal_spraystack();
     pqcrystals_kyber768_ref_dec(ss, ct, sk);
@@ -563,7 +636,6 @@ int main(void)
 {
     hal_setup(CLOCK_BENCHMARK);
 
-    // First test: verify keypair generation test vectors
     int test_result = test_keygen_vector();
     if (test_result != 0)
     {
@@ -571,7 +643,6 @@ int main(void)
         return -1;
     }
 
-    // Second test: verify encapsulation test vectors
     test_result = test_encaps_vector();
     if (test_result != 0)
     {
@@ -579,7 +650,6 @@ int main(void)
         return -1;
     }
 
-    // Third test: verify decapsulation test vectors
     test_result = test_decaps_vector();
     if (test_result != 0)
     {
@@ -587,13 +657,11 @@ int main(void)
         return -1;
     }
 
-    // Fourth test: functional test
     hal_send_str("\n=== Test 4: Functional KEM Test ===\n");
     test_result = run_test();
 
     run_speed();
 
-    // [NEW] Run Low-Level Benchmarks (C vs ASM)
     run_lowlevel_benchmark();
 
     run_stack();
