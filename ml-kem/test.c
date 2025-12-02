@@ -325,14 +325,14 @@ static void run_lowlevel_benchmark(void)
     t1 = hal_get_time();
     print_cycles("Poly Compress (C)", (t1 - t0) / N_ITERATIONS);
 
-    t0 = hal_get_time();
+        /*t0 = hal_get_time();
     for (i = 0; i < N_ITERATIONS; i++)
     {
         poly_compress_s(buf, &a);
         dummy_sink_u8 = buf[0];
     }
     t1 = hal_get_time();
-    print_cycles("Poly Compress (ASM)", (t1 - t0) / N_ITERATIONS);
+    print_cycles("Poly Compress (ASM)", (t1 - t0) / N_ITERATIONS);*/
 
     // --- Poly Decompress ---
     t0 = hal_get_time();
