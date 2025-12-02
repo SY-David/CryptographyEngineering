@@ -10,23 +10,18 @@
 #include "params.h"
 #include "ntt.h"
 #include "reduce.h"
-#include "cbd.h"     // [NEW] 雜訊生成
-#include "verify.h"  // [NEW] 驗證函數
-#include "fips202.h" // [NEW] Hash 函數
+#include "cbd.h"
+#include "verify.h"
+#include "fips202.h"
 
 #include "testvectors.inc"
 
 #define N_ITERATIONS 1000
 
-// =========================================================
-//  PART 1: C Reference Implementations (Restored)
-// =========================================================
-
 #ifndef QINV
-#define QINV -3327 // -q^-1 mod 2^16
+#define QINV -3327
 #endif
 
-// 使用 volatile 防止編譯器優化掉未使用的計算
 static int16_t c_montgomery_reduce(int32_t a)
 {
     int16_t t;
@@ -92,7 +87,7 @@ static void c_invntt(int16_t r[256])
 {
     unsigned int start, len, j, k;
     int16_t t, zeta;
-    const int16_t f = 1441; // mont^2/128
+    const int16_t f = 1441;
 
     k = 127;
     for (len = 2; len <= 128; len <<= 1)
@@ -137,7 +132,6 @@ static void c_poly_sub(poly *r, const poly *a, const poly *b)
         r->coeffs[i] = a->coeffs[i] - b->coeffs[i];
 }
 
-// C Reference for Poly Compress (128 bytes - Kyber768 default)
 static void c_poly_compress(uint8_t r[128], const poly *a)
 {
     unsigned int i, j;
@@ -165,7 +159,6 @@ static void c_poly_compress(uint8_t r[128], const poly *a)
     }
 }
 
-// C Reference for Poly Decompress (128 bytes - Kyber768 default)
 static void c_poly_decompress(poly *r, const uint8_t a[128])
 {
     unsigned int i;
@@ -177,21 +170,16 @@ static void c_poly_decompress(poly *r, const uint8_t a[128])
     }
 }
 
-// =========================================================
-//  PART 2: ASM Function Declarations
-// =========================================================
-
 extern void ntt_s(int16_t r[256]);
 extern void invntt_s(int16_t r[256]);
-// 移除 basemul_s, montgomery, barrett 的 ASM 宣告
 extern void poly_add_s(poly *r, const poly *a, const poly *b);
 extern void poly_sub_s(poly *r, const poly *a, const poly *b);
 extern void poly_compress_s(uint8_t *r, poly *a);
 extern void poly_decompress_s(poly *r, const uint8_t *a);
 
-// =========================================================
-//  PART 3: Benchmarking & Testing
-// =========================================================
+extern void basemul_s(int16_t r[2], const int16_t a[2], const int16_t b[2], int16_t zeta);
+extern int16_t montgomery(int16_t a, int16_t b);
+extern int16_t barrett(int16_t a);
 
 static void print_cycles(const char *label, uint64_t cycles)
 {
@@ -208,7 +196,7 @@ static void print_cycles(const char *label, uint64_t cycles)
 static void run_lowlevel_benchmark(void)
 {
     poly a, b, r;
-    uint8_t buf[128]; // Buffer for compression
+    uint8_t buf[128];
 
     volatile int16_t x, y, z = 0, zeta;
     int16_t rand_scalars[4];
@@ -219,7 +207,6 @@ static void run_lowlevel_benchmark(void)
     uint64_t t0, t1;
     int i;
 
-    // [New] 使用隨機數據初始化
     randombytes((uint8_t *)&a, sizeof(poly));
     randombytes((uint8_t *)&b, sizeof(poly));
     randombytes((uint8_t *)rand_scalars, sizeof(rand_scalars));
@@ -239,7 +226,6 @@ static void run_lowlevel_benchmark(void)
     hal_send_str("Function                 | Performance\n");
     hal_send_str("-------------------------|----------------\n");
 
-    // --- NTT ---
     t0 = hal_get_time();
     for (i = 0; i < N_ITERATIONS; i++)
     {
@@ -258,7 +244,6 @@ static void run_lowlevel_benchmark(void)
     t1 = hal_get_time();
     print_cycles("NTT (ASM)", (t1 - t0) / N_ITERATIONS);
 
-    // --- InvNTT ---
     t0 = hal_get_time();
     for (i = 0; i < N_ITERATIONS; i++)
     {
@@ -277,7 +262,6 @@ static void run_lowlevel_benchmark(void)
     t1 = hal_get_time();
     print_cycles("InvNTT (ASM)", (t1 - t0) / N_ITERATIONS);
 
-    // --- Poly Add ---
     t0 = hal_get_time();
     for (i = 0; i < N_ITERATIONS; i++)
     {
@@ -296,7 +280,6 @@ static void run_lowlevel_benchmark(void)
     t1 = hal_get_time();
     print_cycles("Poly Add (ASM)", (t1 - t0) / N_ITERATIONS);
 
-    // --- Poly Sub ---
     t0 = hal_get_time();
     for (i = 0; i < N_ITERATIONS; i++)
     {
@@ -315,7 +298,8 @@ static void run_lowlevel_benchmark(void)
     t1 = hal_get_time();
     print_cycles("Poly Sub (ASM)", (t1 - t0) / N_ITERATIONS);
 
-    // --- Poly Compress ---
+    randombytes((uint8_t *)&a, sizeof(poly));
+
     t0 = hal_get_time();
     for (i = 0; i < N_ITERATIONS; i++)
     {
@@ -325,16 +309,17 @@ static void run_lowlevel_benchmark(void)
     t1 = hal_get_time();
     print_cycles("Poly Compress (C)", (t1 - t0) / N_ITERATIONS);
 
-        /*t0 = hal_get_time();
+    t0 = hal_get_time();
     for (i = 0; i < N_ITERATIONS; i++)
     {
         poly_compress_s(buf, &a);
         dummy_sink_u8 = buf[0];
     }
     t1 = hal_get_time();
-    print_cycles("Poly Compress (ASM)", (t1 - t0) / N_ITERATIONS);*/
+    print_cycles("Poly Compress (ASM)", (t1 - t0) / N_ITERATIONS);
 
-    // --- Poly Decompress ---
+    randombytes(buf, sizeof(buf));
+
     t0 = hal_get_time();
     for (i = 0; i < N_ITERATIONS; i++)
     {
@@ -353,7 +338,52 @@ static void run_lowlevel_benchmark(void)
     t1 = hal_get_time();
     print_cycles("Poly Decompress (ASM)", (t1 - t0) / N_ITERATIONS);
 
-    // --- [NEW] CBD (Noise Generation) ---
+    int16_t r_base[2], a_base[2], b_base[2];
+    randombytes((uint8_t *)a_base, sizeof(a_base));
+    randombytes((uint8_t *)b_base, sizeof(b_base));
+
+    t0 = hal_get_time();
+    for (i = 0; i < N_ITERATIONS * 10; i++)
+    {
+        c_basemul(r_base, a_base, b_base, zeta);
+        dummy_sink = r_base[0];
+    }
+    t1 = hal_get_time();
+    print_cycles("Basemul (C)", (t1 - t0) / (N_ITERATIONS * 10));
+
+    t0 = hal_get_time();
+    for (i = 0; i < N_ITERATIONS * 10; i++)
+    {
+        basemul_s(r_base, a_base, b_base, zeta);
+        dummy_sink = r_base[0];
+    }
+    t1 = hal_get_time();
+    print_cycles("Basemul (ASM)", (t1 - t0) / (N_ITERATIONS * 10));
+
+    t0 = hal_get_time();
+    for (i = 0; i < N_ITERATIONS * 10; i++)
+        z = c_fqmul(x, y);
+    t1 = hal_get_time();
+    print_cycles("Montgomery (C)", (t1 - t0) / (N_ITERATIONS * 10));
+
+    t0 = hal_get_time();
+    for (i = 0; i < N_ITERATIONS * 10; i++)
+        z = montgomery(x, y);
+    t1 = hal_get_time();
+    print_cycles("Montgomery (ASM)", (t1 - t0) / (N_ITERATIONS * 10));
+
+    t0 = hal_get_time();
+    for (i = 0; i < N_ITERATIONS * 10; i++)
+        z = c_barrett_reduce(x);
+    t1 = hal_get_time();
+    print_cycles("Barrett (C)", (t1 - t0) / (N_ITERATIONS * 10));
+
+    t0 = hal_get_time();
+    for (i = 0; i < N_ITERATIONS * 10; i++)
+        z = barrett(x);
+    t1 = hal_get_time();
+    print_cycles("Barrett (ASM)", (t1 - t0) / (N_ITERATIONS * 10));
+
     uint8_t cbd_buf_eta1[KYBER_ETA1 * KYBER_N / 4];
     uint8_t cbd_buf_eta2[KYBER_ETA2 * KYBER_N / 4];
     randombytes(cbd_buf_eta1, sizeof(cbd_buf_eta1));
@@ -377,94 +407,10 @@ static void run_lowlevel_benchmark(void)
     t1 = hal_get_time();
     print_cycles("CBD Eta2", (t1 - t0) / N_ITERATIONS);
 
-    // --- [NEW] Hash / FIPS202 (Important!) ---
-    // 這些函數底層會呼叫 ASM 優化的 keccakp1600 (如果有連結到的話)
-    uint8_t hash_in[32], hash_out[32];
-    uint8_t sha3_512_out[64];
-    randombytes(hash_in, 32);
-
-    t0 = hal_get_time();
-    for (i = 0; i < N_ITERATIONS; i++)
-    {
-        shake128(hash_out, 32, hash_in, 32);
-        dummy_sink_u8 = hash_out[0];
-    }
-    t1 = hal_get_time();
-    print_cycles("SHAKE128 (32->32)", (t1 - t0) / N_ITERATIONS);
-
-    t0 = hal_get_time();
-    for (i = 0; i < N_ITERATIONS; i++)
-    {
-        shake256(hash_out, 32, hash_in, 32);
-        dummy_sink_u8 = hash_out[0];
-    }
-    t1 = hal_get_time();
-    print_cycles("SHAKE256 (32->32)", (t1 - t0) / N_ITERATIONS);
-
-    t0 = hal_get_time();
-    for (i = 0; i < N_ITERATIONS; i++)
-    {
-        sha3_256(hash_out, hash_in, 32);
-        dummy_sink_u8 = hash_out[0];
-    }
-    t1 = hal_get_time();
-    print_cycles("SHA3-256 (32B)", (t1 - t0) / N_ITERATIONS);
-
-    t0 = hal_get_time();
-    for (i = 0; i < N_ITERATIONS; i++)
-    {
-        sha3_512(sha3_512_out, hash_in, 32);
-        dummy_sink_u8 = sha3_512_out[0];
-    }
-    t1 = hal_get_time();
-    print_cycles("SHA3-512 (32B)", (t1 - t0) / N_ITERATIONS);
-
-    // --- [NEW] Verify ---
-    t0 = hal_get_time();
-    for (i = 0; i < N_ITERATIONS; i++)
-    {
-        verify(hash_in, hash_out, 32);
-        dummy_sink_u8 = hash_in[0];
-    }
-    t1 = hal_get_time();
-    print_cycles("Verify (32B)", (t1 - t0) / N_ITERATIONS);
-
-    // --- Basemul (C Only) ---
-    int16_t r_base[2], a_base[2], b_base[2];
-    randombytes((uint8_t *)a_base, sizeof(a_base));
-    randombytes((uint8_t *)b_base, sizeof(b_base));
-
-    t0 = hal_get_time();
-    for (i = 0; i < N_ITERATIONS * 10; i++)
-    {
-        c_basemul(r_base, a_base, b_base, zeta);
-        dummy_sink = r_base[0];
-    }
-    t1 = hal_get_time();
-    print_cycles("Basemul (C)", (t1 - t0) / (N_ITERATIONS * 10));
-
-    // --- Montgomery (C Only) ---
-    t0 = hal_get_time();
-    for (i = 0; i < N_ITERATIONS * 10; i++)
-        z = c_fqmul(x, y);
-    t1 = hal_get_time();
-    print_cycles("Montgomery (C)", (t1 - t0) / (N_ITERATIONS * 10));
-
-    // --- Barrett (C Only) ---
-    t0 = hal_get_time();
-    for (i = 0; i < N_ITERATIONS * 10; i++)
-        z = c_barrett_reduce(x);
-    t1 = hal_get_time();
-    print_cycles("Barrett (C)", (t1 - t0) / (N_ITERATIONS * 10));
-
     (void)z;
     (void)dummy_sink;
     (void)dummy_sink_u8;
 }
-
-// =========================================================
-//  PART 4: Existing Tests & Main
-// =========================================================
 
 static int test_keygen_vector(void)
 {
