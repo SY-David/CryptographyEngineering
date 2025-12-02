@@ -39,6 +39,11 @@ static int16_t c_barrett_reduce(int16_t a)
     return a - t;
 }
 
+static int16_t c_fqmul(int16_t a, int16_t b)
+{
+    return c_montgomery_reduce((int32_t)a * b);
+}
+
 static const int16_t c_zetas[128] = {
     -1044, -758, -359, -1517, 1493, 1422, 287, 202,
     -171, 622, 1577, 182, 962, -1202, -1474, 1468,
@@ -56,11 +61,6 @@ static const int16_t c_zetas[128] = {
     -1215, -136, 1218, -1335, -874, 220, -1187, -1659,
     -1185, -1530, -1278, 794, -1510, -854, -870, 478,
     -108, -308, 996, 991, 958, -1460, 1522, 1628};
-
-static int16_t c_fqmul(int16_t a, int16_t b)
-{
-    return c_montgomery_reduce((int32_t)a * b);
-}
 
 static void c_ntt(int16_t r[256])
 {
@@ -172,14 +172,11 @@ static void c_poly_decompress(poly *r, const uint8_t a[128])
 
 extern void ntt_s(int16_t r[256]);
 extern void invntt_s(int16_t r[256]);
+
 extern void poly_add_s(poly *r, const poly *a, const poly *b);
 extern void poly_sub_s(poly *r, const poly *a, const poly *b);
 extern void poly_compress_s(uint8_t *r, poly *a);
 extern void poly_decompress_s(poly *r, const uint8_t *a);
-
-extern void basemul_s(int16_t r[2], const int16_t a[2], const int16_t b[2], int16_t zeta);
-extern int16_t montgomery(int16_t a, int16_t b);
-extern int16_t barrett(int16_t a);
 
 static void print_cycles(const char *label, uint64_t cycles)
 {
@@ -190,6 +187,81 @@ static void print_cycles(const char *label, uint64_t cycles)
 #else
     sprintf(str, "%-25s: %llu cycles\n", label, cycles);
 #endif
+    hal_send_str(str);
+}
+
+static void run_profiling(void)
+{
+
+    polyvec a[KYBER_K], b, skpv;
+    uint8_t seed[KYBER_SYMBYTES];
+    uint8_t buf[128];
+
+    uint64_t t0, t1;
+    uint64_t t_gen_matrix, t_noise, t_ntt, t_basemul, t_invntt, t_add;
+    int i, j;
+
+    hal_send_str("\n=== Detailed Profiling (Breakdown) ===\n");
+
+    randombytes(seed, sizeof(seed));
+
+    t0 = hal_get_time();
+    for (i = 0; i < KYBER_K; i++)
+    {
+        for (j = 0; j < KYBER_K; j++)
+        {
+
+            shake128(buf, 128, seed, 32);
+        }
+    }
+    t1 = hal_get_time();
+    t_gen_matrix = t1 - t0;
+
+    t0 = hal_get_time();
+    for (i = 0; i < KYBER_K; i++)
+    {
+        poly_cbd_eta1(&skpv.vec[i], buf);
+    }
+    t1 = hal_get_time();
+    t_noise = t1 - t0;
+
+    t0 = hal_get_time();
+    polyvec_ntt(&skpv);
+    t1 = hal_get_time();
+    t_ntt = t1 - t0;
+
+    t0 = hal_get_time();
+    for (i = 0; i < KYBER_K; i++)
+    {
+        polyvec_basemul_acc_montgomery(&b.vec[i], &a[i], &skpv);
+    }
+    t1 = hal_get_time();
+    t_basemul = t1 - t0;
+
+    t0 = hal_get_time();
+    polyvec_invntt_tomont(&b);
+    t1 = hal_get_time();
+    t_invntt = t1 - t0;
+
+    t0 = hal_get_time();
+    polyvec_add(&b, &b, &skpv);
+    t1 = hal_get_time();
+    t_add = t1 - t0;
+
+    char str[128];
+    hal_send_str("Component                | Cycles\n");
+    hal_send_str("-------------------------|------------\n");
+    sprintf(str, "Gen Matrix (SHAKE128)    : %llu\n", t_gen_matrix);
+    hal_send_str(str);
+    sprintf(str, "Noise Gen (CBD)          : %llu\n", t_noise);
+    hal_send_str(str);
+    sprintf(str, "NTT (PolyVec)            : %llu\n", t_ntt);
+    hal_send_str(str);
+    sprintf(str, "Matrix-Vec Mul (BaseMul) : %llu\n", t_basemul);
+    hal_send_str(str);
+    sprintf(str, "InvNTT (PolyVec)         : %llu\n", t_invntt);
+    hal_send_str(str);
+    sprintf(str, "PolyVec Add              : %llu\n", t_add);
     hal_send_str(str);
 }
 
@@ -210,7 +282,6 @@ static void run_lowlevel_benchmark(void)
     randombytes((uint8_t *)&a, sizeof(poly));
     randombytes((uint8_t *)&b, sizeof(poly));
     randombytes((uint8_t *)rand_scalars, sizeof(rand_scalars));
-    randombytes(buf, sizeof(buf));
 
     x = rand_scalars[0];
     y = rand_scalars[1];
@@ -298,11 +369,10 @@ static void run_lowlevel_benchmark(void)
     t1 = hal_get_time();
     print_cycles("Poly Sub (ASM)", (t1 - t0) / N_ITERATIONS);
 
-    randombytes((uint8_t *)&a, sizeof(poly));
-
     t0 = hal_get_time();
     for (i = 0; i < N_ITERATIONS; i++)
     {
+        randombytes((uint8_t *)&a, sizeof(poly));
         c_poly_compress(buf, &a);
         dummy_sink_u8 = buf[0];
     }
@@ -312,17 +382,17 @@ static void run_lowlevel_benchmark(void)
     t0 = hal_get_time();
     for (i = 0; i < N_ITERATIONS; i++)
     {
+        randombytes((uint8_t *)&a, sizeof(poly));
         poly_compress_s(buf, &a);
         dummy_sink_u8 = buf[0];
     }
     t1 = hal_get_time();
     print_cycles("Poly Compress (ASM)", (t1 - t0) / N_ITERATIONS);
 
-    randombytes(buf, sizeof(buf));
-
     t0 = hal_get_time();
     for (i = 0; i < N_ITERATIONS; i++)
     {
+        randombytes(buf, sizeof(buf));
         c_poly_decompress(&r, buf);
         dummy_sink = r.coeffs[0];
     }
@@ -332,33 +402,12 @@ static void run_lowlevel_benchmark(void)
     t0 = hal_get_time();
     for (i = 0; i < N_ITERATIONS; i++)
     {
+        randombytes(buf, sizeof(buf));
         poly_decompress_s(&r, buf);
         dummy_sink = r.coeffs[0];
     }
     t1 = hal_get_time();
     print_cycles("Poly Decompress (ASM)", (t1 - t0) / N_ITERATIONS);
-
-    int16_t r_base[2], a_base[2], b_base[2];
-    randombytes((uint8_t *)a_base, sizeof(a_base));
-    randombytes((uint8_t *)b_base, sizeof(b_base));
-
-    t0 = hal_get_time();
-    for (i = 0; i < N_ITERATIONS * 10; i++)
-    {
-        c_basemul(r_base, a_base, b_base, zeta);
-        dummy_sink = r_base[0];
-    }
-    t1 = hal_get_time();
-    print_cycles("Basemul (C)", (t1 - t0) / (N_ITERATIONS * 10));
-
-    t0 = hal_get_time();
-    for (i = 0; i < N_ITERATIONS * 10; i++)
-    {
-        basemul_s(r_base, a_base, b_base, zeta);
-        dummy_sink = r_base[0];
-    }
-    t1 = hal_get_time();
-    print_cycles("Basemul (ASM)", (t1 - t0) / (N_ITERATIONS * 10));
 
     t0 = hal_get_time();
     for (i = 0; i < N_ITERATIONS * 10; i++)
@@ -383,29 +432,6 @@ static void run_lowlevel_benchmark(void)
         z = barrett(x);
     t1 = hal_get_time();
     print_cycles("Barrett (ASM)", (t1 - t0) / (N_ITERATIONS * 10));
-
-    uint8_t cbd_buf_eta1[KYBER_ETA1 * KYBER_N / 4];
-    uint8_t cbd_buf_eta2[KYBER_ETA2 * KYBER_N / 4];
-    randombytes(cbd_buf_eta1, sizeof(cbd_buf_eta1));
-    randombytes(cbd_buf_eta2, sizeof(cbd_buf_eta2));
-
-    t0 = hal_get_time();
-    for (i = 0; i < N_ITERATIONS; i++)
-    {
-        poly_cbd_eta1(&r, cbd_buf_eta1);
-        dummy_sink = r.coeffs[0];
-    }
-    t1 = hal_get_time();
-    print_cycles("CBD Eta1", (t1 - t0) / N_ITERATIONS);
-
-    t0 = hal_get_time();
-    for (i = 0; i < N_ITERATIONS; i++)
-    {
-        poly_cbd_eta2(&r, cbd_buf_eta2);
-        dummy_sink = r.coeffs[0];
-    }
-    t1 = hal_get_time();
-    print_cycles("CBD Eta2", (t1 - t0) / N_ITERATIONS);
 
     (void)z;
     (void)dummy_sink;
@@ -533,7 +559,6 @@ static int run_test(void)
             return -1;
         }
     }
-
     hal_send_str("✓ Functional KEM test PASSED\n");
     return 0;
 }
@@ -665,9 +690,8 @@ int main(void)
     test_result = run_test();
 
     run_speed();
-
+    run_profiling();
     run_lowlevel_benchmark();
-
     run_stack();
 
     if (test_result != 0)

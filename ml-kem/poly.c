@@ -74,7 +74,7 @@ void poly_tobytes(uint8_t r[KYBER_POLYBYTES], const poly *a)
 
   for (i = 0; i < KYBER_N / 2; i++)
   {
-    // map to positive standard representatives
+
     t0 = a->coeffs[2 * i];
     t0 += ((int16_t)t0 >> 15) & KYBER_Q;
     t1 = a->coeffs[2 * i + 1];
