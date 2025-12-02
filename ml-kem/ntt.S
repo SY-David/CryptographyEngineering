@@ -106,7 +106,7 @@ twist_table:
 .global poly_basemul_montgomery_s
 .type poly_basemul_montgomery_s, %function
 poly_basemul_montgomery_s:
-    push        {r4-r12, lr}
+    push        {r4-r11, lr}
 
     @ r0 = poly *r
     @ r1 = const poly *a
@@ -126,71 +126,79 @@ loop_poly_basemul:
     rsb         r8, r5, #0     @ r8 = -zeta
 
     @ ===================== 第一組 basemul：r[0], r[1] =====================
-    @ r[0] = fqmul(fqmul(a1,b1), zeta) + fqmul(a0,b0)
+    @ r[0] = mont(mont(a1,b1), zeta) + mont(a0,b0)
 
-    @ t1 = fqmul(a1, b1)
+    @ t1 = mont(a1, b1)
     ldrsh       r9, [r1, #2]   @ a1
     ldrsh       r10, [r2, #2]  @ b1
-    fqmul       r11, r9, r10, r12 @ r11 = fqmul(a1, b1)
+    mov         r11, r9
+    montgomery  r11, r10, r12 @ r11 = a1*b1 (Montgomery)
 
-    @ t1 = fqmul(t1, zeta)
-    fqmul       r11, r11, r5, r12 @ r11 = fqmul(t1, zeta)
+    @ t1 = mont(t1, zeta)
+    montgomery  r11, r5, r12 @ r11 = a1*b1*zeta
 
-    @ t0 = fqmul(a0, b0)
+    @ t0 = mont(a0, b0)
     ldrsh       r9, [r1, #0]   @ a0
     ldrsh       r10, [r2, #0]  @ b0
-    fqmul       r9, r9, r10, r12 @ r9 = fqmul(a0, b0)
+    mov         r12, r9
+    montgomery  r12, r10, r9 @ r12 = a0*b0
 
-    add         r11, r11, r9 @ r11 = r[0]
+    add         r11, r11, r12 @ r11 = r[0]
     strh        r11, [r0, #0]
 
-    @ r[1] = fqmul(a0,b1) + fqmul(a1,b0)
+    @ r[1] = mont(a0,b1) + mont(a1,b0)
 
-    @ t2 = fqmul(a0, b1)
+    @ t2 = mont(a0, b1)
     ldrsh       r9, [r1, #0]   @ a0
     ldrsh       r10, [r2, #2]  @ b1
-    fqmul       r11, r9, r10, r12 @ r11 = fqmul(a0, b1)
+    mov         r11, r9
+    montgomery  r11, r10, r12 @ r11 = a0*b1
 
-    @ t3 = fqmul(a1, b0)
+    @ t3 = mont(a1, b0)
     ldrsh       r9, [r1, #2]   @ a1
     ldrsh       r10, [r2, #0]  @ b0
-    fqmul       r9, r9, r10, r12 @ r9 = fqmul(a1, b0)
+    mov         r12, r9
+    montgomery  r12, r10, r9 @ r12 = a1*b0
 
-    add         r11, r11, r9
+    add         r11, r11, r12
     strh        r11, [r0, #2]
 
     @ ===================== 第二組 basemul：r[2], r[3] =====================
-    @ r[2] = fqmul(fqmul(a3,b3), -zeta) + fqmul(a2,b2)
+    @ r[2] = mont(mont(a3,b3), -zeta) + mont(a2,b2)
 
-    @ t1 = fqmul(a3, b3)
+    @ t1 = mont(a3, b3)
     ldrsh       r9, [r1, #6]   @ a3
     ldrsh       r10, [r2, #6]  @ b3
-    fqmul       r11, r9, r10, r12 @ r11 = fqmul(a3, b3)
+    mov         r11, r9
+    montgomery  r11, r10, r12 @ r11 = a3*b3
 
-    @ t1 = fqmul(t1, -zeta)
-    fqmul       r11, r11, r8, r12 @ r11 = fqmul(t1, -zeta)
+    @ t1 = mont(t1, -zeta)
+    montgomery  r11, r8, r12 @ r11 = a3*b3*(-zeta)
 
-    @ t0 = fqmul(a2, b2)
+    @ t0 = mont(a2, b2)
     ldrsh       r9, [r1, #4]   @ a2
     ldrsh       r10, [r2, #4]  @ b2
-    fqmul       r9, r9, r10, r12 @ r9 = fqmul(a2, b2)
+    mov         r12, r9
+    montgomery  r12, r10, r9 @ r12 = a2*b2
 
-    add         r11, r11, r9
+    add         r11, r11, r12
     strh        r11, [r0, #4]
 
-    @ r[3] = fqmul(a2,b3) + fqmul(a3,b2)
+    @ r[3] = mont(a2,b3) + mont(a3,b2)
 
-    @ t2 = fqmul(a2, b3)
+    @ t2 = mont(a2, b3)
     ldrsh       r9, [r1, #4]   @ a2
     ldrsh       r10, [r2, #6]  @ b3
-    fqmul       r11, r9, r10, r12 @ r11 = fqmul(a2, b3)
+    mov         r11, r9
+    montgomery  r11, r10, r12 @ r11 = a2*b3
 
-    @ t3 = fqmul(a3, b2)
+    @ t3 = mont(a3, b2)
     ldrsh       r9, [r1, #6]   @ a3
     ldrsh       r10, [r2, #4]  @ b2
-    fqmul       r9, r9, r10, r12 @ r9 = fqmul(a3, b2)
+    mov         r12, r9
+    montgomery  r12, r10, r9 @ r12 = a3*b2
 
-    add         r11, r11, r9
+    add         r11, r11, r12
     strh        r11, [r0, #6]
 
     @ ---- 前進到下一組 4 coeffs / 下一個 zeta ----
@@ -201,7 +209,7 @@ loop_poly_basemul:
     subs        r4, r4, #1
     bne         loop_poly_basemul
 
-    pop         {r4-r12, pc}
+    pop         {r4-r11, pc}
 
 .p2align 2
 .global ntt_s
