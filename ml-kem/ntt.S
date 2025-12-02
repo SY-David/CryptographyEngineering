@@ -102,64 +102,106 @@ twist_table:
     pkhtb       \a, \tmp, \tmp2, asr#16
 .endm
 .p2align 2
-.global basemul_s
-.type basemul_s, %function
-basemul_s:
-    push        {r4-r8, lr}@ 我們會用到 r4-r8，照 ABI 先存起來
 
+.global poly_basemul_montgomery_s
+.type poly_basemul_montgomery_s, %function
+poly_basemul_montgomery_s:
+    push        {r4-r12, lr}
+
+    @ r0 = poly *r
+    @ r1 = const poly *a
+    @ r2 = const poly *b
+
+    @ QINV, Q 給 montgomery macro 用
     movw        r6, #3327      @ QINV
-    movw        r7, #3329      @ Q
+    movw        r7, #3329      @ q
 
-    @ 先把 zeta 暫存到 r8，之後 r3 可以當 scratch
-    mov         r8, r3 @ r8 = zeta
+    @ zeta2 就是 zetas[64] 的開頭
+    ldr         r3, =zeta2     @ r3 = &zetas[64]
+    movs        r4, #64        @ loop counter = KYBER_N/4
 
-    @ ---- 4 個 ldrsh：a0, a1, b0, b1 ----
-    @ a 的兩個係數
-    ldrsh       r4, [r1]       @ r4 = a0
-    ldrsh       r5, [r1, #2]   @ r5 = a1
+loop_poly_basemul:
+    @ 取本輪 zeta 與 -zeta
+    ldrsh       r5, [r3], #2   @ r5 = zeta = zetas[64+i]，r3 += 2
+    rsb         r8, r5, #0     @ r8 = -zeta
 
-    @ b 的兩個係數（重用 r1,r2 當值，不再當 pointer）
-    ldrsh       r1, [r2]       @ r1 = b0
-    ldrsh       r2, [r2, #2]   @ r2 = b1
+    @ ===================== 第一組 basemul：r[0], r[1] =====================
+    @ r[0] = fqmul(fqmul(a1,b1), zeta) + fqmul(a0,b0)
 
-    @ 現在的 mapping：
-    @   r4 = a0
-    @   r5 = a1
-    @   r1 = b0
-    @   r2 = b1
-    @   r8 = zeta
-    @   r6 = QINV, r7 = q
-    @   r3, r12 為 scratch
+    @ t1 = fqmul(a1, b1)
+    ldrsh       r9, [r1, #2]   @ a1
+    ldrsh       r10, [r2, #2]  @ b1
+    fqmul       r11, r9, r10, r12 @ r11 = fqmul(a1, b1)
 
-    @ ---------- 計算 r[0] = a1*b1*zeta + a0*b0 ----------
+    @ t1 = fqmul(t1, zeta)
+    fqmul       r11, r11, r5, r12 @ r11 = fqmul(t1, zeta)
 
-    @ x1 = a1 * b1 * zeta 存在 r3
-    mov         r3, r5         @ acc = a1
-    montgomery  r3, r2, r12    @ r3 = a1 * b1
-    montgomery  r3, r8, r12    @ r3 = a1 * b1 * zeta
+    @ t0 = fqmul(a0, b0)
+    ldrsh       r9, [r1, #0]   @ a0
+    ldrsh       r10, [r2, #0]  @ b0
+    fqmul       r9, r9, r10, r12 @ r9 = fqmul(a0, b0)
 
-    @ x0 = a0 * b0 存在 r12
-    @ 此時 zeta 已經用完，r8 可以當 tmp 用，不再需要保留
-    mov         r12, r4        @ acc = a0
-    montgomery  r12, r1, r8    @ r12 = a0 * b0, tmp = r8 (zeta 被覆蓋沒關係)
+    add         r11, r11, r9 @ r11 = r[0]
+    strh        r11, [r0, #0]
 
-    add         r3, r3, r12    @ r3 = x1 + x0 = r[0]
-    strh        r3, [r0]       @ r[0] 完成
+    @ r[1] = fqmul(a0,b1) + fqmul(a1,b0)
 
-    @ ---------- 計算 r[1] = a0*b1 + a1*b0 ----------
+    @ t2 = fqmul(a0, b1)
+    ldrsh       r9, [r1, #0]   @ a0
+    ldrsh       r10, [r2, #2]  @ b1
+    fqmul       r11, r9, r10, r12 @ r11 = fqmul(a0, b1)
 
-    @ t2 = a0 * b1 存在 r12
-    mov         r12, r4        @ acc = a0
-    montgomery  r12, r2, r8    @ r12 = a0 * b1
+    @ t3 = fqmul(a1, b0)
+    ldrsh       r9, [r1, #2]   @ a1
+    ldrsh       r10, [r2, #0]  @ b0
+    fqmul       r9, r9, r10, r12 @ r9 = fqmul(a1, b0)
 
-    @ t3 = a1 * b0 存在 r3
-    mov         r3, r5         @ acc = a1
-    montgomery  r3, r1, r8     @ r3 = a1 * b0
+    add         r11, r11, r9
+    strh        r11, [r0, #2]
 
-    add         r3, r3, r12    @ r3 = t2 + t3 = r[1]
-    strh        r3, [r0, #2]   @ r[1] 完成
+    @ ===================== 第二組 basemul：r[2], r[3] =====================
+    @ r[2] = fqmul(fqmul(a3,b3), -zeta) + fqmul(a2,b2)
 
-    pop         {r4-r8, pc}
+    @ t1 = fqmul(a3, b3)
+    ldrsh       r9, [r1, #6]   @ a3
+    ldrsh       r10, [r2, #6]  @ b3
+    fqmul       r11, r9, r10, r12 @ r11 = fqmul(a3, b3)
+
+    @ t1 = fqmul(t1, -zeta)
+    fqmul       r11, r11, r8, r12 @ r11 = fqmul(t1, -zeta)
+
+    @ t0 = fqmul(a2, b2)
+    ldrsh       r9, [r1, #4]   @ a2
+    ldrsh       r10, [r2, #4]  @ b2
+    fqmul       r9, r9, r10, r12 @ r9 = fqmul(a2, b2)
+
+    add         r11, r11, r9
+    strh        r11, [r0, #4]
+
+    @ r[3] = fqmul(a2,b3) + fqmul(a3,b2)
+
+    @ t2 = fqmul(a2, b3)
+    ldrsh       r9, [r1, #4]   @ a2
+    ldrsh       r10, [r2, #6]  @ b3
+    fqmul       r11, r9, r10, r12 @ r11 = fqmul(a2, b3)
+
+    @ t3 = fqmul(a3, b2)
+    ldrsh       r9, [r1, #6]   @ a3
+    ldrsh       r10, [r2, #4]  @ b2
+    fqmul       r9, r9, r10, r12 @ r9 = fqmul(a3, b2)
+
+    add         r11, r11, r9
+    strh        r11, [r0, #6]
+
+    @ ---- 前進到下一組 4 coeffs / 下一個 zeta ----
+    adds        r0, r0, #8     @ r += 4 * sizeof(int16_t)
+    adds        r1, r1, #8     @ a += 4 * sizeof(int16_t)
+    adds        r2, r2, #8     @ b += 4 * sizeof(int16_t)
+
+    subs        r4, r4, #1
+    bne         loop_poly_basemul
+
+    pop         {r4-r12, pc}
 
 .p2align 2
 .global ntt_s

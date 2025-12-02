@@ -238,15 +238,11 @@ void poly_invntt_tomont(poly *r)
  *              - const poly *a: pointer to first input polynomial
  *              - const poly *b: pointer to second input polynomial
  **************************************************/
-extern void basemul_s(int16_t r[2], const int16_t a[2], const int16_t b[2], int16_t zeta);
+extern void poly_basemul_montgomery_s(poly *r, const poly *a, const poly *b);
+
 void poly_basemul_montgomery(poly *r, const poly *a, const poly *b)
 {
-  unsigned int i;
-  for (i = 0; i < KYBER_N / 4; i++)
-  {
-    basemul_s(&r->coeffs[4 * i], &a->coeffs[4 * i], &b->coeffs[4 * i], zetas[64 + i]);
-    basemul_s(&r->coeffs[4 * i + 2], &a->coeffs[4 * i + 2], &b->coeffs[4 * i + 2], -zetas[64 + i]);
-  }
+  poly_basemul_montgomery_s(r, a, b);
 }
 
 /*************************************************
