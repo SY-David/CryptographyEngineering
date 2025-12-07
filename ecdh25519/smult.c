@@ -69,25 +69,30 @@ int crypto_scalarmult_base(unsigned char *pk, const unsigned char *sk)
     unsigned char windows[BASE_WINDOW_COUNT];
     group_ge acc, selected, sum;
 
-    memcpy(e, sk, GROUP_GE_PACKEDBYTES);
+    for (int i = 0; i < GROUP_GE_PACKEDBYTES; ++i)
+    {
+        e[i] = sk[i];
+    }
 
     e[0] &= 248;
     e[31] &= 127;
     e[31] |= 64;
 
-    acc = group_ge_neutral;
-
-    for (int w = BASE_WINDOW_COUNT - 1; w >= 0; --w)
+    for (int i = 0; i < BASE_WINDOW_COUNT; ++i)
     {
-        int bit = w * BASE_WINDOW_BITS;
+        int bit = i * BASE_WINDOW_BITS;
         int byte_idx = bit >> 3;
         int shift = bit & 7;
-        unsigned char nibble =
-            (unsigned char)((e[byte_idx] >> shift) & (BASE_WINDOW_SIZE - 1));
+        windows[i] = (unsigned char)((e[byte_idx] >> shift) & (BASE_WINDOW_SIZE - 1));
+    }
 
-        base_select_window(&selected, w, nibble);
+    acc = group_ge_neutral;
+
+    for (int i = BASE_WINDOW_COUNT - 1; i >= 0; --i)
+    {
+        base_select_window(&selected, i, windows[i]);
         group_ge_add(&sum, &acc, &selected);
-        group_ge_cmov(&acc, &sum, ct_is_nonzero((uint32_t)nibble));
+        group_ge_cmov(&acc, &sum, ct_is_nonzero(windows[i]));
     }
 
     group_ge_pack(pk, &acc);
