@@ -3,21 +3,22 @@
 #include "smult.h"
 #include "smult_base_table.h"
 
-static unsigned char ct_is_nonzero(uint32_t x)
+static inline unsigned char ct_is_nonzero(uint32_t x)
 {
     x |= (uint32_t)(-x);
     return (unsigned char)(x >> 31);
 }
 
-static unsigned char ct_eq_uint32(uint32_t a, uint32_t b)
+static inline unsigned char ct_eq_uint32(uint32_t a, uint32_t b)
 {
     return (unsigned char)(1u ^ ct_is_nonzero(a ^ b));
 }
 
 static void base_select_window(group_ge *r, int window_idx, unsigned char nibble)
 {
-    *r = group_ge_neutral;
-    for (unsigned int j = 0; j < BASE_WINDOW_SIZE; ++j)
+    *r = crypto_scalarmult_base_table[window_idx][0];
+
+    for (unsigned int j = 1; j < BASE_WINDOW_SIZE; ++j)
     {
         unsigned char mask = ct_eq_uint32(nibble, j);
         group_ge_cmov(r, &crypto_scalarmult_base_table[window_idx][j], mask);
