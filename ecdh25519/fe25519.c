@@ -47,7 +47,7 @@ static uint32_t times38(uint32_t a)
   return (a << 5) + (a << 2) + (a << 1);
 }
 
-static void reduce_add_sub(fe25519 *r)
+static inline void reduce_add_sub(fe25519 *r)
 {
   uint32_t t;
   int i, rep;
@@ -67,7 +67,7 @@ static void reduce_add_sub(fe25519 *r)
   }
 }
 
-static void reduce_mul(fe25519 *r)
+static inline void reduce_mul(fe25519 *r)
 {
   uint32_t t;
   int i, rep;
