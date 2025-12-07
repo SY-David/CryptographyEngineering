@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include "group.h"
 #include "smult.h"
+#include <string.h>
 #include "smult_base_table.h"
 
 static inline unsigned char ct_is_nonzero(uint32_t x)
@@ -31,10 +32,7 @@ int crypto_scalarmult(unsigned char *ss, const unsigned char *sk, const unsigned
     unsigned char t[32];
     int i, j = 5;
 
-    for (i = 0; i < 32; i++)
-    {
-        t[i] = sk[i];
-    }
+    memcpy(t, sk, 32);
 
     t[0] &= 248;
     t[31] &= 127;
@@ -42,7 +40,7 @@ int crypto_scalarmult(unsigned char *ss, const unsigned char *sk, const unsigned
 
     if (group_ge_unpack(&p, pk))
     {
-        return -1; /*No need to change*/
+        return -1;
     }
 
     k = p;
