@@ -28,7 +28,7 @@ static void base_select_window(group_ge *r, int window_idx, unsigned char nibble
 
 int crypto_scalarmult(unsigned char *ss, const unsigned char *sk, const unsigned char *pk)
 {
-    group_ge p, k;
+    group_ge p, k, D, A;
     unsigned char t[32];
     int i, j = 5;
 
@@ -48,7 +48,6 @@ int crypto_scalarmult(unsigned char *ss, const unsigned char *sk, const unsigned
     {
         for (; j >= 0; j--)
         {
-            group_ge D, A;
             group_ge_double(&D, &k);
             group_ge_add(&A, &D, &p);
             unsigned char b = (t[i] >> j) & 1u;
