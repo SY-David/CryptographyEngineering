@@ -468,8 +468,8 @@ void fe25519_mul(fe25519 *r, const fe25519 *x, const fe25519 *y)
   unsigned char a[32];
   unsigned char b[32];
 
-  fe25519_pack(a, x);
-  fe25519_pack(b, y);
+  fe25519_pack_nofreeze(a, x);
+  fe25519_pack_nofreeze(b, y);
 
   int64_t h[10];
   fe25519_mul_core_s(a, b, h);
