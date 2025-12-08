@@ -121,26 +121,20 @@ poly_basemul_montgomery_s:
     movs        r4, #64        @ loop counter = KYBER_N/4
 
 loop_poly_basemul:
-    @ 取本輪 zeta 與 -zeta
-    ldrsh       r5, [r3], #2   @ r5 = zeta = zetas[64+i]，r3 += 2
-    rsb         r8, r5, #0     @ r8 = -zeta
+    ldrsh       r5, [r3], #2 @ r5 = zeta = zetas[64+i]，r3 += 2
+    rsb         r8, r5, #0
+    ldrsh       r11, [r1, #2]
+    ldrsh       r10, [r2, #2]
 
-    @ ===================== 第一組 basemul：r[0], r[1] =====================
-    @ r[0] = mont(mont(a1,b1), zeta) + mont(a0,b0)
-
-    @ t1 = mont(a1, b1)
-    ldrsh       r9, [r1, #2]   @ a1
-    ldrsh       r10, [r2, #2]  @ b1
-    mov         r11, r9
-    montgomery  r11, r10, r12 @ r11 = a1*b1 (Montgomery)
+    montgomery  r11, r10, r12
 
     @ t1 = mont(t1, zeta)
     montgomery  r11, r5, r12 @ r11 = a1*b1*zeta
 
     @ t0 = mont(a0, b0)
-    ldrsh       r9, [r1, #0]   @ a0
-    ldrsh       r10, [r2, #0]  @ b0
-    mov         r12, r9
+    ldrsh       r12, [r1, #0] @ a0
+    ldrsh       r10, [r2, #0] @ b0
+
     montgomery  r12, r10, r9 @ r12 = a0*b0
 
     add         r11, r11, r12 @ r11 = r[0]
@@ -149,15 +143,15 @@ loop_poly_basemul:
     @ r[1] = mont(a0,b1) + mont(a1,b0)
 
     @ t2 = mont(a0, b1)
-    ldrsh       r9, [r1, #0]   @ a0
-    ldrsh       r10, [r2, #2]  @ b1
-    mov         r11, r9
+    ldrsh       r11, [r1, #0] @ a0
+    ldrsh       r10, [r2, #2] @ b1
+
     montgomery  r11, r10, r12 @ r11 = a0*b1
 
     @ t3 = mont(a1, b0)
-    ldrsh       r9, [r1, #2]   @ a1
-    ldrsh       r10, [r2, #0]  @ b0
-    mov         r12, r9
+    ldrsh       r12, [r1, #2] @ a1
+    ldrsh       r10, [r2, #0] @ b0
+
     montgomery  r12, r10, r9 @ r12 = a1*b0
 
     add         r11, r11, r12
@@ -167,18 +161,18 @@ loop_poly_basemul:
     @ r[2] = mont(mont(a3,b3), -zeta) + mont(a2,b2)
 
     @ t1 = mont(a3, b3)
-    ldrsh       r9, [r1, #6]   @ a3
-    ldrsh       r10, [r2, #6]  @ b3
-    mov         r11, r9
+    ldrsh       r11, [r1, #6] @ a3
+    ldrsh       r10, [r2, #6] @ b3
+
     montgomery  r11, r10, r12 @ r11 = a3*b3
 
     @ t1 = mont(t1, -zeta)
     montgomery  r11, r8, r12 @ r11 = a3*b3*(-zeta)
 
     @ t0 = mont(a2, b2)
-    ldrsh       r9, [r1, #4]   @ a2
-    ldrsh       r10, [r2, #4]  @ b2
-    mov         r12, r9
+    ldrsh       r12, [r1, #4] @ a2
+    ldrsh       r10, [r2, #4] @ b2
+
     montgomery  r12, r10, r9 @ r12 = a2*b2
 
     add         r11, r11, r12
@@ -187,15 +181,15 @@ loop_poly_basemul:
     @ r[3] = mont(a2,b3) + mont(a3,b2)
 
     @ t2 = mont(a2, b3)
-    ldrsh       r9, [r1, #4]   @ a2
-    ldrsh       r10, [r2, #6]  @ b3
-    mov         r11, r9
+    ldrsh       r11, [r1, #4] @ a2
+    ldrsh       r10, [r2, #6] @ b3
+
     montgomery  r11, r10, r12 @ r11 = a2*b3
 
     @ t3 = mont(a3, b2)
-    ldrsh       r9, [r1, #6]   @ a3
-    ldrsh       r10, [r2, #4]  @ b2
-    mov         r12, r9
+    ldrsh       r12, [r1, #6] @ a3
+    ldrsh       r10, [r2, #4] @ b2
+
     montgomery  r12, r10, r9 @ r12 = a3*b2
 
     add         r11, r11, r12

@@ -5,31 +5,42 @@
 .global poly_add_s
 .type poly_add_s, %function
 poly_add_s:
-    movs            r12, #128 @ counter
+    push            {r4, lr}
+    movs            r12, #128
 .p2align 2
 1:
-    ldr             r3, [r1], #4 @ a[i]
-    ldr             r2, [r2], #4 @ b[i]
-    sadd16          r3, r3, r2
+    ldr             r3, [r1], #4
+    ldr             r4, [r2], #4
+
+    sadd16          r3, r3, r4
+
     str             r3, [r0], #4
+
     subs            r12, r12, #1
     bne             1b
-    bx              lr
+
+    pop             {r4, pc}
 .size poly_add_s, .-poly_add_s
 
 .global poly_sub_s
 .type poly_sub_s, %function
 poly_sub_s:
-    movs            r12, #128 @ counter
+    push            {r4, lr}
+    movs            r12, #128
 .p2align 2
-11:
-    ldr             r3, [r1], #4 @ a[i]
-    ldr             r2, [r2], #4 @ b[i]
-    ssub16          r3, r3, r2
+
+1:
+    ldr             r3, [r1], #4
+    ldr             r4, [r2], #4
+
+    ssub16          r3, r3, r4
+
     str             r3, [r0], #4
+
     subs            r12, r12, #1
-    bne             11b
-    bx              lr
+    bne             1b
+
+    pop             {r4, pc}
 .size poly_sub_s, .-poly_sub_s
 
 .macro COMPRESS_NIBBLE reg
