@@ -3,7 +3,6 @@
 .thumb_func
 .arch armv7e-m
 .fpu fpv4-sp-d16
-.text
 
 .data
 zetas:
@@ -77,7 +76,7 @@ twist_table:
     .short 148, 792, -1520, -1656, -1664, -1077, -455, 1344
     .short 1254, -1297, 707, -1525, -873, -443, -1201, 321
     .short 998, 842, 637, -550, -424, 1150, -324, -1194
-
+.text
 .macro montgomery acc, mult, tmp
     smulbb      \acc, \acc, \mult
     smulbb      \tmp, \acc, r6         // r6 = QINV
