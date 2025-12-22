@@ -48,8 +48,8 @@ poly_sub_s:
     asr             r7, \reg, #15
     and             r7, r7, r3
     add             \reg, \reg, r7
-    add             \reg, \reg, #104 @ reg = a' + 104
-    mul             r7, \reg, r5 @ r5 = 16 * 80635 = 1290160
+    add             \reg, \reg, #104
+    mul             r7, \reg, r5
     lsr             \reg, r7, #28
 
 .endm
@@ -124,10 +124,10 @@ loop_decomp:
     ldrsh           r6, [r1], #2
     asr             r7, r6, #15
     and             r7, r7, r3
-    add             r6, r6, r7      @ r6 = a'
-    add             r6, r6, #52     @ r6 = a' + 52
-    mul             r6, r6, r5      @ r5 = 1290176 = 32 * 40318
-    lsr             r6, r6, #27     @ top 5 bits already在低位，其餘全 0
+    add             r6, r6, r7
+    add             r6, r6, #52
+    mul             r6, r6, r5
+    lsr             r6, r6, #27
 
     strb            r6, [sp, #\offset]
 .endm
@@ -135,11 +135,11 @@ loop_decomp:
 .global poly_compress160_s
 .type poly_compress160_s, %function
 poly_compress160_s:
-    push            {r5-r11, lr}@ r4 不再用到，不必存
+    push            {r5-r11, lr}
     sub             sp, sp, #8
     movs            r2, #32
     ldr             r3, =3329
-    ldr             r5, =1290176 @ 32 * 40318
+    ldr             r5, =1290176
 .p2align 2
 loop_comp160:
     COMPRESS5_ITEM  0

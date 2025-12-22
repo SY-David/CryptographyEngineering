@@ -71,10 +71,9 @@ def generate_linear_twist_table():
 
     twist_table = []
 
-    # 從 1441 * ω^0 開始
     curr = base
     for i in range(128):
-        val = center_mod_q(curr)  # 1441 * ω^{-i}
+        val = center_mod_q(curr)
         twist_table.append(val)
         curr = (curr * omega_inv) % KYBER_Q
 

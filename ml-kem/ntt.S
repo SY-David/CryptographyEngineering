@@ -78,578 +78,534 @@ twist_table:
     .short 998, 842, 637, -550, -424, 1150, -324, -1194
 .text
 .macro montgomery acc, mult, tmp
-    smulbb      \acc, \acc, \mult
-    smulbb      \tmp, \acc, r6         // r6 = QINV
-    smlabb      \acc, \tmp, r7, \acc   // r7 = q
-    asr         \acc, \acc, #16
+    smulbb                  \acc, \acc, \mult
+    smulbb                  \tmp, \acc, r6
+    smlabb                  \acc, \tmp, r7, \acc
+    asr                     \acc, \acc, #16
 .endm
 
 .macro doublemont a, tmp, tmp2, q, qinv, mult
 
-    smulbb      \tmp2, \a, \mult
+    smulbb                  \tmp2, \a, \mult
 
-    smulbb      \tmp, \tmp2, \qinv
+    smulbb                  \tmp, \tmp2, \qinv
 
-    smlabb      \tmp2, \q, \tmp, \tmp2
+    smlabb                  \tmp2, \q, \tmp, \tmp2
 
-    smultb      \tmp, \a, \mult
+    smultb                  \tmp, \a, \mult
 
-    smulbb      \a, \tmp, \qinv
+    smulbb                  \a, \tmp, \qinv
 
-    smlabb      \tmp, \q, \a, \tmp
+    smlabb                  \tmp, \q, \a, \tmp
 
-    pkhtb       \a, \tmp, \tmp2, asr#16
+    pkhtb                   \a, \tmp, \tmp2, asr#16
 .endm
-.p2align 2
 
+.macro montgomery_noinplace dst, a, b, tmp
+    smulbb                  \dst, \a, \b
+    smulbb                  \tmp, \dst, r6
+    smlabb                  \dst, \tmp, r7, \dst
+    asr                     \dst, \dst, #16
+.endm
+.macro montgomery_noinplace dst, a, b, tmp
+    smulbb                  \dst, \a, \b
+    smulbb                  \tmp, \dst, r6
+    smlabb                  \dst, \tmp, r7, \dst
+    asr                     \dst, \dst, #16
+.endm
+
+.p2align 2
 .global poly_basemul_montgomery_s
 .type poly_basemul_montgomery_s, %function
 poly_basemul_montgomery_s:
-    push        {r4-r11, lr}
+    push                    {r4-r11, lr}
+    sub                     sp, sp, #4
 
-    @ r0 = poly *r
-    @ r1 = const poly *a
-    @ r2 = const poly *b
+    movw                    r6, #3327
+    movw                    r7, #3329
 
-    @ QINV, Q 給 montgomery macro 用
-    movw        r6, #3327      @ QINV
-    movw        r7, #3329      @ q
-
-    @ zeta2 就是 zetas[64] 的開頭
-    ldr         r3, =zeta2     @ r3 = &zetas[64]
-    movs        r4, #64        @ loop counter = KYBER_N/4
+    ldr                     r3, =zeta2
+    mov                     r4, #64
 
 loop_poly_basemul:
-    ldrsh       r5, [r3], #2 @ r5 = zeta = zetas[64+i]，r3 += 2
-    rsb         r8, r5, #0
-    ldrsh       r11, [r1, #2]
-    ldrsh       r10, [r2, #2]
+    ldrsh                   r5, [r3], #2
+    ldrsh                   r9, [r1, #0]
+    ldrsh                   r10, [r1, #2]
+    ldrsh                   r11, [r2, #0]
+    ldrsh                   r12, [r2, #2]
+    str                     r12, [sp]
 
-    montgomery  r11, r10, r12
+    ldr                     r8, [sp]
+    montgomery_noinplace    lr, r10, r8, r12
+    montgomery_noinplace    lr, lr, r5, r12
 
-    @ t1 = mont(t1, zeta)
-    montgomery  r11, r5, r12 @ r11 = a1*b1*zeta
+    montgomery_noinplace    r8, r9, r11, r12
 
-    @ t0 = mont(a0, b0)
-    ldrsh       r12, [r1, #0] @ a0
-    ldrsh       r10, [r2, #0] @ b0
+    add                     r8, r8, lr
+    strh                    r8, [r0, #0]
 
-    montgomery  r12, r10, r9 @ r12 = a0*b0
+    ldr                     lr, [sp]
+    montgomery_noinplace    r8, r9, lr, r12
+    montgomery_noinplace    lr, r10, r11, r12
 
-    add         r11, r11, r12 @ r11 = r[0]
-    strh        r11, [r0, #0]
+    add                     r8, r8, lr
+    strh                    r8, [r0, #2]
 
-    @ r[1] = mont(a0,b1) + mont(a1,b0)
+    rsb                     r8, r5, #0
 
-    @ t2 = mont(a0, b1)
-    ldrsh       r11, [r1, #0] @ a0
-    ldrsh       r10, [r2, #2] @ b1
+    ldrsh                   r9, [r1, #4]
+    ldrsh                   r10, [r1, #6]
+    ldrsh                   r11, [r2, #4]
+    ldrsh                   r12, [r2, #6]
+    str                     r12, [sp]
 
-    montgomery  r11, r10, r12 @ r11 = a0*b1
+    ldr                     r5, [sp]
+    montgomery_noinplace    lr, r10, r5, r12
+    montgomery_noinplace    lr, lr, r8, r12
 
-    @ t3 = mont(a1, b0)
-    ldrsh       r12, [r1, #2] @ a1
-    ldrsh       r10, [r2, #0] @ b0
+    montgomery_noinplace    r5, r9, r11, r12
 
-    montgomery  r12, r10, r9 @ r12 = a1*b0
+    add                     r5, r5, lr
+    strh                    r5, [r0, #4]
 
-    add         r11, r11, r12
-    strh        r11, [r0, #2]
+    ldr                     lr, [sp]
+    montgomery_noinplace    lr, r10, r11, r12
 
-    @ ===================== 第二組 basemul：r[2], r[3] =====================
-    @ r[2] = mont(mont(a3,b3), -zeta) + mont(a2,b2)
+    add                     r5, r5, lr
+    strh                    r5, [r0, #6]
 
-    @ t1 = mont(a3, b3)
-    ldrsh       r11, [r1, #6] @ a3
-    ldrsh       r10, [r2, #6] @ b3
+    add                     r0, r0, #8
+    add                     r1, r1, #8
+    add                     r2, r2, #8
 
-    montgomery  r11, r10, r12 @ r11 = a3*b3
+    subs                    r4, r4, #1
+    bne                     loop_poly_basemul
 
-    @ t1 = mont(t1, -zeta)
-    montgomery  r11, r8, r12 @ r11 = a3*b3*(-zeta)
-
-    @ t0 = mont(a2, b2)
-    ldrsh       r12, [r1, #4] @ a2
-    ldrsh       r10, [r2, #4] @ b2
-
-    montgomery  r12, r10, r9 @ r12 = a2*b2
-
-    add         r11, r11, r12
-    strh        r11, [r0, #4]
-
-    @ r[3] = mont(a2,b3) + mont(a3,b2)
-
-    @ t2 = mont(a2, b3)
-    ldrsh       r11, [r1, #4] @ a2
-    ldrsh       r10, [r2, #6] @ b3
-
-    montgomery  r11, r10, r12 @ r11 = a2*b3
-
-    @ t3 = mont(a3, b2)
-    ldrsh       r12, [r1, #6] @ a3
-    ldrsh       r10, [r2, #4] @ b2
-
-    montgomery  r12, r10, r9 @ r12 = a3*b2
-
-    add         r11, r11, r12
-    strh        r11, [r0, #6]
-
-    @ ---- 前進到下一組 4 coeffs / 下一個 zeta ----
-    adds        r0, r0, #8     @ r += 4 * sizeof(int16_t)
-    adds        r1, r1, #8     @ a += 4 * sizeof(int16_t)
-    adds        r2, r2, #8     @ b += 4 * sizeof(int16_t)
-
-    subs        r4, r4, #1
-    bne         loop_poly_basemul
-
-    pop         {r4-r11, pc}
+    add                     sp, sp, #4
+    pop                     {r4-r11, pc}
 
 .p2align 2
 .global ntt_s
 .type ntt_s, %function
 ntt_s:
-    push        {r4-r12, lr}
+    push                    {r4-r12, lr}
 
-    // r0 = r[256]
-    // r1 = counter
-    movs        r1, #0
-    movw        r2, #3327
-    movw        r3, #3329
-    ldr         r8, =zetas
-    ldrsh       r9, [r8, #2]     // zeta128 = zetas[1]
-    ldrsh       r10, [r8, #4]    // zeta64_top    = zetas[2]
-    ldrsh       r12, [r8, #6]    // zeta64_bottom = zetas[3]
+    movs                    r1, #0
+    movw                    r2, #3327
+    movw                    r3, #3329
+    ldr                     r8, =zetas
+    ldrsh                   r9, [r8, #2]
+    ldrsh                   r10, [r8, #4]
+    ldrsh                   r12, [r8, #6]
 
 .p2align 2
 loop1start:
-    cmp         r1, #64
-    bge         loop1end
+    cmp                     r1, #64
+    bge                     loop1end
 
-    add         r11, r0, r1, lsl#1
+    add                     r11, r0, r1, lsl#1
 
     @ 4× SWAR load：一次讀兩個 int16
-    ldr         r4, [r11]          @ a0|a1
-    ldr         r5, [r11, #128]    @ a64|a65
-    ldr         r6, [r11, #256]    @ a128|a129
-    ldr         r7, [r11, #384]    @ a192|a193
+    ldr                     r4, [r11] @ a0|a1
+    ldr                     r5, [r11, #128] @ a64|a65
+    ldr                     r6, [r11, #256] @ a128|a129
+    ldr                     r7, [r11, #384] @
 
-    doublemont  r6, r8, r11, r3, r2, r9
-    doublemont  r7, r8, r11, r3, r2, r9
+    doublemont              r6, r8, r11, r3, r2, r9
+    doublemont              r7, r8, r11, r3, r2, r9
 
-    uadd16      r4, r4, r6
-    uadd16      r6, r6, r6
-    usub16      r6, r4, r6
+    uadd16                  r4, r4, r6
+    uadd16                  r6, r6, r6
+    usub16                  r6, r4, r6
 
-    uadd16      r5, r5, r7
-    uadd16      r7, r7, r7
-    usub16      r7, r5, r7
+    uadd16                  r5, r5, r7
+    uadd16                  r7, r7, r7
+    usub16                  r7, r5, r7
 
-    doublemont  r5, r8, r11, r3, r2, r10
-    doublemont  r7, r8, r11, r3, r2, r12
+    doublemont              r5, r8, r11, r3, r2, r10
+    doublemont              r7, r8, r11, r3, r2, r12
 
-    uadd16      r4, r4, r5      @ top + t64_top
-    uadd16      r5, r5, r5      @ 2 * t64_top
-    usub16      r5, r4, r5      @ top - t64_top
+    uadd16                  r4, r4, r5
+    uadd16                  r5, r5, r5
+    usub16                  r5, r4, r5
 
-    uadd16      r6, r6, r7      @ bot + t64_bottom
-    uadd16      r7, r7, r7      @ 2 * t64_bottom
-    usub16      r7, r6, r7      @ bot - t64_bottom
+    uadd16                  r6, r6, r7
+    uadd16                  r7, r7, r7
+    usub16                  r7, r6, r7
+    add                     r11, r0, r1, lsl#1
 
-    @ 直接 32-bit store 回去
-    add         r11, r0, r1, lsl#1
+    str                     r4, [r11]
+    str                     r5, [r11, #128]
+    str                     r6, [r11, #256]
+    str                     r7, [r11, #384]
 
-    str         r4, [r11]
-    str         r5, [r11, #128]
-    str         r6, [r11, #256]
-    str         r7, [r11, #384]
-
-    add         r1, r1, #2
-    b           loop1start
+    add                     r1, r1, #2
+    b                       loop1start
 loop1end:
 
-    movs        r1, #0
+    movs                    r1, #0
 .p2align 2
 outloop2start:
-    cmp         r1, #256
-    bge         outloop2end
-    ldr         r8, =zeta32
+    cmp                     r1, #256
+    bge                     outloop2end
+    ldr                     r8, =zeta32
 
-    lsr         r4, r1, #5
-    ldrsh       r5, [r8, r4]
-    add         r8, r8, #8
+    lsr                     r4, r1, #5
+    ldrsh                   r5, [r8, r4]
+    add                     r8, r8, #8
 
-    lsl         r4, r4, #1
-    ldrsh       r6, [r8, r4]
-    add         r4, r4, #2
-    ldrsh       r7, [r8, r4]
+    lsl                     r4, r4, #1
+    ldrsh                   r6, [r8, r4]
+    add                     r4, r4, #2
+    ldrsh                   r7, [r8, r4]
 
-    movs        r14, #0 @ inner-loop index
+    movs                    r14, #0
 .p2align 2
 innerloop2start:
-    cmp         r14, #16
-    bge         innerloop2end
+    cmp                     r14, #16
+    bge                     innerloop2end
 
-    add         r8, r1, r14
-    add         r8, r0, r8, lsl#1 @ r8 = base pointer for this butterfly
+    add                     r8, r1, r14
+    add                     r8, r0, r8, lsl#1
+    ldr                     r9, [r8]
+    ldr                     r10, [r8, #32]
+    ldr                     r11, [r8, #64]
+    ldr                     r12, [r8, #96]
+    doublemont              r11, r8, r4, r3, r2, r5
+    doublemont              r12, r8, r4, r3, r2, r5
 
-    @ ==== 4×32-bit load，取代 ldrh+ldrh+pkhbt ====
-    ldr         r9, [r8]             @ a0|a1
-    ldr         r10, [r8, #32]       @ a16|a17
-    ldr         r11, [r8, #64]       @ a32|a33
-    ldr         r12, [r8, #96]       @ a48|a49
+    uadd16                  r9, r9, r11
+    uadd16                  r11, r11, r11
+    usub16                  r11, r9, r11
 
-    @ doublemont 用 r8, r4 做暫存沒問題，因為 pointer 已用完
-    doublemont  r11, r8, r4, r3, r2, r5
-    doublemont  r12, r8, r4, r3, r2, r5
+    uadd16                  r10, r10, r12
+    uadd16                  r12, r12, r12
+    usub16                  r12, r10, r12
 
-    uadd16      r9, r9, r11
-    uadd16      r11, r11, r11
-    usub16      r11, r9, r11
+    doublemont              r10, r8, r4, r3, r2, r6
+    doublemont              r12, r8, r4, r3, r2, r7
 
-    uadd16      r10, r10, r12
-    uadd16      r12, r12, r12
-    usub16      r12, r10, r12
+    uadd16                  r9, r9, r10
+    uadd16                  r10, r10, r10
+    usub16                  r10, r9, r10
 
-    doublemont  r10, r8, r4, r3, r2, r6
-    doublemont  r12, r8, r4, r3, r2, r7
+    uadd16                  r11, r11, r12
+    uadd16                  r12, r12, r12
+    usub16                  r12, r11, r12
 
-    uadd16      r9, r9, r10
-    uadd16      r10, r10, r10
-    usub16      r10, r9, r10
+    add                     r8, r1, r14
+    add                     r8, r0, r8, lsl#1
 
-    uadd16      r11, r11, r12
-    uadd16      r12, r12, r12
-    usub16      r12, r11, r12
+    str                     r9, [r8]
+    str                     r10, [r8, #32]
+    str                     r11, [r8, #64]
+    str                     r12, [r8, #96]
 
-    @ ==== 4×32-bit store，取代 strh+asr+strh ====
-    add         r8, r1, r14
-    add         r8, r0, r8, lsl#1
-
-    str         r9, [r8]
-    str         r10, [r8, #32]
-    str         r11, [r8, #64]
-    str         r12, [r8, #96]
-
-    add         r14, r14, #2
-    b           innerloop2start
+    add                     r14, r14, #2
+    b                       innerloop2start
 innerloop2end:
-    add         r1, r1, #64 @ 注意這裡要寫完整 add r1,r1,#64
-    b           outloop2start
+    add                     r1, r1, #64
+    b                       outloop2start
 outloop2end:
 
-    movs        r1, #0
+    movs                    r1, #0
 .p2align 2
 outloop3start:
-    cmp         r1, #256
-    bge         outloop3end
-    ldr         r8, =zeta8
+    cmp                     r1, #256
+    bge                     outloop3end
+    ldr                     r8, =zeta8
 
-    lsr         r4, r1, #3
-    ldrsh       r5, [r8, r4]
-    add         r8, r8, #32
+    lsr                     r4, r1, #3
+    ldrsh                   r5, [r8, r4]
+    add                     r8, r8, #32
 
-    lsl         r4, r4, #1
-    ldrsh       r6, [r8, r4]
-    add         r4, r4, #2
-    ldrsh       r7, [r8, r4]
+    lsl                     r4, r4, #1
+    ldrsh                   r6, [r8, r4]
+    add                     r4, r4, #2
+    ldrsh                   r7, [r8, r4]
 
-    movs        r14, #0
+    movs                    r14, #0
 .p2align 2
 innerloop3start:
-    cmp         r14, #4
-    bge         innerloop3end
+    cmp                     r14, #4
+    bge                     innerloop3end
 
-    add         r8, r1, r14
-    add         r8, r0, r8, lsl#1 @ r8 4-byte aligned
+    add                     r8, r1, r14
+    add                     r8, r0, r8, lsl#1
+    ldr                     r9, [r8]
+    ldr                     r10, [r8, #8]
+    ldr                     r11, [r8, #16]
+    ldr                     r12, [r8, #24]
+    doublemont              r11, r8, r4, r3, r2, r5
+    doublemont              r12, r8, r4, r3, r2, r5
 
-    @ ==== 4×32-bit load ====
-    ldr         r9, [r8]               @ a0|a1
-    ldr         r10, [r8, #8]          @ a4|a5
-    ldr         r11, [r8, #16]         @ a8|a9
-    ldr         r12, [r8, #24]         @ a12|a13
+    uadd16                  r9, r9, r11
+    uadd16                  r11, r11, r11
+    usub16                  r11, r9, r11
 
-    @ r4 只當 doublemont scratch
-    doublemont  r11, r8, r4, r3, r2, r5
-    doublemont  r12, r8, r4, r3, r2, r5
+    uadd16                  r10, r10, r12
+    uadd16                  r12, r12, r12
+    usub16                  r12, r10, r12
 
-    uadd16      r9, r9, r11
-    uadd16      r11, r11, r11
-    usub16      r11, r9, r11
+    doublemont              r10, r8, r4, r3, r2, r6
+    doublemont              r12, r8, r4, r3, r2, r7
 
-    uadd16      r10, r10, r12
-    uadd16      r12, r12, r12
-    usub16      r12, r10, r12
+    uadd16                  r9, r9, r10
+    uadd16                  r10, r10, r10
+    usub16                  r10, r9, r10
 
-    doublemont  r10, r8, r4, r3, r2, r6
-    doublemont  r12, r8, r4, r3, r2, r7
+    uadd16                  r11, r11, r12
+    uadd16                  r12, r12, r12
+    usub16                  r12, r11, r12
 
-    uadd16      r9, r9, r10
-    uadd16      r10, r10, r10
-    usub16      r10, r9, r10
+    add                     r8, r1, r14
+    add                     r8, r0, r8, lsl#1
 
-    uadd16      r11, r11, r12
-    uadd16      r12, r12, r12
-    usub16      r12, r11, r12
+    str                     r9, [r8]
+    str                     r10, [r8, #8]
+    str                     r11, [r8, #16]
+    str                     r12, [r8, #24]
 
-    @ ==== 4×32-bit store ====
-    add         r8, r1, r14
-    add         r8, r0, r8, lsl#1
-
-    str         r9, [r8]
-    str         r10, [r8, #8]
-    str         r11, [r8, #16]
-    str         r12, [r8, #24]
-
-    add         r14, r14, #2
-    b           innerloop3start
+    add                     r14, r14, #2
+    b                       innerloop3start
 innerloop3end:
-    add         r1, r1, #16
-    b           outloop3start
+    add                     r1, r1, #16
+    b                       outloop3start
 outloop3end:
-    movs        r1, #0
-    ldr         r8, =zeta2
+    movs                    r1, #0
+    ldr                     r8, =zeta2
 .p2align 2
 loop4start:
-    cmp         r1, #256
-    bge         loop4end
+    cmp                     r1, #256
+    bge                     loop4end
 
-    lsr         r9, r1, #1
-    ldrsh       r10, [r8, r9]@ zeta2[r1/2]
+    lsr                     r9, r1, #1
+    ldrsh                   r10, [r8, r9]
 
-    add         r9, r0, r1, lsl#1 @ r9 = &a[r1]，4-byte 對齊
+    add                     r9, r0, r1, lsl#1
 
-    @ ==== 2×32-bit load ====
-    ldr         r4, [r9]            @ a0|a1
-    ldr         r5, [r9, #4]        @ a2|a3
+    ldr                     r4, [r9]
+    ldr                     r5, [r9, #4]
 
-    doublemont  r5, r11, r12, r3, r2, r10
+    doublemont              r5, r11, r12, r3, r2, r10
 
-    uadd16      r4, r4, r5          @ a + t
-    uadd16      r5, r5, r5          @ 2t
-    usub16      r5, r4, r5          @ a - t
+    uadd16                  r4, r4, r5
+    uadd16                  r5, r5, r5
+    usub16                  r5, r4, r5
+    str                     r4, [r9]
+    str                     r5, [r9, #4]
 
-    @ ==== 2×32-bit store ====
-    str         r4, [r9]
-    str         r5, [r9, #4]
-
-    adds        r1, #4 @ Thumb-16 adds, OK
-    b           loop4start
+    adds                    r1, #4
+    b                       loop4start
 loop4end:
-    pop         {r4-r12, pc}
+    pop                     {r4-r12, pc}
 .p2align 2
 .global invntt_s
 .type invntt_s, %function
 invntt_s:
-    push        {r4-r12, lr}
+    push                    {r4-r12, lr}
 
-    // r0 = r[256]
-    // r1 = counter
-    movs        r1, #0
-    movw        r2, #3327
-    movw        r3, #3329
-    movw        r8, #758
+    movs                    r1, #0
+    movw                    r2, #3327
+    movw                    r3, #3329
+    movw                    r8, #758
 
 .p2align 2
 invloop1start:
-    cmp         r1, #256
-    bge         invloop1end
+    cmp                     r1, #256
+    bge                     invloop1end
 
-    add         r11, r0, r1, lsl#1
+    add                     r11, r0, r1, lsl#1
 
-    ldr         r4, [r11]
-    ldr         r5, [r11, #4]
-    ldr         r6, [r11, #8]
-    ldr         r7, [r11, #12]
+    ldr                     r4, [r11]
+    ldr                     r5, [r11, #4]
+    ldr                     r6, [r11, #8]
+    ldr                     r7, [r11, #12]
 
-    uadd16      r4, r4, r5
-    uadd16      r5, r5, r5
-    usub16      r5, r4, r5
+    uadd16                  r4, r4, r5
+    uadd16                  r5, r5, r5
+    usub16                  r5, r4, r5
 
-    uadd16      r6, r6, r7
-    uadd16      r7, r7, r7
-    usub16      r7, r6, r7
+    uadd16                  r6, r6, r7
+    uadd16                  r7, r7, r7
+    usub16                  r7, r6, r7
 
-    doublemont  r7, r9, r11, r3, r2, r8
+    doublemont              r7, r9, r11, r3, r2, r8
 
-    uadd16      r4, r4, r6
-    uadd16      r6, r6, r6
-    usub16      r6, r4, r6
+    uadd16                  r4, r4, r6
+    uadd16                  r6, r6, r6
+    usub16                  r6, r4, r6
 
-    uadd16      r5, r5, r7
-    uadd16      r7, r7, r7
-    usub16      r7, r5, r7
+    uadd16                  r5, r5, r7
+    uadd16                  r7, r7, r7
+    usub16                  r7, r5, r7
 
-    add         r11, r0, r1, lsl#1
+    add                     r11, r0, r1, lsl#1
 
-    str         r4, [r11]
-    str         r5, [r11, #4]
-    str         r6, [r11, #8]
-    str         r7, [r11, #12]
+    str                     r4, [r11]
+    str                     r5, [r11, #4]
+    str                     r6, [r11, #8]
+    str                     r7, [r11, #12]
 
-    add         r1, r1, #8
-    b           invloop1start
+    add                     r1, r1, #8
+    b                       invloop1start
 invloop1end:
-    movs        r1, #0
+    movs                    r1, #0
 .p2align 2
 invoutloop2start:
-    cmp         r1, #256
-    bge         invoutloop2end
+    cmp                     r1, #256
+    bge                     invoutloop2end
 
-    movs        r14, #0 @ inner-loop index
+    movs                    r14, #0
 .p2align 2
 invinnerloop2start:
-    cmp         r14, #8
-    bge         invinnerloop2end
+    cmp                     r14, #8
+    bge                     invinnerloop2end
 
-    ldr         r4, =inv_zeta_layer2
-    ldrsh       r5, [r4, r14]
-    add         r8, r4, #8 // inv_zeta_layer3
-    add         r4, r14, #8
-    ldrsh       r6, [r8, r14]
-    ldrsh       r7, [r8, r4]
+    ldr                     r4, =inv_zeta_layer2
+    ldrsh                   r5, [r4, r14]
+    add                     r8, r4, #8
+    add                     r4, r14, #8
+    ldrsh                   r6, [r8, r14]
+    ldrsh                   r7, [r8, r4]
 
-    add         r8, r1, r14
-    add         r8, r0, r8, lsl#1 @ r8 = base pointer for this butterfly
+    add                     r8, r1, r14
+    add                     r8, r0, r8, lsl#1
+    ldr                     r9, [r8]
+    ldr                     r10, [r8, #16]
+    ldr                     r11, [r8, #32]
+    ldr                     r12, [r8, #48]
 
-    ldr         r9, [r8]             @ a0|a1
-    ldr         r10, [r8, #16]       @ a16|a17
-    ldr         r11, [r8, #32]       @ a32|a33
-    ldr         r12, [r8, #48]       @ a48|a49
+    doublemont              r10, r8, r4, r3, r2, r5
+    doublemont              r12, r8, r4, r3, r2, r5
 
-    doublemont  r10, r8, r4, r3, r2, r5
-    doublemont  r12, r8, r4, r3, r2, r5
+    uadd16                  r9, r9, r10
+    uadd16                  r10, r10, r10
+    usub16                  r10, r9, r10
 
-    uadd16      r9, r9, r10
-    uadd16      r10, r10, r10
-    usub16      r10, r9, r10
+    uadd16                  r11, r11, r12
+    uadd16                  r12, r12, r12
+    usub16                  r12, r11, r12
 
-    uadd16      r11, r11, r12
-    uadd16      r12, r12, r12
-    usub16      r12, r11, r12
+    doublemont              r11, r8, r4, r3, r2, r6
+    doublemont              r12, r8, r4, r3, r2, r7
 
-    doublemont  r11, r8, r4, r3, r2, r6
-    doublemont  r12, r8, r4, r3, r2, r7
+    uadd16                  r9, r9, r11
+    uadd16                  r11, r11, r11
+    usub16                  r11, r9, r11
 
-    uadd16      r9, r9, r11
-    uadd16      r11, r11, r11
-    usub16      r11, r9, r11
+    uadd16                  r10, r10, r12
+    uadd16                  r12, r12, r12
+    usub16                  r12, r10, r12
 
-    uadd16      r10, r10, r12
-    uadd16      r12, r12, r12
-    usub16      r12, r10, r12
+    add                     r8, r1, r14
+    add                     r8, r0, r8, lsl#1
 
-    add         r8, r1, r14
-    add         r8, r0, r8, lsl#1
+    str                     r9, [r8]
+    str                     r10, [r8, #16]
+    str                     r11, [r8, #32]
+    str                     r12, [r8, #48]
 
-    str         r9, [r8]
-    str         r10, [r8, #16]
-    str         r11, [r8, #32]
-    str         r12, [r8, #48]
-
-    add         r14, r14, #2
-    b           invinnerloop2start
+    add                     r14, r14, #2
+    b                       invinnerloop2start
 invinnerloop2end:
-    add         r1, r1, #32
-    b           invoutloop2start
+    add                     r1, r1, #32
+    b                       invoutloop2start
 invoutloop2end:
 .p2align 2
-    movs        r1, #0
+    movs                    r1, #0
 invoutloop3start:
-    cmp         r1, #256
-    bge         invoutloop3end
+    cmp                     r1, #256
+    bge                     invoutloop3end
 
-    movs        r14, #0 @ inner-loop index
+    movs                    r14, #0
 .p2align 2
 invinnerloop3start:
-    cmp         r14, #32
-    bge         invinnerloop3end
+    cmp                     r14, #32
+    bge                     invinnerloop3end
 
-    ldr         r4, =inv_zeta_layer4
-    ldrsh       r5, [r4, r14]
-    add         r8, r4, #32 // inv_zeta_layer5
-    add         r4, r14, #32
-    ldrsh       r6, [r8, r14]
-    ldrsh       r7, [r8, r4]
+    ldr                     r4, =inv_zeta_layer4
+    ldrsh                   r5, [r4, r14]
+    add                     r8, r4, #32
+    add                     r4, r14, #32
+    ldrsh                   r6, [r8, r14]
+    ldrsh                   r7, [r8, r4]
 
-    add         r8, r1, r14
-    add         r8, r0, r8, lsl#1 @ r8 = base pointer for this butterfly
+    add                     r8, r1, r14
+    add                     r8, r0, r8, lsl#1
 
-    ldr         r9, [r8]             @ a0|a1
-    ldr         r10, [r8, #64]       @ a16|a17
-    ldr         r11, [r8, #128]      @ a32|a33
-    ldr         r12, [r8, #192]      @ a48|a49
+    ldr                     r9, [r8]
+    ldr                     r10, [r8, #64]
+    ldr                     r11, [r8, #128]
+    ldr                     r12, [r8, #192]
 
-    doublemont  r10, r8, r4, r3, r2, r5
-    doublemont  r12, r8, r4, r3, r2, r5
+    doublemont              r10, r8, r4, r3, r2, r5
+    doublemont              r12, r8, r4, r3, r2, r5
 
-    uadd16      r9, r9, r10
-    uadd16      r10, r10, r10
-    usub16      r10, r9, r10
+    uadd16                  r9, r9, r10
+    uadd16                  r10, r10, r10
+    usub16                  r10, r9, r10
 
-    uadd16      r11, r11, r12
-    uadd16      r12, r12, r12
-    usub16      r12, r11, r12
+    uadd16                  r11, r11, r12
+    uadd16                  r12, r12, r12
+    usub16                  r12, r11, r12
 
-    doublemont  r11, r8, r4, r3, r2, r6
-    doublemont  r12, r8, r4, r3, r2, r7
+    doublemont              r11, r8, r4, r3, r2, r6
+    doublemont              r12, r8, r4, r3, r2, r7
 
-    uadd16      r9, r9, r11
-    uadd16      r11, r11, r11
-    usub16      r11, r9, r11
+    uadd16                  r9, r9, r11
+    uadd16                  r11, r11, r11
+    usub16                  r11, r9, r11
 
-    uadd16      r10, r10, r12
-    uadd16      r12, r12, r12
-    usub16      r12, r10, r12
+    uadd16                  r10, r10, r12
+    uadd16                  r12, r12, r12
+    usub16                  r12, r10, r12
 
-    add         r8, r1, r14
-    add         r8, r0, r8, lsl#1
+    add                     r8, r1, r14
+    add                     r8, r0, r8, lsl#1
 
-    str         r9, [r8]
-    str         r10, [r8, #64]
-    str         r11, [r8, #128]
-    str         r12, [r8, #192]
+    str                     r9, [r8]
+    str                     r10, [r8, #64]
+    str                     r11, [r8, #128]
+    str                     r12, [r8, #192]
 
-    add         r14, r14, #2
-    b           invinnerloop3start
+    add                     r14, r14, #2
+    b                       invinnerloop3start
 invinnerloop3end:
-    add         r1, r1, #128
-    b           invoutloop3start
+    add                     r1, r1, #128
+    b                       invoutloop3start
 invoutloop3end:
-    movs        r1, #0
-    ldr         r8, =inv_zeta_layer6
-    ldr         r14, =twist_table
+    movs                    r1, #0
+    ldr                     r8, =inv_zeta_layer6
+    ldr                     r14, =twist_table
 .p2align 2
 invloop4start:
-    cmp         r1, #128
-    bge         invloop4end
+    cmp                     r1, #128
+    bge                     invloop4end
 
-    ldrsh       r10, [r8, r1]@ zeta2[r1/2]
+    ldrsh                   r10, [r8, r1]
 
-    add         r9, r0, r1, lsl#1 @ r9 = &a[r1]，4-byte 對齊
+    add                     r9, r0, r1, lsl#1
+    ldr                     r4, [r9]
+    ldr                     r5, [r9, #256]
 
-    @ ==== 2×32-bit load ====
-    ldr         r4, [r9]@ a0|a1
-    ldr         r5, [r9, #256]@ a2|a3
+    doublemont              r5, r11, r12, r3, r2, r10
 
-    doublemont  r5, r11, r12, r3, r2, r10
+    uadd16                  r4, r4, r5
+    uadd16                  r5, r5, r5
+    usub16                  r5, r4, r5
+    ldrsh                   r10, [r14, r1]
 
-    uadd16      r4, r4, r5          @ a + t
-    uadd16      r5, r5, r5          @ 2t
-    usub16      r5, r4, r5          @ a - t
+    doublemont              r4, r11, r12, r3, r2, r10
 
-    @ ==== 2×32-bit store ====
-    ldrsh       r10, [r14, r1]
+    add                     r12, r1, #128
+    ldrsh                   r10, [r14, r12]
+    doublemont              r5, r11, r12, r3, r2, r10
+    str                     r4, [r9]
+    str                     r5, [r9, #256]
 
-    doublemont  r4, r11, r12, r3, r2, r10
-
-    add         r12, r1, #128
-    ldrsh       r10, [r14, r12]
-    doublemont  r5, r11, r12, r3, r2, r10
-    str         r4, [r9]
-    str         r5, [r9, #256]
-
-    adds        r1, #2 @ Thumb-16 adds, OK
-    b           invloop4start
+    adds                    r1, #2
+    b                       invloop4start
 invloop4end:
 
-    pop         {r4-r12, pc}
+    pop                     {r4-r12, pc}
