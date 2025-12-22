@@ -107,12 +107,6 @@ twist_table:
     smlabb                  \dst, \tmp, r7, \dst
     asr                     \dst, \dst, #16
 .endm
-.macro montgomery_noinplace dst, a, b, tmp
-    smulbb                  \dst, \a, \b
-    smulbb                  \tmp, \dst, r6
-    smlabb                  \dst, \tmp, r7, \dst
-    asr                     \dst, \dst, #16
-.endm
 
 .p2align 2
 .global poly_basemul_montgomery_s
@@ -206,7 +200,7 @@ loop1start:
     add                     r11, r0, r1, lsl#1
 
     @ 4× SWAR load：一次讀兩個 int16
-    ldr                     r4, [r11] @ a0|a1
+    ldr                     r4, [r11]@ a0|a1
     ldr                     r5, [r11, #128] @ a64|a65
     ldr                     r6, [r11, #256] @ a128|a129
     ldr                     r7, [r11, #384] @
