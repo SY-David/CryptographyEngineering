@@ -113,7 +113,6 @@ twist_table:
 .type poly_basemul_montgomery_s, %function
 poly_basemul_montgomery_s:
     push                    {r4-r11, lr}
-    sub                     sp, sp, #4
 
     movw                    r6, #3327
     movw                    r7, #3329
@@ -123,50 +122,45 @@ poly_basemul_montgomery_s:
 
 loop_poly_basemul:
     ldrsh                   r5, [r3], #2
+    mov                     r8, r3
+
     ldrsh                   r9, [r1, #0]
     ldrsh                   r10, [r1, #2]
     ldrsh                   r11, [r2, #0]
     ldrsh                   r12, [r2, #2]
-    str                     r12, [sp]
 
-    ldr                     r8, [sp]
-    montgomery_noinplace    lr, r10, r8, r12
-    montgomery_noinplace    lr, lr, r5, r12
+    montgomery_noinplace    lr, r10, r12, r3
+    montgomery_noinplace    lr, lr, r5, r3
 
-    montgomery_noinplace    r8, r9, r11, r12
+    montgomery_noinplace    r12, r12, r9, r3
+    montgomery_noinplace    r10, r10, r11, r3
+    add                     r10, r10, r12
+    strh                    r10, [r0, #2]
 
-    add                     r8, r8, lr
-    strh                    r8, [r0, #0]
+    montgomery_noinplace    r9, r9, r11, r3
+    add                     r9, r9, lr
+    strh                    r9, [r0, #0]
 
-    ldr                     lr, [sp]
-    montgomery_noinplace    r8, r9, lr, r12
-    montgomery_noinplace    lr, r10, r11, r12
-
-    add                     r8, r8, lr
-    strh                    r8, [r0, #2]
-
-    rsb                     r8, r5, #0
+    rsb                     r5, r5, #0
 
     ldrsh                   r9, [r1, #4]
     ldrsh                   r10, [r1, #6]
     ldrsh                   r11, [r2, #4]
     ldrsh                   r12, [r2, #6]
-    str                     r12, [sp]
 
-    ldr                     r5, [sp]
-    montgomery_noinplace    lr, r10, r5, r12
-    montgomery_noinplace    lr, lr, r8, r12
+    montgomery_noinplace    lr, r10, r12, r3
+    montgomery_noinplace    lr, lr, r5, r3
 
-    montgomery_noinplace    r5, r9, r11, r12
+    montgomery_noinplace    r12, r12, r9, r3
+    montgomery_noinplace    r10, r10, r11, r3
+    add                     r10, r10, r12
+    strh                    r10, [r0, #6]
 
-    add                     r5, r5, lr
-    strh                    r5, [r0, #4]
+    montgomery_noinplace    r9, r9, r11, r3
+    add                     r9, r9, lr
+    strh                    r9, [r0, #4]
 
-    ldr                     lr, [sp]
-    montgomery_noinplace    lr, r10, r11, r12
-
-    add                     r5, r5, lr
-    strh                    r5, [r0, #6]
+    mov                     r3, r8
 
     add                     r0, r0, #8
     add                     r1, r1, #8
@@ -175,7 +169,6 @@ loop_poly_basemul:
     subs                    r4, r4, #1
     bne                     loop_poly_basemul
 
-    add                     sp, sp, #4
     pop                     {r4-r11, pc}
 
 .p2align 2
