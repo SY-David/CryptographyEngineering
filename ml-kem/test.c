@@ -591,7 +591,6 @@ int main(void)
     test_result = run_test();
 
     run_speed();
-    run_profiling();
     run_lowlevel_benchmark();
     run_stack();
 
