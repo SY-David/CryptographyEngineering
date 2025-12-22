@@ -190,81 +190,6 @@ static void print_cycles(const char *label, uint64_t cycles)
     hal_send_str(str);
 }
 
-static void run_profiling(void)
-{
-
-    polyvec a[KYBER_K], b, skpv;
-    uint8_t seed[KYBER_SYMBYTES];
-    uint8_t buf[128];
-
-    uint64_t t0, t1;
-    uint64_t t_gen_matrix, t_noise, t_ntt, t_basemul, t_invntt, t_add;
-    int i, j;
-
-    hal_send_str("\n=== Detailed Profiling (Breakdown) ===\n");
-
-    randombytes(seed, sizeof(seed));
-
-    t0 = hal_get_time();
-    for (i = 0; i < KYBER_K; i++)
-    {
-        for (j = 0; j < KYBER_K; j++)
-        {
-
-            shake128(buf, 128, seed, 32);
-        }
-    }
-    t1 = hal_get_time();
-    t_gen_matrix = t1 - t0;
-
-    t0 = hal_get_time();
-    for (i = 0; i < KYBER_K; i++)
-    {
-        poly_cbd_eta1(&skpv.vec[i], buf);
-    }
-    t1 = hal_get_time();
-    t_noise = t1 - t0;
-
-    t0 = hal_get_time();
-    polyvec_ntt(&skpv);
-    t1 = hal_get_time();
-    t_ntt = t1 - t0;
-
-    t0 = hal_get_time();
-    for (i = 0; i < KYBER_K; i++)
-    {
-        polyvec_basemul_acc_montgomery(&b.vec[i], &a[i], &skpv);
-    }
-    t1 = hal_get_time();
-    t_basemul = t1 - t0;
-
-    t0 = hal_get_time();
-    polyvec_invntt_tomont(&b);
-    t1 = hal_get_time();
-    t_invntt = t1 - t0;
-
-    t0 = hal_get_time();
-    polyvec_add(&b, &b, &skpv);
-    t1 = hal_get_time();
-    t_add = t1 - t0;
-
-    char str[128];
-    hal_send_str("Component                | Cycles\n");
-    hal_send_str("-------------------------|------------\n");
-    sprintf(str, "Gen Matrix (SHAKE128)    : %llu\n", t_gen_matrix);
-    hal_send_str(str);
-    sprintf(str, "Noise Gen (CBD)          : %llu\n", t_noise);
-    hal_send_str(str);
-    sprintf(str, "NTT (PolyVec)            : %llu\n", t_ntt);
-    hal_send_str(str);
-    sprintf(str, "Matrix-Vec Mul (BaseMul) : %llu\n", t_basemul);
-    hal_send_str(str);
-    sprintf(str, "InvNTT (PolyVec)         : %llu\n", t_invntt);
-    hal_send_str(str);
-    sprintf(str, "PolyVec Add              : %llu\n", t_add);
-    hal_send_str(str);
-}
-
 static void run_lowlevel_benchmark(void)
 {
     poly a, b, r;
@@ -408,30 +333,6 @@ static void run_lowlevel_benchmark(void)
     }
     t1 = hal_get_time();
     print_cycles("Poly Decompress (ASM)", (t1 - t0) / N_ITERATIONS);
-
-    t0 = hal_get_time();
-    for (i = 0; i < N_ITERATIONS * 10; i++)
-        z = c_fqmul(x, y);
-    t1 = hal_get_time();
-    print_cycles("Montgomery (C)", (t1 - t0) / (N_ITERATIONS * 10));
-
-    t0 = hal_get_time();
-    for (i = 0; i < N_ITERATIONS * 10; i++)
-        z = montgomery(x, y);
-    t1 = hal_get_time();
-    print_cycles("Montgomery (ASM)", (t1 - t0) / (N_ITERATIONS * 10));
-
-    t0 = hal_get_time();
-    for (i = 0; i < N_ITERATIONS * 10; i++)
-        z = c_barrett_reduce(x);
-    t1 = hal_get_time();
-    print_cycles("Barrett (C)", (t1 - t0) / (N_ITERATIONS * 10));
-
-    t0 = hal_get_time();
-    for (i = 0; i < N_ITERATIONS * 10; i++)
-        z = barrett(x);
-    t1 = hal_get_time();
-    print_cycles("Barrett (ASM)", (t1 - t0) / (N_ITERATIONS * 10));
 
     (void)z;
     (void)dummy_sink;
