@@ -334,18 +334,7 @@ static void run_lowlevel_benchmark(void)
     t1 = hal_get_time();
     print_cycles("CBD2 (new, C)", (t1 - t0) / N_ITERATIONS);
 
-    cbd_buf[0] = cbd_b0;
-    t0 = hal_get_time();
-    for (i = 0; i < N_ITERATIONS; i++)
-    {
-        cbd_buf[0] ^= (uint8_t)i;
-        poly_cbd_eta2(&cbd_r2, cbd_buf);
-        dummy_sink = cbd_r2.coeffs[0];
-    }
-    t1 = hal_get_time();
-    print_cycles("CBD2 (cbd.c)", (t1 - t0) / N_ITERATIONS);
-
-    t0 = hal_get_time();
+        t0 = hal_get_time();
     for (i = 0; i < N_ITERATIONS; i++)
     {
         c_ntt(a.coeffs);
