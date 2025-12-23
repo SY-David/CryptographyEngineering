@@ -43,47 +43,41 @@ poly_sub_s:
     pop             {r4, pc}
 .size poly_sub_s, .-poly_sub_s
 
-.macro COMPRESS_NIBBLE reg
-    ldrsh           \reg, [r1], #2
-    asr             r7, \reg, #15
+.macro COMPRESS_NIBBLE dst
+    ldrsh           \dst, [r1], #2
+    asr             r7, \dst, #15
     and             r7, r7, r3
-    add             \reg, \reg, r7
-    add             \reg, \reg, #104
-    mul             r7, \reg, r5
-    lsr             \reg, r7, #28
-
+    add             \dst, \dst, r7
+    add             \dst, \dst, #104
+    mul             r7, \dst, r5
+    lsr             \dst, r7, #28
 .endm
 
 .global poly_compress_s
 .type poly_compress_s, %function
 poly_compress_s:
     push            {r5, r7, lr}
-    movs            r2, #32
-    ldr             r3, =#3329
-
-    ldr             r5, =#1290160
+    mov             r2, #32
+    movw            r3, #3329
+    ldr             r5, =1290160
 .p2align 2
 loop_comp:
     COMPRESS_NIBBLE r6
-
     COMPRESS_NIBBLE r12
     orr             r6, r6, r12, lsl#4
     strb            r6, [r0], #1
 
     COMPRESS_NIBBLE r6
-
     COMPRESS_NIBBLE r12
     orr             r6, r6, r12, lsl#4
     strb            r6, [r0], #1
 
     COMPRESS_NIBBLE r6
-
     COMPRESS_NIBBLE r12
     orr             r6, r6, r12, lsl#4
     strb            r6, [r0], #1
 
     COMPRESS_NIBBLE r6
-
     COMPRESS_NIBBLE r12
     orr             r6, r6, r12, lsl#4
     strb            r6, [r0], #1
@@ -97,178 +91,211 @@ loop_comp:
 .type poly_decompress_s, %function
 poly_decompress_s:
     push            {r4, r6, r7, lr}
-    movs            r2, #128
-    ldr             r3, =3329
-    movs            r4, #8
+    mov             r2, #128
+    movw            r3, #3329
+    mov             r4, #8
+    tst             r0, #3
+    bne             loop_decomp_u
 .p2align 2
-loop_decomp:
+loop_decomp_a:
     ldrb            r6, [r1], #1
     and             r7, r6, #0x0F
-    mul             r7, r7, r3
-    add             r7, r7, r4
+    mla             r7, r7, r3, r4
+    lsr             r7, r7, #4
+    lsr             r6, r6, #4
+    mla             r6, r6, r3, r4
+    lsr             r6, r6, #4
+    orr             r7, r7, r6, lsl#16
+    str             r7, [r0], #4
+    subs            r2, r2, #1
+    bne             loop_decomp_a
+    pop             {r4, r6, r7, pc}
+.p2align 2
+loop_decomp_u:
+    ldrb            r6, [r1], #1
+    and             r7, r6, #0x0F
+    mla             r7, r7, r3, r4
     lsr             r7, r7, #4
     strh            r7, [r0], #2
-
-    lsrs            r6, r6, #4
-    mul             r6, r6, r3
-    add             r6, r6, r4
+    lsr             r6, r6, #4
+    mla             r6, r6, r3, r4
     lsr             r6, r6, #4
     strh            r6, [r0], #2
-
     subs            r2, r2, #1
-    bne             loop_decomp
+    bne             loop_decomp_u
     pop             {r4, r6, r7, pc}
 .size poly_decompress_s, .-poly_decompress_s
 
-.macro COMPRESS5_ITEM offset
-    ldrsh           r6, [r1], #2
-    asr             r7, r6, #15
-    and             r7, r7, r3
-    add             r6, r6, r7
-    add             r6, r6, #52
-    mul             r6, r6, r5
-    lsr             r6, r6, #27
-
-    strb            r6, [sp, #\offset]
+.macro COMPRESS5 dst
+    ldrsh           \dst, [r1], #2
+    asr             r12, \dst, #15
+    and             r12, r12, r3
+    add             \dst, \dst, r12
+    add             \dst, \dst, #52
+    mul             \dst, \dst, r5
+    lsr             \dst, \dst, #27
 .endm
 
 .global poly_compress160_s
 .type poly_compress160_s, %function
 poly_compress160_s:
-    push            {r5-r11, lr}
-    sub             sp, sp, #8
-    movs            r2, #32
-    ldr             r3, =3329
+    push            {r5, r6, r7, lr}
+    mov             r2, #32
+    movw            r3, #3329
     ldr             r5, =1290176
 .p2align 2
 loop_comp160:
-    COMPRESS5_ITEM  0
-    COMPRESS5_ITEM  1
-    COMPRESS5_ITEM  2
-    COMPRESS5_ITEM  3
-    COMPRESS5_ITEM  4
-    COMPRESS5_ITEM  5
-    COMPRESS5_ITEM  6
-    COMPRESS5_ITEM  7
+    COMPRESS5       r6
+    COMPRESS5       r7
+    orr             r12, r6, r7, lsl#5
+    strb            r12, [r0], #1
 
-    ldrb            r6, [sp, #0]
-    ldrb            r7, [sp, #1]
-    lsls            r12, r7, #5
-    orr             r6, r6, r12
-    strb            r6, [r0], #1
+    lsr             r12, r7, #3
+    COMPRESS5       r6
+    orr             r12, r12, r6, lsl#2
+    COMPRESS5       r7
+    orr             r12, r12, r7, lsl#7
+    strb            r12, [r0], #1
 
-    lsrs            r6, r7, #3
-    ldrb            r8, [sp, #2]
-    lsls            r12, r8, #2
-    orr             r6, r6, r12
-    ldrb            r9, [sp, #3]
-    lsls            r12, r9, #7
-    orr             r6, r6, r12
-    strb            r6, [r0], #1
+    lsr             r12, r7, #1
+    COMPRESS5       r6
+    orr             r12, r12, r6, lsl#4
+    strb            r12, [r0], #1
 
-    lsrs            r6, r9, #1
-    ldrb            r10, [sp, #4]
-    lsls            r12, r10, #4
-    orr             r6, r6, r12
-    strb            r6, [r0], #1
+    lsr             r12, r6, #4
+    COMPRESS5       r7
+    orr             r12, r12, r7, lsl#1
+    COMPRESS5       r6
+    orr             r12, r12, r6, lsl#6
+    strb            r12, [r0], #1
 
-    lsrs            r6, r10, #4
-    ldrb            r11, [sp, #5]
-    lsls            r12, r11, #1
-    orr             r6, r6, r12
-    ldrb            r9, [sp, #6]
-    lsls            r12, r9, #6
-    orr             r6, r6, r12
-    strb            r6, [r0], #1
-
-    lsrs            r6, r9, #2
-    ldrb            r8, [sp, #7]
-    lsls            r12, r8, #3
-    orr             r6, r6, r12
-    strb            r6, [r0], #1
+    lsr             r12, r6, #2
+    COMPRESS5       r7
+    orr             r12, r12, r7, lsl#3
+    strb            r12, [r0], #1
 
     subs            r2, r2, #1
     bne             loop_comp160
-    add             sp, sp, #8
-    pop             {r5-r11, pc}
+    pop             {r5, r6, r7, pc}
 .size poly_compress160_s, .-poly_compress160_s
 
 .global poly_decompress160_s
 .type poly_decompress160_s, %function
 poly_decompress160_s:
-    push            {r4, r6-r11, lr}
-    movs            r2, #32
-    ldr             r3, =3329
-    movs            r4, #16
+    push            {r4, r5, r6, r7, lr}
+    mov             r2, #32
+    movw            r3, #3329
+    mov             r4, #16
+    tst             r0, #3
+    bne             loop_decomp160_u
 .p2align 2
-loop_decomp160:
+loop_decomp160_a:
     ldrb            r6, [r1], #1
+    ldrb            r5, [r1], #1
+    orr             r6, r6, r5, lsl#8
+    ldrb            r5, [r1], #1
+    orr             r6, r6, r5, lsl#16
+    ldrb            r5, [r1], #1
+    orr             r6, r6, r5, lsl#24
     ldrb            r7, [r1], #1
-    ldrb            r8, [r1], #1
-    ldrb            r9, [r1], #1
-    ldrb            r10, [r1], #1
 
-    mov             r11, r6
-    and             r11, r11, #31
-    mul             r11, r11, r3
-    add             r11, r11, r4
-    lsr             r11, r11, #5
-    strh            r11, [r0], #2
+    ubfx            r12, r6, #0, #5
+    mla             r12, r12, r3, r4
+    lsr             r12, r12, #5
+    ubfx            r5, r6, #5, #5
+    mla             r5, r5, r3, r4
+    lsr             r5, r5, #5
+    orr             r12, r12, r5, lsl#16
+    str             r12, [r0], #4
 
-    lsr             r11, r6, #5
-    orr             r11, r11, r7, lsl#3
-    and             r11, r11, #31
-    mul             r11, r11, r3
-    add             r11, r11, r4
-    lsr             r11, r11, #5
-    strh            r11, [r0], #2
+    ubfx            r12, r6, #10, #5
+    mla             r12, r12, r3, r4
+    lsr             r12, r12, #5
+    ubfx            r5, r6, #15, #5
+    mla             r5, r5, r3, r4
+    lsr             r5, r5, #5
+    orr             r12, r12, r5, lsl#16
+    str             r12, [r0], #4
 
-    lsr             r11, r7, #2
-    and             r11, r11, #31
-    mul             r11, r11, r3
-    add             r11, r11, r4
-    lsr             r11, r11, #5
-    strh            r11, [r0], #2
+    ubfx            r12, r6, #20, #5
+    mla             r12, r12, r3, r4
+    lsr             r12, r12, #5
+    ubfx            r5, r6, #25, #5
+    mla             r5, r5, r3, r4
+    lsr             r5, r5, #5
+    orr             r12, r12, r5, lsl#16
+    str             r12, [r0], #4
 
-    lsr             r11, r7, #7
-    orr             r11, r11, r8, lsl#1
-    and             r11, r11, #31
-    mul             r11, r11, r3
-    add             r11, r11, r4
-    lsr             r11, r11, #5
-    strh            r11, [r0], #2
-
-    lsr             r11, r8, #4
-    orr             r11, r11, r9, lsl#4
-    and             r11, r11, #31
-    mul             r11, r11, r3
-    add             r11, r11, r4
-    lsr             r11, r11, #5
-    strh            r11, [r0], #2
-
-    lsr             r11, r9, #1
-    and             r11, r11, #31
-    mul             r11, r11, r3
-    add             r11, r11, r4
-    lsr             r11, r11, #5
-    strh            r11, [r0], #2
-
-    lsr             r11, r9, #6
-    orr             r11, r11, r10, lsl#2
-    and             r11, r11, #31
-    mul             r11, r11, r3
-    add             r11, r11, r4
-    lsr             r11, r11, #5
-    strh            r11, [r0], #2
-
-    lsr             r11, r10, #3
-    and             r11, r11, #31
-    mul             r11, r11, r3
-    add             r11, r11, r4
-    lsr             r11, r11, #5
-    strh            r11, [r0], #2
+    mov             lr, r7
+    and             r7, r7, #7
+    ubfx            r12, r6, #30, #2
+    orr             r12, r12, r7, lsl#2
+    mla             r12, r12, r3, r4
+    lsr             r12, r12, #5
+    lsr             r5, lr, #3
+    mla             r5, r5, r3, r4
+    lsr             r5, r5, #5
+    orr             r12, r12, r5, lsl#16
+    str             r12, [r0], #4
 
     subs            r2, r2, #1
-    bne             loop_decomp160
-    pop             {r4, r6-r11, pc}
+    bne             loop_decomp160_a
+    pop             {r4, r5, r6, r7, pc}
+.p2align 2
+loop_decomp160_u:
+    ldrb            r6, [r1], #1
+    ldrb            r5, [r1], #1
+    orr             r6, r6, r5, lsl#8
+    ldrb            r5, [r1], #1
+    orr             r6, r6, r5, lsl#16
+    ldrb            r5, [r1], #1
+    orr             r6, r6, r5, lsl#24
+    ldrb            r7, [r1], #1
+
+    ubfx            r12, r6, #0, #5
+    mla             r12, r12, r3, r4
+    lsr             r12, r12, #5
+    strh            r12, [r0], #2
+
+    ubfx            r12, r6, #5, #5
+    mla             r12, r12, r3, r4
+    lsr             r12, r12, #5
+    strh            r12, [r0], #2
+
+    ubfx            r12, r6, #10, #5
+    mla             r12, r12, r3, r4
+    lsr             r12, r12, #5
+    strh            r12, [r0], #2
+
+    ubfx            r12, r6, #15, #5
+    mla             r12, r12, r3, r4
+    lsr             r12, r12, #5
+    strh            r12, [r0], #2
+
+    ubfx            r12, r6, #20, #5
+    mla             r12, r12, r3, r4
+    lsr             r12, r12, #5
+    strh            r12, [r0], #2
+
+    ubfx            r12, r6, #25, #5
+    mla             r12, r12, r3, r4
+    lsr             r12, r12, #5
+    strh            r12, [r0], #2
+
+    mov             lr, r7
+    and             r7, r7, #7
+    ubfx            r12, r6, #30, #2
+    orr             r12, r12, r7, lsl#2
+    mla             r12, r12, r3, r4
+    lsr             r12, r12, #5
+    strh            r12, [r0], #2
+
+    lsr             r12, lr, #3
+    mla             r12, r12, r3, r4
+    lsr             r12, r12, #5
+    strh            r12, [r0], #2
+
+    subs            r2, r2, #1
+    bne             loop_decomp160_u
+    pop             {r4, r5, r6, r7, pc}
 .size poly_decompress160_s, .-poly_decompress160_s
