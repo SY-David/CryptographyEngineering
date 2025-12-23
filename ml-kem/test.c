@@ -118,66 +118,6 @@ static void c_basemul(int16_t r[2], const int16_t a[2], const int16_t b[2], int1
     r[1] += c_fqmul(a[1], b[0]);
 }
 
-static inline uint32_t test_load32_littleendian(const uint8_t x[4])
-{
-    return (uint32_t)x[0] | ((uint32_t)x[1] << 8) | ((uint32_t)x[2] << 16) | ((uint32_t)x[3] << 24);
-}
-
-#if KYBER_ETA1 == 3
-static inline uint32_t test_load24_littleendian(const uint8_t x[3])
-{
-    return (uint32_t)x[0] | ((uint32_t)x[1] << 8) | ((uint32_t)x[2] << 16);
-}
-#endif
-
-static inline void cbd2_ref(poly *r, const uint8_t buf[2 * KYBER_N / 4])
-{
-    unsigned int i, j;
-    uint32_t t, d, d0;
-    int16_t a, b;
-
-    for (i = 0; i < KYBER_N / 8; i++)
-    {
-        t = test_load32_littleendian(buf + 4 * i);
-        d = t & 0x55555555;
-        d += (t >> 1) & 0x55555555;
-
-        d0 = d;
-        for (j = 0; j < 8; j++)
-        {
-            a = d0 & 0x3;
-            b = (d0 >> 2) & 0x3;
-            r->coeffs[8 * i + j] = a - b;
-            d0 >>= 4;
-        }
-    }
-}
-
-static inline void cbd2_new(poly *r, const uint8_t buf[2 * KYBER_N / 4])
-{
-    uint32_t t0, t1, d0, d1;
-    int16_t a[8], b[8];
-    unsigned int i, j;
-
-    for (i = 0; i < KYBER_N / 8; i++)
-    {
-        t0 = test_load32_littleendian(buf + 4 * i);
-        t1 = t0 >> 1;
-
-        d0 = t0 & 0x55555555;
-        d1 = t1 & 0x55555555;
-
-        d0 += d1;
-
-        for (j = 0; j < 8; j++)
-        {
-            a[j] = (int16_t)((d0 >> (4 * j)) & 0x3);
-            b[j] = (int16_t)((d0 >> (4 * j + 2)) & 0x3);
-            r->coeffs[8 * i + j] = a[j] - b[j];
-        }
-    }
-}
-
 static void c_poly_add(poly *r, const poly *a, const poly *b)
 {
     unsigned int i;
@@ -255,11 +195,8 @@ static void run_lowlevel_benchmark(void)
     poly a, b, r;
     uint8_t buf[128];
 
-    poly cbd_r0, cbd_r1, cbd_r2;
-    uint8_t cbd_buf[2 * KYBER_N / 4];
-    uint8_t cbd_b0;
-    int cbd_mismatch;
-    char cbd_str[80];
+    volatile int16_t x, y, z = 0, zeta;
+    int16_t rand_scalars[4];
 
     volatile int16_t dummy_sink;
     volatile uint8_t dummy_sink_u8;
@@ -269,8 +206,11 @@ static void run_lowlevel_benchmark(void)
 
     randombytes((uint8_t *)&a, sizeof(poly));
     randombytes((uint8_t *)&b, sizeof(poly));
-    randombytes((uint8_t *)cbd_buf, sizeof(cbd_buf));
-    cbd_b0 = cbd_buf[0];
+    randombytes((uint8_t *)rand_scalars, sizeof(rand_scalars));
+
+    x = rand_scalars[0];
+    y = rand_scalars[1];
+    zeta = rand_scalars[2];
 
     for (i = 0; i < KYBER_N; i++)
     {
@@ -282,59 +222,7 @@ static void run_lowlevel_benchmark(void)
     hal_send_str("Function                 | Performance\n");
     hal_send_str("-------------------------|----------------\n");
 
-    cbd2_ref(&cbd_r0, cbd_buf);
-    cbd2_new(&cbd_r1, cbd_buf);
-    poly_cbd_eta2(&cbd_r2, cbd_buf);
-
-    cbd_mismatch = -1;
-    for (i = 0; i < KYBER_N; i++)
-        if (cbd_r0.coeffs[i] != cbd_r2.coeffs[i])
-        {
-            cbd_mismatch = i;
-            break;
-        }
-    if (cbd_mismatch >= 0)
-    {
-        sprintf(cbd_str, "CBD mismatch: cbd2_ref vs poly_cbd_eta2 at %d\n", cbd_mismatch);
-        hal_send_str(cbd_str);
-    }
-
-    cbd_mismatch = -1;
-    for (i = 0; i < KYBER_N; i++)
-        if (cbd_r1.coeffs[i] != cbd_r2.coeffs[i])
-        {
-            cbd_mismatch = i;
-            break;
-        }
-    if (cbd_mismatch >= 0)
-    {
-        sprintf(cbd_str, "CBD mismatch: cbd2_new vs poly_cbd_eta2 at %d\n", cbd_mismatch);
-        hal_send_str(cbd_str);
-    }
-
-    cbd_buf[0] = cbd_b0;
     t0 = hal_get_time();
-    for (i = 0; i < N_ITERATIONS; i++)
-    {
-        cbd_buf[0] ^= (uint8_t)i;
-        cbd2_ref(&cbd_r0, cbd_buf);
-        dummy_sink = cbd_r0.coeffs[0];
-    }
-    t1 = hal_get_time();
-    print_cycles("CBD2 (ref, C)", (t1 - t0) / N_ITERATIONS);
-
-    cbd_buf[0] = cbd_b0;
-    t0 = hal_get_time();
-    for (i = 0; i < N_ITERATIONS; i++)
-    {
-        cbd_buf[0] ^= (uint8_t)i;
-        cbd2_new(&cbd_r1, cbd_buf);
-        dummy_sink = cbd_r1.coeffs[0];
-    }
-    t1 = hal_get_time();
-    print_cycles("CBD2 (new, C)", (t1 - t0) / N_ITERATIONS);
-
-        t0 = hal_get_time();
     for (i = 0; i < N_ITERATIONS; i++)
     {
         c_ntt(a.coeffs);
@@ -446,6 +334,7 @@ static void run_lowlevel_benchmark(void)
     t1 = hal_get_time();
     print_cycles("Poly Decompress (ASM)", (t1 - t0) / N_ITERATIONS);
 
+    (void)z;
     (void)dummy_sink;
     (void)dummy_sink_u8;
 }
