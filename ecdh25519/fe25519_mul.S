@@ -10,16 +10,16 @@ fe25519_mul_core_s:
 
     push    {r4, r5, r6, r7, r8, r9, r10, fp, lr}
     sub     sp, sp, #172
-    ldr     r3, [r0]@ unaligned
-    ldr     r4, [r0, #4]@ unaligned
+    ldr     r3, [r0]
+    ldr     r4, [r0, #4]
     str     r2, [sp, #44]
     bic     lr, r3, #-67108864
-    ldr     r2, [r0, #8]          @ unaligned
-    ldr     r7, [r1, #24]         @ unaligned
-    ldr     r5, [r1, #28]         @ unaligned
-    ldr     r9, [r1, #20]         @ unaligned
-    ldr     ip, [r1]@ unaligned
-    ldr     r10, [r0, #28]@ unaligned
+    ldr     r2, [r0, #8]
+    ldr     r7, [r1, #24]
+    ldr     r5, [r1, #28]
+    ldr     r9, [r1, #20]
+    ldr     ip, [r1]
+    ldr     r10, [r0, #28]
     str     lr, [sp, #28]
     lsrs    r3, r3, #26
     orr     r3, r3, r4, lsl#6
@@ -27,8 +27,8 @@ fe25519_mul_core_s:
     orr     r4, r4, r2, lsl#13
     bic     fp, r3, #-33554432
     bic     r3, r4, #-67108864
-    ldr     r4, [r0, #12]         @ unaligned
-    ldr     lr, [r0, #20]         @ unaligned
+    ldr     r4, [r0, #12]
+    ldr     lr, [r0, #20]
     str     fp, [sp, #32]
     lsrs    r2, r2, #13
     orr     r2, r2, r4, lsl#19
@@ -49,10 +49,10 @@ fe25519_mul_core_s:
     orr     r5, r5, r7, lsl#13
     bic     fp, r5, #-33554432
     str     r6, [sp, #108]
-    ldr     r5, [r0, #16]         @ unaligned
-    ldr     r6, [r0, #24]         @ unaligned
-    ldr     r0, [r1, #4]          @ unaligned
-    ldr     r8, [r1, #16]         @ unaligned
+    ldr     r5, [r0, #16]
+    ldr     r6, [r0, #24]
+    ldr     r0, [r1, #4]
+    ldr     r8, [r1, #16]
     str     r2, [sp, #72]
     bic     r7, ip, #-67108864
     lsr     ip, ip, #26
@@ -70,14 +70,14 @@ fe25519_mul_core_s:
     orr     r6, r6, r9, lsl#7
     bic     r9, r6, #-67108864
     str     r9, [sp, #88]
-    ldr     r6, [r1, #8]@ unaligned
+    ldr     r6, [r1, #8]
     str     r10, [sp, #12]
     bic     r9, r8, #-33554432
     bic     ip, ip, #-33554432
     str     ip, [sp, #60]
     str     r9, [sp, #52]
     lsrs    r0, r0, #19
-    ldr     r1, [r1, #12]@ unaligned
+    ldr     r1, [r1, #12]
     str     fp, [sp, #104]
     orr     r0, r0, r6, lsl#13
     lsrs    r6, r6, #13
@@ -572,22 +572,22 @@ fe25519_mul_core_s:
 .global fe25519_square_core_s
 fe25519_square_core_s:
     push    {r4, r5, r6, r7, r8, r9, r10, fp, lr}
-    ldr     r4, [r0]@ unaligned
-    ldr     r2, [r0, #4]          @ unaligned
-    ldr     r5, [r0, #24]         @ unaligned
-    ldr     r6, [r0, #12]         @ unaligned
+    ldr     r4, [r0]
+    ldr     r2, [r0, #4]
+    ldr     r5, [r0, #24]
+    ldr     r6, [r0, #12]
     lsrs    r3, r4, #26
     orr     r3, r3, r2, lsl#6
     bic     r7, r3, #-33554432
-    ldr     r3, [r0, #8]@ unaligned
+    ldr     r3, [r0, #8]
     lsrs    r2, r2, #19
     bic     fp, r4, #-67108864
     orr     r2, r2, r3, lsl#13
-    ldr     r4, [r0, #28]@ unaligned
+    ldr     r4, [r0, #28]
     mov     r10, r1
     bic     r9, r2, #-67108864
-    ldr     r1, [r0, #20]         @ unaligned
-    ldr     r0, [r0, #16]         @ unaligned
+    ldr     r1, [r0, #20]
+    ldr     r0, [r0, #16]
     lsrs    r2, r5, #12
     lsrs    r3, r3, #13
     sub     sp, sp, #108
