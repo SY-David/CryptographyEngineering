@@ -102,6 +102,108 @@ static void contract_limbs(unsigned char out[32], const int64_t in[10])
   {
     f[i] = in[i];
   }
+
+#define REDUCE_MASK_26 ((int64_t)((1 << 26) - 1))
+#define REDUCE_MASK_25 ((int64_t)((1 << 25) - 1))
+
+#define CARRY_PASS()        \
+  do                        \
+  {                         \
+    f[1] += f[0] >> 26;     \
+    f[0] &= REDUCE_MASK_26; \
+    f[2] += f[1] >> 25;     \
+    f[1] &= REDUCE_MASK_25; \
+    f[3] += f[2] >> 26;     \
+    f[2] &= REDUCE_MASK_26; \
+    f[4] += f[3] >> 25;     \
+    f[3] &= REDUCE_MASK_25; \
+    f[5] += f[4] >> 26;     \
+    f[4] &= REDUCE_MASK_26; \
+    f[6] += f[5] >> 25;     \
+    f[5] &= REDUCE_MASK_25; \
+    f[7] += f[6] >> 26;     \
+    f[6] &= REDUCE_MASK_26; \
+    f[8] += f[7] >> 25;     \
+    f[7] &= REDUCE_MASK_25; \
+    f[9] += f[8] >> 26;     \
+    f[8] &= REDUCE_MASK_26; \
+  } while (0)
+
+#define CARRY_PASS_FULL()      \
+  do                           \
+  {                            \
+    CARRY_PASS();              \
+    f[0] += 19 * (f[9] >> 25); \
+    f[9] &= REDUCE_MASK_25;    \
+  } while (0)
+
+#define CARRY_PASS_FINAL()  \
+  do                        \
+  {                         \
+    CARRY_PASS();           \
+    f[9] &= REDUCE_MASK_25; \
+  } while (0)
+
+  CARRY_PASS_FULL();
+  CARRY_PASS_FULL();
+
+  f[0] += 19;
+  CARRY_PASS_FULL();
+
+  f[0] += ((int64_t)1 << 26) - 19;
+  f[1] += ((int64_t)1 << 25) - 1;
+  f[2] += ((int64_t)1 << 26) - 1;
+  f[3] += ((int64_t)1 << 25) - 1;
+  f[4] += ((int64_t)1 << 26) - 1;
+  f[5] += ((int64_t)1 << 25) - 1;
+  f[6] += ((int64_t)1 << 26) - 1;
+  f[7] += ((int64_t)1 << 25) - 1;
+  f[8] += ((int64_t)1 << 26) - 1;
+  f[9] += ((int64_t)1 << 25) - 1;
+
+  CARRY_PASS_FINAL();
+
+#undef CARRY_PASS
+#undef CARRY_PASS_FULL
+#undef CARRY_PASS_FINAL
+#undef REDUCE_MASK_26
+#undef REDUCE_MASK_25
+
+  f[1] <<= 2;
+  f[2] <<= 3;
+  f[3] <<= 5;
+  f[4] <<= 6;
+  f[6] <<= 1;
+  f[7] <<= 3;
+  f[8] <<= 4;
+  f[9] <<= 6;
+
+  for (int i = 0; i < 32; ++i)
+  {
+    out[i] = 0;
+  }
+
+#define STORE_LIMB(i, offset)                               \
+  do                                                        \
+  {                                                         \
+    out[offset + 0] |= (unsigned char)(f[i] & 0xff);        \
+    out[offset + 1] = (unsigned char)((f[i] >> 8) & 0xff);  \
+    out[offset + 2] = (unsigned char)((f[i] >> 16) & 0xff); \
+    out[offset + 3] = (unsigned char)((f[i] >> 24) & 0xff); \
+  } while (0)
+
+  STORE_LIMB(0, 0);
+  STORE_LIMB(1, 3);
+  STORE_LIMB(2, 6);
+  STORE_LIMB(3, 9);
+  STORE_LIMB(4, 12);
+  STORE_LIMB(5, 16);
+  STORE_LIMB(6, 19);
+  STORE_LIMB(7, 22);
+  STORE_LIMB(8, 25);
+  STORE_LIMB(9, 28);
+
+#undef STORE_LIMB
 }
 
 void fe25519_freeze(fe25519 *r)
