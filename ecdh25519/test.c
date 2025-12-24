@@ -114,7 +114,7 @@ static void run_comparison_benchmark(void)
   char cycles_str[64];
   int i;
   int iterations = 1000;
-  int iterations_invsqrt = 100; /* invsqrt is expensive; keep it smaller */
+  int iterations_invsqrt = 100;
 
   get_random_32bytes(rand_bytes1);
   get_random_32bytes(rand_bytes2);
@@ -187,11 +187,7 @@ static void run_comparison_benchmark(void)
 #endif
   hal_send_str(cycles_str);
 
-  /* ---- invsqrt benchmark (same style) ----
-     Note: fe25519_invsqrt_original() uses C mul/sqr but calls fe25519_pow2523()
-     (likely optimized). So this is NOT a fully "pure C" reference end-to-end.
-  */
-  cycles = hal_get_time();
+   cycles = hal_get_time();
   for (i = 0; i < iterations_invsqrt; i++)
   {
     fe25519_invsqrt_original((fe25519 *)v_r, (fe25519 *)v_a);
