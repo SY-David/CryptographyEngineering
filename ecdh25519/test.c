@@ -103,31 +103,7 @@ void fe25519_invsqrt_original(fe25519 *r, const fe25519 *x)
 
   *r = t;
 }
-void fe25519_invsqrt(fe25519 *r, const fe25519 *x)
-{
-  fe25519 den2, den3, den4, den6, chk, t, t2;
-  int b;
 
-  fe25519_square(&den2, x);
-  fe25519_mul(&den3, &den2, x);
-
-  fe25519_square(&den4, &den2);
-  fe25519_mul(&den6, &den2, &den4);
-  fe25519_mul(&t, &den6, x);
-
-  fe25519_pow2523(&t, &t);
-  fe25519_mul(&t, &t, &den3);
-
-  fe25519_square(&chk, &t);
-  fe25519_mul(&chk, &chk, x);
-
-  fe25519_mul(&t2, &t, &fe25519_sqrtm1);
-  b = 1 - fe25519_isone(&chk);
-
-  fe25519_cmov(&t, &t2, b);
-
-  *r = t;
-}
 static void run_comparison_benchmark(void)
 {
   fe25519 a, b, r;
