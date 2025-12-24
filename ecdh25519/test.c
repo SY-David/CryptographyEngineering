@@ -4,12 +4,8 @@
 #include "group.h"
 #include "smult.h"
 #include "hal.h"
-#include "fe25519.h" // 引入 fe25519 定義
+#include "fe25519.h"
 
-// ==========================================
-// [新增部分] 1. 簡單的亂數產生器 (Xorshift32)
-// 為了不依賴外部 randombytes.c，我們直接在這裡實作一個
-// ==========================================
 static uint32_t rng_state = 123456789;
 
 static uint32_t xorshift32(void)
@@ -22,7 +18,6 @@ static uint32_t xorshift32(void)
   return x;
 }
 
-// 產生 32 bytes 的隨機數據
 static void get_random_32bytes(unsigned char *out)
 {
   for (int i = 0; i < 8; i++)
@@ -31,11 +26,6 @@ static void get_random_32bytes(unsigned char *out)
     memcpy(out + i * 4, &r, 4);
   }
 }
-
-// ==========================================
-// [新增部分] 2. 純 C 語言的 fe25519 實作 (Reference)
-// 加上 static 防止與專案其他檔案衝突
-// ==========================================
 
 static uint32_t times19(uint32_t a)
 {
@@ -66,7 +56,6 @@ static void reduce_mul_c(fe25519 *r)
   }
 }
 
-// 這是 "基準版" 的 C 語言乘法
 static void fe25519_mul_c(fe25519 *r, const fe25519 *x, const fe25519 *y)
 {
   int i, j;
@@ -85,15 +74,60 @@ static void fe25519_mul_c(fe25519 *r, const fe25519 *x, const fe25519 *y)
   reduce_mul_c(r);
 }
 
-// 這是 "基準版" 的 C 語言平方
 static void fe25519_square_c(fe25519 *r, const fe25519 *x)
 {
   fe25519_mul_c(r, x, x);
 }
+void fe25519_invsqrt_original(fe25519 *r, const fe25519 *x)
+{
+  fe25519 den2, den3, den4, den6, chk, t, t2;
+  int b;
 
-// ==========================================
-// [新增部分] 3. 效能測試函式
-// ==========================================
+  fe25519_square_c(&den2, x);
+  fe25519_mul_c(&den3, &den2, x);
+
+  fe25519_square_c(&den4, &den2);
+  fe25519_mul_c(&den6, &den2, &den4);
+  fe25519_mul_c(&t, &den6, x);
+
+  fe25519_pow2523(&t, &t);
+  fe25519_mul_c(&t, &t, &den3);
+
+  fe25519_square_c(&chk, &t);
+  fe25519_mul_c(&chk, &chk, x);
+
+  fe25519_mul_c(&t2, &t, &fe25519_sqrtm1);
+  b = 1 - fe25519_isone(&chk);
+
+  fe25519_cmov(&t, &t2, b);
+
+  *r = t;
+}
+void fe25519_invsqrt(fe25519 *r, const fe25519 *x)
+{
+  fe25519 den2, den3, den4, den6, chk, t, t2;
+  int b;
+
+  fe25519_square(&den2, x);
+  fe25519_mul(&den3, &den2, x);
+
+  fe25519_square(&den4, &den2);
+  fe25519_mul(&den6, &den2, &den4);
+  fe25519_mul(&t, &den6, x);
+
+  fe25519_pow2523(&t, &t);
+  fe25519_mul(&t, &t, &den3);
+
+  fe25519_square(&chk, &t);
+  fe25519_mul(&chk, &chk, x);
+
+  fe25519_mul(&t2, &t, &fe25519_sqrtm1);
+  b = 1 - fe25519_isone(&chk);
+
+  fe25519_cmov(&t, &t2, b);
+
+  *r = t;
+}
 static void run_comparison_benchmark(void)
 {
   fe25519 a, b, r;
@@ -104,21 +138,19 @@ static void run_comparison_benchmark(void)
   char cycles_str[64];
   int i;
   int iterations = 1000;
+  int iterations_invsqrt = 100; /* invsqrt is expensive; keep it smaller */
 
-  // 使用隨機輸入，防止編譯器優化掉運算
   get_random_32bytes(rand_bytes1);
   get_random_32bytes(rand_bytes2);
   fe25519_unpack(&a, rand_bytes1);
   fe25519_unpack(&b, rand_bytes2);
 
-  // 使用 volatile 指標
   volatile fe25519 *v_a = &a;
   volatile fe25519 *v_b = &b;
   volatile fe25519 *v_r = &r;
 
-  hal_send_str("\n=== New Benchmark: C vs ASM Core Operations (1000 iter) ===\n");
+  hal_send_str("\n=== New Benchmark: C vs ASM Core Operations ===\n");
 
-  // --- 1. Mul: C Implementation ---
   cycles = hal_get_time();
   for (i = 0; i < iterations; i++)
   {
@@ -126,7 +158,7 @@ static void run_comparison_benchmark(void)
   }
   cycles = hal_get_time() - cycles;
 
-  hal_send_str("fe25519_mul (Pure C):   ");
+  hal_send_str("fe25519_mul (C mul):        ");
 #ifdef MPS2_AN386
   sprintf(cycles_str, "N/A (QEMU)\n");
 #else
@@ -134,8 +166,6 @@ static void run_comparison_benchmark(void)
 #endif
   hal_send_str(cycles_str);
 
-  // --- 2. Mul: ASM Implementation ---
-  // 這裡呼叫的是專案原本的 fe25519_mul，它會去呼叫您的 .S 檔案
   cycles = hal_get_time();
   for (i = 0; i < iterations; i++)
   {
@@ -143,7 +173,7 @@ static void run_comparison_benchmark(void)
   }
   cycles = hal_get_time() - cycles;
 
-  hal_send_str("fe25519_mul (Assembly): ");
+  hal_send_str("fe25519_mul (ASM mul):      ");
 #ifdef MPS2_AN386
   sprintf(cycles_str, "N/A (QEMU)\n");
 #else
@@ -151,7 +181,6 @@ static void run_comparison_benchmark(void)
 #endif
   hal_send_str(cycles_str);
 
-  // --- 3. Square: C Implementation ---
   cycles = hal_get_time();
   for (i = 0; i < iterations; i++)
   {
@@ -159,7 +188,7 @@ static void run_comparison_benchmark(void)
   }
   cycles = hal_get_time() - cycles;
 
-  hal_send_str("fe25519_sqr (Pure C):   ");
+  hal_send_str("fe25519_sqr (C sqr):        ");
 #ifdef MPS2_AN386
   sprintf(cycles_str, "N/A (QEMU)\n");
 #else
@@ -167,7 +196,6 @@ static void run_comparison_benchmark(void)
 #endif
   hal_send_str(cycles_str);
 
-  // --- 4. Square: ASM Implementation ---
   cycles = hal_get_time();
   for (i = 0; i < iterations; i++)
   {
@@ -175,7 +203,41 @@ static void run_comparison_benchmark(void)
   }
   cycles = hal_get_time() - cycles;
 
-  hal_send_str("fe25519_sqr (Assembly): ");
+  hal_send_str("fe25519_sqr (ASM sqr):      ");
+#ifdef MPS2_AN386
+  sprintf(cycles_str, "N/A (QEMU)\n");
+#else
+  sprintf(cycles_str, "%llu cycles\n", cycles);
+#endif
+  hal_send_str(cycles_str);
+
+  /* ---- invsqrt benchmark (same style) ----
+     Note: fe25519_invsqrt_original() uses C mul/sqr but calls fe25519_pow2523()
+     (likely optimized). So this is NOT a fully "pure C" reference end-to-end.
+  */
+  cycles = hal_get_time();
+  for (i = 0; i < iterations_invsqrt; i++)
+  {
+    fe25519_invsqrt_original((fe25519 *)v_r, (fe25519 *)v_a);
+  }
+  cycles = hal_get_time() - cycles;
+
+  hal_send_str("fe25519_invsqrt (C mul/sqr): ");
+#ifdef MPS2_AN386
+  sprintf(cycles_str, "N/A (QEMU)\n");
+#else
+  sprintf(cycles_str, "%llu cycles\n", cycles);
+#endif
+  hal_send_str(cycles_str);
+
+  cycles = hal_get_time();
+  for (i = 0; i < iterations_invsqrt; i++)
+  {
+    fe25519_invsqrt((fe25519 *)v_r, (fe25519 *)v_a);
+  }
+  cycles = hal_get_time() - cycles;
+
+  hal_send_str("fe25519_invsqrt (ASM core):  ");
 #ifdef MPS2_AN386
   sprintf(cycles_str, "N/A (QEMU)\n");
 #else
@@ -185,10 +247,6 @@ static void run_comparison_benchmark(void)
 
   hal_send_str("===========================================================\n");
 }
-
-// ==========================================
-// 以下是原本的測試程式碼 (保持不變)
-// ==========================================
 
 unsigned char sk0[32] = {0xb1, 0x7a, 0xa0, 0x76, 0x93, 0xd7, 0x8d, 0x70, 0xfb, 0x44, 0x3a, 0x5b, 0xf1, 0xc6, 0x90, 0xe2,
                          0xc3, 0x79, 0x39, 0x6f, 0x56, 0xac, 0xc5, 0x5f, 0xb5, 0xfc, 0x1c, 0xc5, 0x58, 0xa2, 0xd9, 0x85};
@@ -293,7 +351,6 @@ static void run_stack(void)
 
   hal_send_str("\n=== Stack Usage Measurements ===\n");
 
-  // Measure stack usage for crypto_scalarmult_base (public key generation)
   hal_send_str("Measuring crypto_scalarmult_base stack usage...\n");
   hal_spraystack();
   crypto_scalarmult_base(pk, sk0);
@@ -301,7 +358,6 @@ static void run_stack(void)
   sprintf(outstr, "stack usage for crypto_scalarmult_base: %zu bytes", stack_usage);
   hal_send_str(outstr);
 
-  // Measure stack usage for crypto_scalarmult (shared secret computation)
   hal_send_str("Measuring crypto_scalarmult stack usage...\n");
   hal_spraystack();
   crypto_scalarmult(ss, sk0, pk);
@@ -316,16 +372,12 @@ int main(void)
 {
   hal_setup(CLOCK_BENCHMARK);
 
-  // 1. 執行新加入的 C vs ASM 對比測試
   run_comparison_benchmark();
 
-  // 2. 執行原有的測試向量檢查
   int test_result = run_tests();
 
-  // 3. 執行原有的高層速度測試
   run_speed();
 
-  // 4. 執行原有的 Stack 測試
   run_stack();
 
   if (test_result != 0)
